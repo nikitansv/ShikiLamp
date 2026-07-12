@@ -31,11 +31,20 @@ function addContentController(instance) {
       if (typeof Navigator !== 'undefined' && Navigator.move) Navigator.move('right');
     },
     up: function () {
-      if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) Navigator.move('up');
-      else Lampa.Controller.toggle('head');
+      if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) {
+        Navigator.move('up');
+      } else if (instance.html && instance.html.scrollTop > 0) {
+        instance.html.scrollTop = Math.max(0, instance.html.scrollTop - 260);
+      } else {
+        Lampa.Controller.toggle('head');
+      }
     },
     down: function () {
-      if (typeof Navigator !== 'undefined' && Navigator.move) Navigator.move('down');
+      if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('down')) {
+        Navigator.move('down');
+      } else if (instance.html) {
+        instance.html.scrollTop += 260;
+      }
     },
     back: function () {
       if (Lampa.Activity && Lampa.Activity.backward) Lampa.Activity.backward();

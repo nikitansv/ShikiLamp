@@ -10,7 +10,6 @@ const api = require('./api');
 const styles = require('./ui/styles');
 
 const Home = require('./components/home');
-const Search = require('./components/search');
 const Anime = require('./components/anime');
 const Line = require('./components/line');
 const Mapping = require('./components/mapping');
@@ -52,7 +51,6 @@ function registerComponents() {
   const Lampa = window.Lampa;
   const components = {
     shikimori_local_home: lifecycle.attachLifecycle(Home),
-    shikimori_local_search: lifecycle.attachLifecycle(Search),
     shikimori_local_anime: lifecycle.attachLifecycle(Anime),
     shikimori_local_line: lifecycle.attachLifecycle(Line),
     shikimori_local_mapping: lifecycle.attachLifecycle(Mapping),

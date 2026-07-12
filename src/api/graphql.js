@@ -95,7 +95,7 @@ function ongoingAnimes(limit, page) {
 function releasedAnimes(limit, page) {
   return buildRequest(`
     query ReleasedAnimes($limit: PositiveInt, $page: PositiveInt) {
-      animes(status: "released", order: "aired_on", limit: $limit, page: $page) {
+      animes(status: "latest", order: aired_on, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
@@ -105,7 +105,7 @@ function releasedAnimes(limit, page) {
 function announcedAnimes(limit, page) {
   return buildRequest(`
     query AnnouncedAnimes($limit: PositiveInt, $page: PositiveInt) {
-      animes(status: "anons", order: "aired_on", limit: $limit, page: $page) {
+      animes(status: "anons", order: aired_on, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
