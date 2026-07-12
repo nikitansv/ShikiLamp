@@ -17,6 +17,16 @@ function addContentController(instance) {
   const Lampa = getLampa();
   if (!Lampa || !Lampa.Controller || !instance || !instance.html) return;
 
+  const scrollFocusedIntoView = function () {
+    setTimeout(function () {
+      if (!instance.html) return;
+      const focused = instance.html.querySelector('.selector.focus');
+      if (focused && focused.scrollIntoView) {
+        focused.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    }, 0);
+  };
+
   Lampa.Controller.add('content', {
     toggle: function () {
       Lampa.Controller.collectionSet(instance.html);
@@ -26,13 +36,16 @@ function addContentController(instance) {
     left: function () {
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('left')) Navigator.move('left');
       else Lampa.Controller.toggle('menu');
+      scrollFocusedIntoView();
     },
     right: function () {
       if (typeof Navigator !== 'undefined' && Navigator.move) Navigator.move('right');
+      scrollFocusedIntoView();
     },
     up: function () {
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) {
         Navigator.move('up');
+        scrollFocusedIntoView();
       } else if (instance.html && instance.html.scrollTop > 0) {
         instance.html.scrollTop = Math.max(0, instance.html.scrollTop - 260);
       } else {
@@ -42,6 +55,7 @@ function addContentController(instance) {
     down: function () {
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('down')) {
         Navigator.move('down');
+        scrollFocusedIntoView();
       } else if (instance.html) {
         instance.html.scrollTop += 260;
       }

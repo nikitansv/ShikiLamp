@@ -9,8 +9,7 @@ const matcher = require('../mapping/matcher');
 const SECTIONS = [
   { id: 'latest', title: 'Недавно вышедшее', loader: api.latest },
   { id: 'ongoing', title: 'Онгоинги', loader: api.ongoing },
-  { id: 'popular', title: 'Популярное', loader: api.popular },
-  { id: 'plans', title: 'Планы', loader: null }
+  { id: 'popular', title: 'Популярное', loader: api.popular }
 ];
 
 function Home() {
@@ -25,7 +24,6 @@ Home.prototype.create = function () {
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
-    '<div class="shikimori-local__section selector" data-section="mappings">Локальные соответствия</div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
   '</div>';
   this.renderRows();
@@ -42,60 +40,50 @@ Home.prototype.renderRows = function () {
       '<div class="shikimori-local__row-title">' + section.title + '</div>' +
       '<div class="shikimori-local__row-items"></div>' +
     '</div>');
-    self.loadSection(section, false);
+    self.loadSection(section);
   });
 };
 
 Home.prototype.bindStaticEvents = function () {
   const self = this;
-  this.html.querySelectorAll('[data-section="mappings"], [data-section="diagnostics"]').forEach(function (el) {
+  this.html.querySelectorAll('[data-section="diagnostics"]').forEach(function (el) {
     el.addEventListener('hover:enter', function () { self.openSection(el.getAttribute('data-section')); });
     el.addEventListener('click', function () { self.openSection(el.getAttribute('data-section')); });
   });
 };
 
-Home.prototype.loadSection = function (section, append) {
+Home.prototype.loadSection = function (section) {
   const self = this;
   const row = this.html.querySelector('[data-row="' + section.id + '"] .shikimori-local__row-items');
   if (!row || this.loading[section.id]) return;
   this.loading[section.id] = true;
-  const more = row.querySelector('.shikimori-local__more');
-  if (more) more.remove();
+  row.innerHTML = '<div class="shikimori-local__loading">Загрузка...</div>';
 
-  if (section.id === 'plans') {
-    this.loading[section.id] = false;
-    row.innerHTML = '<div class="shikimori-local__empty">Планы Shikimori требуют авторизацию. Добавлю после токена/OAuth.</div>';
-    return;
-  }
-
-  row.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
-  section.loader(this.pages[section.id]).then(function (list) {
+  section.loader(1).then(function (list) {
     self.loading[section.id] = false;
-    row.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
+    row.innerHTML = '';
     self.renderSectionItems(section, row, list || []);
   }).catch(function (err) {
     self.loading[section.id] = false;
     logger.warn('Home row error', section.id, err.message);
-    row.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
-    row.insertAdjacentHTML('beforeend', '<div class="shikimori-local__error">' + templates.escapeHtml(err.message) + '</div>');
+    row.innerHTML = '<div class="shikimori-local__error">' + templates.escapeHtml(err.message) + '</div>';
   });
 };
 
 Home.prototype.renderSectionItems = function (section, row, list) {
   const self = this;
-  if (list.length === 0 && this.pages[section.id] === 1) {
+  if (list.length === 0) {
     row.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
     return;
   }
-  list.forEach(function (anime) {
+  list.slice(0, 8).forEach(function (anime) {
     row.appendChild(self.createCard(anime));
   });
-  this.pages[section.id] += 1;
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
   more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.loadSection(section, true); });
-  more.addEventListener('click', function () { self.loadSection(section, true); });
+  more.addEventListener('hover:enter', function () { self.openCatalog(section); });
+  more.addEventListener('click', function () { self.openCatalog(section); });
   row.appendChild(more);
   this.refocus();
 };
@@ -135,10 +123,17 @@ Home.prototype.openShikimoriCard = function (anime) {
   });
 };
 
+Home.prototype.openCatalog = function (section) {
+  Lampa.Activity.push({
+    url: '',
+    title: 'Shikimori: ' + section.title,
+    component: 'shikimori_local_line',
+    section: section.id
+  });
+};
+
 Home.prototype.openSection = function (section) {
-  if (section === 'mappings') {
-    Lampa.Activity.push({ url: '', title: 'Локальные соответствия', component: 'shikimori_local_mappings' });
-  } else if (section === 'diagnostics') {
+  if (section === 'diagnostics') {
     Lampa.Activity.push({ url: '', title: 'Диагностика Shikimori', component: 'shikimori_local_diagnostics' });
   }
 };

@@ -11,7 +11,7 @@ function injectStyles() {
     .shikimori-local__head { font-size: 1.5em; margin-bottom: 1em; font-weight: 600; }
     .shikimori-local__home-rows { display: flex; flex-direction: column; gap: 1.6em; }
     .shikimori-local__row-title { font-size: 1.25em; margin-bottom: 0.7em; font-weight: 600; }
-    .shikimori-local__row-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1em; }
+    .shikimori-local__row-items { display: grid; grid-template-columns: repeat(9, minmax(120px, 1fr)); gap: 1em; }
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
     .shikimori-local__section { padding: 1em; background: rgba(255,255,255,0.08); border-radius: 0.5em; cursor: pointer; transition: background 0.15s; }
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
