@@ -26,6 +26,12 @@ function graphqlRequest(queryObj, ttlKey) {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     }
+  }).then(function (response) {
+    if (response && response.errors && response.errors.length) {
+      const message = response.errors[0] && response.errors[0].message ? response.errors[0].message : 'GraphQL error';
+      throw new Error(message);
+    }
+    return response && response.data ? response.data : response;
   });
 }
 
