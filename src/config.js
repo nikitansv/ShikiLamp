@@ -20,6 +20,8 @@ const STORAGE_KEYS = {
   cache: 'shikimori_local_cache',
   experimentalToken: 'shikimori_local_experimental_token',
   experimentalFeatures: 'shikimori_local_experimental_features',
+  authUser: 'shikimori_local_auth_user',
+  authCheckedAt: 'shikimori_local_auth_checked_at',
   lastCleared: 'shikimori_local_last_cleared'
 };
 

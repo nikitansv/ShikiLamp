@@ -5,6 +5,7 @@ const config = require('./config');
 const logger = require('./logger');
 const cache = require('./cache');
 const mappingStorage = require('./mapping/storage');
+const auth = require('./auth');
 
 const COMPONENT = 'shikimori_local';
 
@@ -68,7 +69,7 @@ function register() {
 
   Lampa.SettingsApi.addComponent({
     component: COMPONENT,
-    name: 'Shikimori Local'
+    name: 'ShikiLamp Local'
   });
 
   addTrigger('enabled', 'Включить плагин', config.DEFAULTS.enabled);
@@ -121,8 +122,22 @@ function register() {
     input.click();
   });
 
-  addTrigger('experimentalFeatures', 'Включить экспериментальные пользовательские функции', false);
-  addInput('experimentalToken', 'Экспериментальный access token', '', '⚠️ Опасно: токен хранится только локально и никогда не передаётся в логи.');
+  addAction('authStatus', 'Авторизация: ' + auth.statusText(), function () {
+    showAuthInfo();
+  });
+
+  addAction('authToken', 'Ввести access token Shikimori', function () {
+    askToken();
+  });
+
+  addAction('authCheck', 'Проверить вход Shikimori', function () {
+    checkAuth();
+  });
+
+  addAction('authLogout', 'Выйти / очистить токен', function () {
+    auth.clearToken();
+    Lampa.Noty.show('ShikiLamp: токен удалён');
+  });
 }
 
 function addTrigger(name, title, defaultValue) {
@@ -160,6 +175,52 @@ function addAction(name, title, onSelect) {
     param: { name: 'shikimori_local_action_' + name, type: 'button' },
     field: { name: title },
     onChange: onSelect
+  });
+}
+
+function showAuthInfo() {
+  const user = auth.getCachedUser();
+  if (user && (user.nickname || user.name || user.id)) {
+    Lampa.Noty.show('ShikiLamp: вход выполнен как ' + (user.nickname || user.name || ('ID ' + user.id)));
+    return;
+  }
+  if (auth.getToken()) {
+    Lampa.Noty.show('ShikiLamp: токен введён, нажмите «Проверить вход Shikimori»');
+    return;
+  }
+  Lampa.Noty.show('ShikiLamp: не авторизован. Введите Shikimori access token.');
+}
+
+function askToken() {
+  const current = auth.getToken();
+  const save = function (value) {
+    const token = String(value || '').trim();
+    if (!token) {
+      Lampa.Noty.show('ShikiLamp: пустой токен не сохранён');
+      return;
+    }
+    auth.setToken(token);
+    Lampa.Noty.show('ShikiLamp: токен сохранён локально');
+  };
+
+  if (Lampa.Input && Lampa.Input.edit) {
+    Lampa.Input.edit({
+      title: 'Access token Shikimori',
+      value: current,
+      free: true
+    }, save);
+    return;
+  }
+
+  save(prompt('Access token Shikimori', current));
+}
+
+function checkAuth() {
+  Lampa.Noty.show('ShikiLamp: проверяю вход...');
+  auth.check().then(function (user) {
+    Lampa.Noty.show('ShikiLamp: вход выполнен как ' + (user.nickname || user.name || ('ID ' + user.id)));
+  }).catch(function (err) {
+    Lampa.Noty.show('ShikiLamp: ошибка входа — ' + err.message);
   });
 }
 
