@@ -16,6 +16,7 @@ const Line = require('./components/line');
 const Mapping = require('./components/mapping');
 const Mappings = require('./components/mappings');
 const Diagnostics = require('./components/diagnostics');
+const lifecycle = require('./components/lifecycle');
 
 const READY_FLAG = '__shikimori_local_ready';
 
@@ -50,13 +51,13 @@ function init() {
 function registerComponents() {
   const Lampa = window.Lampa;
   const components = {
-    shikimori_local_home: Home,
-    shikimori_local_search: Search,
-    shikimori_local_anime: Anime,
-    shikimori_local_line: Line,
-    shikimori_local_mapping: Mapping,
-    shikimori_local_mappings: Mappings,
-    shikimori_local_diagnostics: Diagnostics
+    shikimori_local_home: lifecycle.attachLifecycle(Home),
+    shikimori_local_search: lifecycle.attachLifecycle(Search),
+    shikimori_local_anime: lifecycle.attachLifecycle(Anime),
+    shikimori_local_line: lifecycle.attachLifecycle(Line),
+    shikimori_local_mapping: lifecycle.attachLifecycle(Mapping),
+    shikimori_local_mappings: lifecycle.attachLifecycle(Mappings),
+    shikimori_local_diagnostics: lifecycle.attachLifecycle(Diagnostics)
   };
 
   Object.keys(components).forEach(function (name) {
