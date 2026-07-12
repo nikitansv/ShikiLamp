@@ -14,6 +14,7 @@ function Line(params) {
   this.loading = false;
   this.ended = false;
   this.results = null;
+  this.pendingFocus = null;
 }
 
 Line.prototype.create = function () {
@@ -68,6 +69,7 @@ Line.prototype.loadPage = function (append) {
 
 Line.prototype.renderResults = function (list, append) {
   const self = this;
+  let firstNew = null;
   if (!append && (!list || list.length === 0)) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
     return;
@@ -77,8 +79,11 @@ Line.prototype.renderResults = function (list, append) {
     return;
   }
   list.forEach(function (anime) {
-    self.results.appendChild(self.createCard(anime));
+    const card = self.createCard(anime);
+    if (!firstNew) firstNew = card;
+    self.results.appendChild(card);
   });
+  if (append && firstNew) this.pendingFocus = firstNew;
   this.page += 1;
   this.addMoreButton();
   this.refocus();
@@ -117,8 +122,12 @@ Line.prototype.removeMoreButton = function () {
 Line.prototype.refocus = function () {
   if (typeof Lampa !== 'undefined' && Lampa.Controller) {
     Lampa.Controller.collectionSet(this.html);
-    const focused = this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result');
-    if (focused) Lampa.Controller.collectionFocus(focused, this.html);
+    const focused = this.pendingFocus || this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result');
+    this.pendingFocus = null;
+    if (focused) {
+      Lampa.Controller.collectionFocus(focused, this.html);
+      if (focused.scrollIntoView) focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+    }
   }
 };
 
