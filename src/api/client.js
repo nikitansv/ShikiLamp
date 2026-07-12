@@ -98,14 +98,26 @@ function execute(job) {
     finish(job, null, data);
   };
 
-  const fail = function (xhr, exception) {
-    if (aborted) return;
-    const err = normalizeError(xhr, exception);
-    finish(job, err, null);
+  const shouldRetry = function (err) {
+    return err && (err.status === 0 || err.status === 408 || err.status === 429 || err.status >= 500);
   };
 
   function makeRequest(attemptsLeft) {
     if (aborted) return;
+
+    const fail = function (xhr, exception) {
+      if (aborted) return;
+      const err = normalizeError(xhr, exception);
+      if (attemptsLeft > 0 && shouldRetry(err)) {
+        const delay = Math.min(1000 * Math.pow(2, RETRIES - attemptsLeft), 8000);
+        setTimeout(function () {
+          makeRequest(attemptsLeft - 1);
+        }, delay);
+        return;
+      }
+      finish(job, err, null);
+    };
+
     if (network && network.quiet) {
       network.quiet(url, done, fail, params.post_data, params);
     } else if (typeof fetch === 'function') {
@@ -139,12 +151,6 @@ function execute(job) {
       return;
     }
 
-    if (attemptsLeft > 0 && err.retryable) {
-      const delay = Math.min(1000 * Math.pow(2, RETRIES - attemptsLeft), 8000);
-      setTimeout(function () {
-        makeRequest(attemptsLeft - 1);
-      }, delay);
-    }
   }
 
   makeRequest(RETRIES);
