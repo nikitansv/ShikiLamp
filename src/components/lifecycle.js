@@ -18,13 +18,33 @@ function addContentController(instance) {
   if (!Lampa || !Lampa.Controller || !instance || !instance.html) return;
 
   const scrollFocusedIntoView = function () {
-    setTimeout(function () {
+    const apply = function () {
       if (!instance.html) return;
       const focused = instance.html.querySelector('.selector.focus');
-      if (focused && focused.scrollIntoView) {
-        focused.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (!focused) return;
+
+      if (focused.scrollIntoView) {
+        focused.scrollIntoView({ block: 'center', inline: 'nearest' });
       }
-    }, 0);
+
+      const rootRect = instance.html.getBoundingClientRect ? instance.html.getBoundingClientRect() : null;
+      const itemRect = focused.getBoundingClientRect ? focused.getBoundingClientRect() : null;
+      if (!rootRect || !itemRect) return;
+
+      const topGap = itemRect.top - rootRect.top;
+      const bottomGap = rootRect.bottom - itemRect.bottom;
+      if (topGap < 90) instance.html.scrollTop -= 90 - topGap;
+      else if (bottomGap < 140) instance.html.scrollTop += 140 - bottomGap;
+    };
+
+    apply();
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(apply);
+      requestAnimationFrame(function () { requestAnimationFrame(apply); });
+    } else {
+      setTimeout(apply, 16);
+      setTimeout(apply, 50);
+    }
   };
 
   Lampa.Controller.add('content', {
@@ -71,6 +91,7 @@ function addContentController(instance) {
 
   Lampa.Controller.toggle('content');
   focusFirst(instance.html);
+  scrollFocusedIntoView();
 }
 
 function attachLifecycle(Component) {
