@@ -73,14 +73,44 @@ function register() {
   });
 
   addTrigger('enabled', 'Включить плагин', config.DEFAULTS.enabled);
-  addInput('apiBaseUrl', 'API Base URL', config.DEFAULTS.apiBaseUrl, 'Например https://shikimori.io или http://192.168.1.10:8080');
+  addAction('apiBaseUrl', 'API Base URL: ' + getApiBaseUrl(), function () {
+    askSettingValue('apiBaseUrl', 'API Base URL', getApiBaseUrl(), function (value) {
+      const url = String(value || '').trim().replace(/\/$/, '');
+      if (!/^https?:\/\//i.test(url)) {
+        Lampa.Noty.show('ShikiLamp: URL должен начинаться с http:// или https://');
+        return;
+      }
+      set('apiBaseUrl', url);
+      Lampa.Noty.show('ShikiLamp: API Base URL сохранён');
+    });
+  });
   addSelect('language', 'Язык результатов', [
     { title: 'Русский', code: 'russian' },
     { title: 'English', code: 'english' }
   ], config.DEFAULTS.language);
   addTrigger('showMenu', 'Показывать кнопку в меню', config.DEFAULTS.showMenu);
-  addInput('pageSize', 'Число результатов на страницу', String(config.DEFAULTS.pageSize));
-  addInput('mappingThreshold', 'Порог автоматического mapping', String(config.DEFAULTS.mappingThreshold));
+  addAction('pageSize', 'Число результатов: ' + getPageSize(), function () {
+    askSettingValue('pageSize', 'Число результатов на страницу', String(getPageSize()), function (value) {
+      const n = parseInt(value, 10);
+      if (isNaN(n) || n < 5 || n > 50) {
+        Lampa.Noty.show('ShikiLamp: число должно быть от 5 до 50');
+        return;
+      }
+      set('pageSize', String(n));
+      Lampa.Noty.show('ShikiLamp: число результатов сохранено');
+    });
+  });
+  addAction('mappingThreshold', 'Порог mapping: ' + getMappingThreshold(), function () {
+    askSettingValue('mappingThreshold', 'Порог mapping 0.5–1.0', String(getMappingThreshold()), function (value) {
+      const n = parseFloat(value);
+      if (isNaN(n) || n < 0.5 || n > 1.0) {
+        Lampa.Noty.show('ShikiLamp: порог должен быть 0.5–1.0');
+        return;
+      }
+      set('mappingThreshold', String(n));
+      Lampa.Noty.show('ShikiLamp: порог mapping сохранён');
+    });
+  });
   addTrigger('autoOpenExact', 'Автоматически открывать точное соответствие', config.DEFAULTS.autoOpenExact);
   addTrigger('debug', 'Показывать диагностические сообщения', config.DEFAULTS.debug);
 
@@ -149,15 +179,6 @@ function addTrigger(name, title, defaultValue) {
   });
 }
 
-function addInput(name, title, defaultValue, description) {
-  Lampa.SettingsApi.addParam({
-    component: COMPONENT,
-    param: { name: config.STORAGE_KEYS[name], type: 'input', default: defaultValue },
-    field: { name: title, description: description || '' },
-    onChange: onSettingChange
-  });
-}
-
 function addSelect(name, title, values, defaultValue) {
   const map = {};
   values.forEach(function (v) { map[v.code] = v.title; });
@@ -176,6 +197,23 @@ function addAction(name, title, onSelect) {
     field: { name: title },
     onChange: onSelect
   });
+}
+
+function askSettingValue(name, title, currentValue, onSave) {
+  const save = function (value) {
+    onSave(value);
+  };
+
+  if (Lampa.Input && Lampa.Input.edit) {
+    Lampa.Input.edit({
+      title: title,
+      value: String(currentValue || ''),
+      free: true
+    }, save);
+    return;
+  }
+
+  save(prompt(title, String(currentValue || '')));
 }
 
 function showAuthInfo() {
