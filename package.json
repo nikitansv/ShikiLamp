@@ -1,0 +1,22 @@
+{
+  "name": "lampa-shikimori-local",
+  "version": "0.1.0",
+  "description": "Lampa plugin for local Shikimori integration",
+  "plugin_id": "shikimori_local",
+  "main": "dist/plugin.js",
+  "scripts": {
+    "test": "jest",
+    "build": "node build.js",
+    "lint": "echo 'lint not configured'"
+  },
+  "jest": {
+    "setupFilesAfterEnv": ["./tests/setup.js"]
+  },
+  "keywords": ["lampa", "shikimori", "plugin"],
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "esbuild": "^0.21.5",
+    "uglify-js": "^3.18.0"
+  }
+}
