@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Shikimori Local Plugin Test</title>
+  <style>
+    body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; }
+    .menu__list { display: flex; gap: 1em; padding: 1em; background: #222; }
+    .menu__item { padding: 0.5em 1em; cursor: pointer; border: 1px solid #444; }
+    .menu__item.focus { background: #444; }
+    #log { white-space: pre-wrap; font-family: monospace; background: #222; padding: 10px; height: 70vh; overflow: auto; margin-top: 1em; }
+    .ok { color: #8f8; }
+    .err { color: #f88; }
+    .warn { color: #ff8; }
+  </style>
+</head>
+<body>
+  <h1>Shikimori Local Plugin Test</h1>
+  <div class="menu__list"></div>
+  <div id="log"></div>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg, cls) {
+      const line = document.createElement('div');
+      line.className = cls || '';
+      line.textContent = (new Date().toLocaleTimeString()) + ' ' + msg;
+      logEl.appendChild(line);
+    }
+
+    // Minimal Lampa mock
+    window.appready = true;
+    let components = {};
+    window.Lampa = {
+      Listener: { follow: function() {}, send: function() {} },
+      Storage: {
+        data: {},
+        get: function(k, def) { return this.data[k] !== undefined ? this.data[k] : def; },
+        set: function(k, v) { this.data[k] = v; }
+      },
+      Component: { add: function(name, C) { components[name] = C; }, get: function(name) { return components[name]; } },
+      Activity: { push: function(obj) { log('Activity.push: ' + JSON.stringify(obj), 'ok'); } },
+      Router: { call: function(route, card) { log('Router.call(' + route + '): ' + JSON.stringify(card).slice(0,200), 'ok'); } },
+      Noty: { show: function(m) { log('Noty: ' + m, 'ok'); } },
+      Api: {
+        search: function(params, onSuccess, onError) {
+          log('TMDB search: ' + params.query, 'warn');
+          setTimeout(() => onSuccess({ movie: { results: [] }, tv: { results: [] } }), 100);
+        }
+      },
+      Network: null,
+      Reguest: null
+    };
+
+    window.fetch = window.fetch || null;
+
+    log('Injecting plugin...');
+    const s = document.createElement('script');
+    s.src = 'plugin.js';
+    s.onload = function() {
+      log('plugin.js loaded', 'ok');
+      log('global plugin object: ' + (typeof window.ShikimoriLocalPlugin), 'ok');
+      // Direct API test
+      if (typeof window.ShikimoriLocalPlugin === 'object') {
+        // The bundle does not expose api directly; use internal require via the bundle is not easy.
+        // Instead rely on UI navigation.
+      }
+    };
+    s.onerror = function() { log('plugin.js failed to load', 'err'); };
+    document.head.appendChild(s);
+  </script>
+</body>
+</html>

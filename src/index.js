@@ -20,7 +20,8 @@ const Diagnostics = require('./components/diagnostics');
 const READY_FLAG = '__shikimori_local_ready';
 
 function init() {
-  if (!window.Lampa) {
+  const Lampa = typeof window !== 'undefined' ? window.Lampa : null;
+  if (!Lampa) {
     logger.warn('Lampa not available');
     return;
   }
@@ -47,6 +48,7 @@ function init() {
 }
 
 function registerComponents() {
+  const Lampa = window.Lampa;
   const components = {
     shikimori_local_home: Home,
     shikimori_local_search: Search,
@@ -66,12 +68,13 @@ function registerComponents() {
   });
 }
 
-if (typeof window !== 'undefined') {
-  if (window.appready) {
-    init();
-  } else {
+if (typeof window !== 'undefined' && !window.__shikimori_local_cjs_loaded) {
+  window.__shikimori_local_cjs_loaded = true;
+  // Browser-only auto-init is handled by build footer to ensure Lampa is ready.
+  // Keep DOMContentLoaded fallback for direct script usage without footer.
+  if (!window.__shikimori_local_footer_init) {
     window.addEventListener('DOMContentLoaded', function () {
-      if (window.appready) init();
+      if (window.appready && window.Lampa) init();
     });
     if (window.Lampa && window.Lampa.Listener) {
       window.Lampa.Listener.follow('app', function (event) {

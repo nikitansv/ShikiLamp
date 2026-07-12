@@ -18,7 +18,10 @@ const outFile = path.join(outDir, 'plugin.js');
     write: false,
     globalName: 'ShikimoriLocalPlugin',
     platform: 'browser',
-    target: 'es2018'
+    target: 'es2018',
+    footer: {
+      js: 'window.__shikimori_local_footer_init=true;if(typeof window!=="undefined"&&window.ShikimoriLocalPlugin&&window.ShikimoriLocalPlugin.init&&window.Lampa){try{window.ShikimoriLocalPlugin.init();}catch(e){console.error("[shikimori_local] init failed",e);}}'
+    }
   });
 
   let code = result.outputFiles[0].text;
