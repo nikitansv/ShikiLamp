@@ -120,15 +120,37 @@ Line.prototype.removeMoreButton = function () {
 };
 
 Line.prototype.refocus = function () {
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionSet(this.html);
-    const focused = this.pendingFocus || this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result');
-    this.pendingFocus = null;
-    if (focused) {
-      Lampa.Controller.collectionFocus(focused, this.html);
-      if (focused.scrollIntoView) focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+  if (typeof Lampa === 'undefined' || !Lampa.Controller) return;
+
+  const target = this.pendingFocus || this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result');
+  this.pendingFocus = null;
+  if (!target) return;
+
+  Lampa.Controller.collectionSet(this.html);
+  this.forceFocus(target);
+};
+
+Line.prototype.forceFocus = function (target) {
+  const self = this;
+  const apply = function () {
+    if (!target || !self.html || !document.body.contains(target)) return;
+    self.html.querySelectorAll('.selector.focus').forEach(function (el) {
+      if (el !== target) el.classList.remove('focus');
+    });
+    target.classList.add('focus');
+    if (typeof Lampa !== 'undefined' && Lampa.Controller) {
+      Lampa.Controller.collectionFocus(target, self.html);
     }
+    if (target.scrollIntoView) target.scrollIntoView({ block: 'center', inline: 'nearest' });
+  };
+
+  apply();
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(apply);
+    requestAnimationFrame(function () { requestAnimationFrame(apply); });
   }
+  setTimeout(apply, 50);
+  setTimeout(apply, 150);
 };
 
 Line.prototype.openAnime = function (anime) {
