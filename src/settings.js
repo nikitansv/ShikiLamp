@@ -7,7 +7,8 @@ const cache = require('./cache');
 const mappingStorage = require('./mapping/storage');
 const auth = require('./auth');
 
-const COMPONENT = 'shikimori_local';
+const COMPONENT = 'shikilamp_local_settings';
+const LEGACY_COMPONENT = 'shikimori_local';
 
 function get(key, defaultValue) {
   if (typeof Lampa !== 'undefined' && Lampa.Storage) {
@@ -64,8 +65,25 @@ function getExperimentalToken() {
   return get('experimentalToken', '');
 }
 
+function cleanupLegacySettings() {
+  try {
+    if (Lampa.SettingsApi.removeParams) {
+      Lampa.SettingsApi.removeParams(LEGACY_COMPONENT);
+      Lampa.SettingsApi.removeParams(COMPONENT);
+    }
+    if (Lampa.SettingsApi.removeComponent) {
+      Lampa.SettingsApi.removeComponent(LEGACY_COMPONENT);
+      Lampa.SettingsApi.removeComponent(COMPONENT);
+    }
+  } catch (e) {
+    logger.warn('Legacy settings cleanup failed', e.message);
+  }
+}
+
 function register() {
   if (!Lampa || !Lampa.SettingsApi) return;
+
+  cleanupLegacySettings();
 
   Lampa.SettingsApi.addComponent({
     component: COMPONENT,
