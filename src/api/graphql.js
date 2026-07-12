@@ -42,14 +42,14 @@ function buildRequest(query, variables) {
   };
 }
 
-function searchAnimes(search, limit) {
+function searchAnimes(search, limit, page) {
   return buildRequest(`
-    query SearchAnimes($search: String, $limit: PositiveInt) {
-      animes(search: $search, limit: $limit) {
+    query SearchAnimes($search: String, $limit: PositiveInt, $page: PositiveInt) {
+      animes(search: $search, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
-  `, { search: search, limit: limit || 20 });
+  `, { search: search, limit: limit || 20, page: page || 1 });
 }
 
 function getAnimeById(id) {
@@ -72,44 +72,44 @@ function getAnimesByIds(ids) {
   `, { ids: ids.join(','), limit: ids.length });
 }
 
-function popularAnimes(limit) {
+function popularAnimes(limit, page) {
   return buildRequest(`
-    query PopularAnimes($limit: PositiveInt) {
-      animes(order: popularity, limit: $limit) {
+    query PopularAnimes($limit: PositiveInt, $page: PositiveInt) {
+      animes(order: popularity, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
-  `, { limit: limit || 20 });
+  `, { limit: limit || 20, page: page || 1 });
 }
 
-function ongoingAnimes(limit) {
+function ongoingAnimes(limit, page) {
   return buildRequest(`
-    query OngoingAnimes($limit: PositiveInt) {
-      animes(status: "ongoing", order: popularity, limit: $limit) {
+    query OngoingAnimes($limit: PositiveInt, $page: PositiveInt) {
+      animes(status: "ongoing", order: popularity, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
-  `, { limit: limit || 20 });
+  `, { limit: limit || 20, page: page || 1 });
 }
 
-function releasedAnimes(limit) {
+function releasedAnimes(limit, page) {
   return buildRequest(`
-    query ReleasedAnimes($limit: PositiveInt) {
-      animes(status: "released", order: "aired_on", limit: $limit) {
+    query ReleasedAnimes($limit: PositiveInt, $page: PositiveInt) {
+      animes(status: "released", order: "aired_on", limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
-  `, { limit: limit || 20 });
+  `, { limit: limit || 20, page: page || 1 });
 }
 
-function announcedAnimes(limit) {
+function announcedAnimes(limit, page) {
   return buildRequest(`
-    query AnnouncedAnimes($limit: PositiveInt) {
-      animes(status: "anons", order: "aired_on", limit: $limit) {
+    query AnnouncedAnimes($limit: PositiveInt, $page: PositiveInt) {
+      animes(status: "anons", order: "aired_on", limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }
-  `, { limit: limit || 20 });
+  `, { limit: limit || 20, page: page || 1 });
 }
 
 module.exports = {

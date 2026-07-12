@@ -21,7 +21,9 @@ function injectStyles() {
     .shikimori-local__action { padding: 0.6em 1em; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; }
     .shikimori-local__action.focus { background: rgba(255,255,255,0.25); }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
-    .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error { padding: 1em; opacity: 0.8; }
+    .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
+    .shikimori-local__more { padding: 1em; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; text-align: center; }
+    .shikimori-local__more.focus { background: rgba(255,255,255,0.25); }
     .shikimori-local__candidate { display: flex; gap: 1em; padding: 0.8em; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .shikimori-local__candidate.focus { background: rgba(255,255,255,0.12); }
     .shikimori-local__candidate img { width: 92px; border-radius: 0.3em; }

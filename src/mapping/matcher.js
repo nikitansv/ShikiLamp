@@ -162,11 +162,41 @@ function saveManual(anime, tmdbId, tmdbType, season, episodeOffset) {
 
 function openLampaCard(anime, mapping) {
   if (!mapping || !mapping.tmdb_id) return false;
-  if (typeof Lampa === 'undefined' || !Lampa.Router) return false;
+  if (typeof Lampa === 'undefined') return false;
   const method = mapping.tmdb_type === 'movie' ? 'movie' : 'tv';
   const card = buildLampaCard(anime, mapping, method);
-  Lampa.Router.call('full', card);
+  if (Lampa.Activity && typeof Lampa.Activity.push === 'function') {
+    Lampa.Activity.push({
+      url: '',
+      title: card.title || card.name || anime.title,
+      component: 'full',
+      id: card.id,
+      method: method,
+      source: 'tmdb',
+      card: card
+    });
+  } else if (Lampa.Router && typeof Lampa.Router.call === 'function') {
+    Lampa.Router.call('full', card);
+  } else {
+    return false;
+  }
   return true;
+}
+
+function openBestOrFirst(anime) {
+  return findBest(anime).then(function (out) {
+    if (out.result) return openLampaCard(anime, out.result);
+    const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
+    if (!best) return false;
+    return openLampaCard(anime, createResult({
+      shikimori_id: anime.shikimori_id,
+      mal_id: anime.mal_id,
+      tmdb_id: best.item.id,
+      tmdb_type: best.type,
+      tmdb_season: 1,
+      episode_offset: 0
+    }, 'first-candidate', best.score));
+  });
 }
 
 function buildLampaCard(anime, mapping, method) {
@@ -201,6 +231,7 @@ module.exports = {
   findBest,
   saveManual,
   openLampaCard,
+  openBestOrFirst,
   buildLampaCard,
   getThreshold,
   getAutoOpenExact,
