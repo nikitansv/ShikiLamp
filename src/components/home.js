@@ -107,6 +107,10 @@ Home.prototype.createCard = function (anime) {
   el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
     '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
     '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + ' · ' + (anime.score || '?') + '</div>';
+  matcher.applyBestPoster(anime).then(function () {
+    const img = el.querySelector('img');
+    if (img && anime.poster) img.src = anime.poster;
+  });
   el.addEventListener('hover:enter', function () { self.openAnime(anime); });
   el.addEventListener('click', function () { self.openAnime(anime); });
   el.addEventListener('contextmenu', function (event) {

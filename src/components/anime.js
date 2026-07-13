@@ -14,10 +14,14 @@ function Anime(params) {
 }
 
 Anime.prototype.create = function () {
+  const self = this;
   this.html = document.createElement('div');
   this.html.className = 'shikimori-local activity-page';
   this.html.innerHTML = templates.animeTemplate(this.anime);
   this.bindEvents();
+  matcher.applyBestPoster(this.anime).then(function () {
+    self.refreshView();
+  });
 };
 
 Anime.prototype.bindEvents = function () {
@@ -303,16 +307,34 @@ Anime.prototype.onFocusChange = function (focused) {
 };
 
 Anime.prototype.onUp = function (focused) {
-  if (focused && focused.getAttribute('data-action') === 'set-episodes') {
+  const action = focused && focused.getAttribute('data-action');
+  if (action === 'set-episodes') {
     this.bumpEpisodes(1);
+    return true;
+  }
+  if (action === 'toggle-status-menu') {
+    this.bumpStatus(1);
+    return true;
+  }
+  if (action === 'toggle-score-menu') {
+    this.bumpScore(1);
     return true;
   }
   return false;
 };
 
 Anime.prototype.onDown = function (focused) {
-  if (focused && focused.getAttribute('data-action') === 'set-episodes') {
+  const action = focused && focused.getAttribute('data-action');
+  if (action === 'set-episodes') {
     this.bumpEpisodes(-1);
+    return true;
+  }
+  if (action === 'toggle-status-menu') {
+    this.bumpStatus(-1);
+    return true;
+  }
+  if (action === 'toggle-score-menu') {
+    this.bumpScore(-1);
     return true;
   }
   return false;
@@ -331,6 +353,33 @@ function formatErrorSuffix(err) {
   if (message) return ': ' + message.slice(0, 80);
   return '';
 }
+
+Anime.prototype.bumpStatus = function (delta) {
+  const statuses = ['planned', 'watching', 'completed', 'on_hold', 'dropped'];
+  const current = this.anime.user_rate_status || '';
+  if (delta < 0 && current) {
+    this.confirmDeleteRate();
+    return;
+  }
+  let index = statuses.indexOf(current);
+  if (index < 0) index = delta > 0 ? -1 : 0;
+  const next = statuses[Math.max(0, Math.min(statuses.length - 1, index + delta))];
+  if (!next || next === current) return;
+  this.upsertRate(next);
+};
+
+Anime.prototype.bumpScore = function (delta) {
+  if (!this.anime.rate_id) {
+    if (Lampa.Noty) Lampa.Noty.show('Сначала добавьте тайтл в список');
+    return;
+  }
+  const current = Number(this.anime.user_score || 0);
+  let next = current + delta;
+  if (next < 0) next = 0;
+  if (next > 10) next = 10;
+  if (next === current) return;
+  this.selectScore(String(next));
+};
 
 Anime.prototype.bumpEpisodes = function (delta) {
   if (!this.anime.rate_id) {

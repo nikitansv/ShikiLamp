@@ -112,6 +112,28 @@ function normalizeTmdbItem(item, type) {
   };
 }
 
+function tmdbPosterUrl(path) {
+  if (!path) return '';
+  if (/^https?:\/\//i.test(path)) return path;
+  return 'https://image.tmdb.org/t/p/w500' + path;
+}
+
+function applyBestPoster(anime) {
+  if (!anime || !anime.shikimori_id) return Promise.resolve(anime);
+  return findBest(anime).then(function (out) {
+    const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
+    const poster = best && best.item ? tmdbPosterUrl(best.item.poster_path) : '';
+    if (poster) {
+      anime.tmdb_poster = poster;
+      anime.poster = poster;
+      anime.image = poster;
+    }
+    return anime;
+  }).catch(function () {
+    return anime;
+  });
+}
+
 function findBest(anime) {
   const local = matchLocal(anime);
   if (local) return Promise.resolve({ result: local, candidates: [], source: 'local' });
@@ -237,5 +259,7 @@ module.exports = {
   getAutoOpenExact,
   matchLocal,
   searchTmdb,
-  normalizeTmdbItem
+  normalizeTmdbItem,
+  applyBestPoster,
+  tmdbPosterUrl
 };
