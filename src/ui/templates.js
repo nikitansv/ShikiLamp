@@ -16,57 +16,131 @@ function homeTemplate() {
   '</div>';
 }
 
+const STATUS_LABELS = {
+  planned: 'В планах',
+  watching: 'Смотрю',
+  completed: 'Просмотрено',
+  on_hold: 'Отложено',
+  dropped: 'Брошено'
+};
+
+const KIND_LABELS = { tv: 'Сериал', ona: 'ONA', ova: 'OVA', movie: 'Фильм', special: 'Спешл' };
+const API_STATUS_LABELS = { released: 'Завершено', ongoing: 'Выпускается', anons: 'Анонсировано', latest: 'Выпускается' };
+
 function animeTemplate(anime) {
-  const title = escapeHtml(anime.title || 'Unknown');
-  const original = escapeHtml(anime.original_title || '');
-  const russian = escapeHtml(anime.russian_title || '');
-  const description = escapeHtml((anime.description || '').slice(0, 500));
+  const title = escapeHtml(anime.title || anime.russian_title || anime.original_title || 'Unknown');
+  const altTitle = getAltTitle(anime);
+  const description = cleanDescription(anime.description || '');
   const poster = escapeHtml(anime.poster || anime.image || '');
   return '<div class="shikimori-local anime-detail">' +
-    '<div class="shikimori-local__poster">' + (poster ? '<img src="' + poster + '" />' : '') + '</div>' +
+    '<div class="shikimori-local__poster">' + (poster ? '<img src="' + poster + '" />' : '<div class="shikimori-local__poster-fallback">' + title + '</div>') + '</div>' +
     '<div class="shikimori-local__info">' +
       '<h1>' + title + '</h1>' +
-      (russian ? '<div class="shikimori-local__sub">' + russian + '</div>' : '') +
-      (original ? '<div class="shikimori-local__sub">' + original + '</div>' : '') +
-      '<div class="shikimori-local__meta">' +
-        'Тип: ' + (anime.kind || '?') + ' · Статус: ' + (anime.status || '?') + ' · Эпизоды: ' + (anime.episodes || '?') + ' · Год: ' + (anime.year || '?') + ' · Рейтинг: ' + (anime.score || '?') +
+      (altTitle ? '<div class="shikimori-local__sub">' + escapeHtml(altTitle) + '</div>' : '') +
+      metadataTemplate(anime) +
+      (description ? '<div class="shikimori-local__description collapsed" data-description="text">' + escapeHtml(description) + '</div><div class="shikimori-local__text-toggle selector" data-action="toggle-description">Показать полностью</div>' : '') +
+      '<div class="shikimori-local__primary-actions">' +
+        dropdownButton('status-menu', statusButtonText(anime), 'primary') +
+        dropdownButton('score-menu', scoreButtonText(anime), 'secondary') +
+        episodesButton(anime) +
       '</div>' +
-      userRateTemplate(anime) +
-      '<div class="shikimori-local__description">' + description + '</div>' +
-      '<div class="shikimori-local__actions">' +
-        '<div class="shikimori-local__action selector" data-action="tmdb">Найти в TMDB</div>' +
-        '<div class="shikimori-local__action selector" data-action="add-planned">В планы</div>' +
-        '<div class="shikimori-local__action selector" data-action="add-watching">Смотрю</div>' +
-        '<div class="shikimori-local__action selector" data-action="add-completed">Просмотрено</div>' +
-        '<div class="shikimori-local__action selector" data-action="add-on_hold">Отложено</div>' +
-        '<div class="shikimori-local__action selector" data-action="add-dropped">Брошено</div>' +
-        '<div class="shikimori-local__action selector" data-action="set-score">Оценка</div>' +
-        '<div class="shikimori-local__action selector" data-action="set-episodes">Эпизоды</div>' +
-        '<div class="shikimori-local__action selector" data-action="delete-rate">Удалить из списка</div>' +
-        '<div class="shikimori-local__action selector" data-action="mapping">Выбрать соответствие</div>' +
-        '<div class="shikimori-local__action selector" data-action="external">Открыть на Shikimori</div>' +
+      statusMenu(anime) +
+      scoreMenu(anime) +
+      '<div class="shikimori-local__service-actions">' +
+        '<div class="shikimori-local__action secondary selector" data-action="mapping">Выбрать соответствие</div>' +
+        '<div class="shikimori-local__action tertiary selector" data-action="tmdb">Найти в TMDB</div>' +
+        '<div class="shikimori-local__action tertiary selector" data-action="external">Открыть на Shikimori ↗</div>' +
       '</div>' +
     '</div>' +
   '</div>';
 }
 
-function userRateTemplate(anime) {
-  const statusNames = {
-    planned: 'В планах',
-    watching: 'Смотрю',
-    completed: 'Просмотрено',
-    on_hold: 'Отложено',
-    dropped: 'Брошено'
-  };
-  const status = anime.user_rate_status ? (statusNames[anime.user_rate_status] || anime.user_rate_status) : 'нет в списке';
-  const score = anime.user_score ? anime.user_score : '—';
-  const episodes = anime.user_episodes ? anime.user_episodes : 0;
-  const total = anime.episodes || '?';
-  return '<div class="shikimori-local__user-rate">' +
-    '<span>Мой статус: ' + escapeHtml(status) + '</span>' +
-    '<span>Оценка: ' + escapeHtml(score) + '</span>' +
-    '<span>Эпизоды: ' + escapeHtml(episodes + '/' + total) + '</span>' +
+function getAltTitle(anime) {
+  const title = String(anime.title || '').trim();
+  const russian = String(anime.russian_title || '').trim();
+  const original = String(anime.original_title || '').trim();
+  if (original && original !== title && original !== russian) return original;
+  if (russian && russian !== title) return russian;
+  return '';
+}
+
+function metadataTemplate(anime) {
+  const parts = [];
+  if (anime.kind) parts.push(KIND_LABELS[anime.kind] || String(anime.kind).toUpperCase());
+  if (anime.episodes) parts.push(formatEpisodes(anime.episodes));
+  if (anime.year) parts.push(String(anime.year));
+  if (anime.score) parts.push('Рейтинг ' + anime.score);
+  if (anime.status) parts.push(API_STATUS_LABELS[anime.status] || anime.status);
+  return '<div class="shikimori-local__meta">' + parts.map(function (part) {
+    return '<span>' + escapeHtml(part) + '</span>';
+  }).join('') + '</div>';
+}
+
+function formatEpisodes(count) {
+  const n = Number(count);
+  if (!n) return '? эпизодов';
+  const last = n % 10;
+  const lastTwo = n % 100;
+  if (last === 1 && lastTwo !== 11) return n + ' эпизод';
+  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return n + ' эпизода';
+  return n + ' эпизодов';
+}
+
+function dropdownButton(menu, text, kind) {
+  return '<div class="shikimori-local__action ' + kind + ' selector" role="button" aria-haspopup="listbox" aria-expanded="false" data-action="toggle-' + menu + '">' + escapeHtml(text) + ' ▾</div>';
+}
+
+function episodesButton(anime) {
+  if (!anime.episodes) return '';
+  const watched = anime.user_episodes || 0;
+  return '<div class="shikimori-local__action secondary selector" data-action="set-episodes">Эпизоды: ' + escapeHtml(watched + ' / ' + anime.episodes) + '</div>';
+}
+
+function statusButtonText(anime) {
+  return anime.user_rate_status ? 'Статус: ' + (STATUS_LABELS[anime.user_rate_status] || anime.user_rate_status) : 'Добавить в список';
+}
+
+function scoreButtonText(anime) {
+  return anime.user_score ? 'Оценка: ' + anime.user_score : 'Оценить';
+}
+
+function statusMenu(anime) {
+  const items = [
+    ['planned', 'В планах'], ['watching', 'Смотрю'], ['completed', 'Просмотрено'], ['on_hold', 'Отложено'], ['dropped', 'Брошено']
+  ];
+  let html = '<div class="shikimori-local__dropdown" data-menu="status-menu" role="listbox">';
+  items.forEach(function (item) {
+    const active = anime.user_rate_status === item[0];
+    html += '<div class="shikimori-local__dropdown-item selector' + (active ? ' active' : '') + '" aria-selected="' + (active ? 'true' : 'false') + '" data-action="status-' + item[0] + '">' + (active ? '✓ ' : '') + item[1] + '</div>';
+  });
+  html += '<div class="shikimori-local__dropdown-separator"></div>' +
+    '<div class="shikimori-local__dropdown-item destructive selector" data-action="delete-rate">Удалить из списка</div>' +
   '</div>';
+  return html;
+}
+
+function scoreMenu(anime) {
+  const labels = { 10: 'Шедевр', 9: 'Отлично', 8: 'Очень хорошо', 7: 'Хорошо', 6: 'Нормально', 5: 'Средне', 4: 'Плохо', 3: 'Очень плохо', 2: 'Ужасно', 1: 'Хуже некуда' };
+  let html = '<div class="shikimori-local__dropdown score-grid" data-menu="score-menu" role="listbox">';
+  for (let i = 10; i >= 1; i -= 1) {
+    const active = Number(anime.user_score) === i;
+    html += '<div class="shikimori-local__dropdown-item selector' + (active ? ' active' : '') + '" aria-selected="' + (active ? 'true' : 'false') + '" data-action="score-' + i + '">' + (active ? '✓ ' : '') + i + ' — ' + labels[i] + '</div>';
+  }
+  if (anime.user_score) {
+    html += '<div class="shikimori-local__dropdown-separator"></div><div class="shikimori-local__dropdown-item destructive selector" data-action="score-0">Удалить оценку</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function cleanDescription(text) {
+  return String(text || '')
+    .replace(/\[br\]/gi, ' ')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\[[^\]]+\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function searchTemplate() {
@@ -104,25 +178,18 @@ function diagnosticsTemplate(data) {
 function mappingTemplate(anime, candidates) {
   let html = '<div class="shikimori-local mapping-page">' +
     '<div class="shikimori-local__head">Выберите соответствие для ' + escapeHtml(anime.title) + '</div>';
-  if (candidates.length === 0) {
-    html += '<div class="shikimori-local__empty">Варианты не найдены. Введите TMDB ID вручную.</div>';
-  }
+  if (candidates.length === 0) html += '<div class="shikimori-local__empty">Варианты не найдены. Введите TMDB ID вручную.</div>';
   candidates.forEach(function (c, i) {
     html += '<div class="shikimori-local__candidate selector" data-index="' + i + '" data-type="' + c.type + '" data-id="' + c.item.id + '" data-score="' + c.score + '" data-name="' + escapeHtml(c.item.name) + '">' +
       '<img src="' + (c.item.poster_path ? 'https://image.tmdb.org/t/p/w92' + c.item.poster_path : '') + '" />' +
-      '<div class="shikimori-local__candidate-info">' +
-        '<div class="shikimori-local__candidate-title">' + escapeHtml(c.item.name) + '</div>' +
-        '<div class="shikimori-local__candidate-meta">' + (c.type || '?') + ' · ' + (c.item.year || '?') + ' · score ' + c.score + '</div>' +
-      '</div>' +
-    '</div>';
+      '<div class="shikimori-local__candidate-info"><div class="shikimori-local__candidate-title">' + escapeHtml(c.item.name) + '</div>' +
+      '<div class="shikimori-local__candidate-meta">' + (c.type || '?') + ' · ' + (c.item.year || '?') + ' · score ' + c.score + '</div></div></div>';
   });
   html += '<div class="shikimori-local__manual">' +
     '<label>TMDB ID: <input type="text" class="shikimori-local__manual-id selector" /></label>' +
     '<label>Тип: <select class="shikimori-local__manual-type selector"><option value="tv">TV</option><option value="movie">Movie</option></select></label>' +
     '<label>Сезон: <input type="text" class="shikimori-local__manual-season selector" value="1" /></label>' +
-    '<div class="shikimori-local__action selector" data-action="manual-save">Сохранить вручную</div>' +
-  '</div>';
-  html += '</div>';
+    '<div class="shikimori-local__action selector" data-action="manual-save">Сохранить вручную</div></div></div>';
   return html;
 }
 
@@ -132,11 +199,4 @@ function escapeHtml(text) {
   });
 }
 
-module.exports = {
-  homeTemplate,
-  animeTemplate,
-  searchTemplate,
-  diagnosticsTemplate,
-  mappingTemplate,
-  escapeHtml
-};
+module.exports = { homeTemplate, animeTemplate, searchTemplate, diagnosticsTemplate, mappingTemplate, escapeHtml, cleanDescription };

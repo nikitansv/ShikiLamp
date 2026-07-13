@@ -35,6 +35,7 @@ Anime.prototype.bindEvents = function () {
 };
 
 Anime.prototype.handleAction = function (action) {
+  if (this.saving) return;
   if (action === 'tmdb') {
     this.findAndOpen();
   } else if (action === 'mapping') {
@@ -44,22 +45,20 @@ Anime.prototype.handleAction = function (action) {
       component: 'shikimori_local_mapping',
       anime: this.anime
     });
-  } else if (action === 'add-planned') {
-    this.upsertRate('planned');
-  } else if (action === 'add-watching') {
-    this.upsertRate('watching');
-  } else if (action === 'add-completed') {
-    this.upsertRate('completed');
-  } else if (action === 'add-on_hold') {
-    this.upsertRate('on_hold');
-  } else if (action === 'add-dropped') {
-    this.upsertRate('dropped');
-  } else if (action === 'set-score') {
-    this.askScore();
+  } else if (action === 'toggle-status-menu') {
+    this.toggleMenu('status-menu');
+  } else if (action === 'toggle-score-menu') {
+    this.toggleMenu('score-menu');
+  } else if (action.indexOf('status-') === 0) {
+    this.selectStatus(action.replace('status-', ''));
+  } else if (action.indexOf('score-') === 0) {
+    this.selectScore(action.replace('score-', ''));
+  } else if (action === 'toggle-description') {
+    this.toggleDescription();
   } else if (action === 'set-episodes') {
     this.askEpisodes();
   } else if (action === 'delete-rate') {
-    this.deleteRate();
+    this.confirmDeleteRate();
   } else if (action === 'external') {
     const url = this.anime.url || 'https://shikimori.io/animes/' + this.anime.shikimori_id;
     if (typeof Lampa !== 'undefined' && Lampa.Platform) {
@@ -72,6 +71,99 @@ Anime.prototype.handleAction = function (action) {
       window.open(url, '_blank');
     }
   }
+};
+
+Anime.prototype.toggleMenu = function (name) {
+  this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) {
+    if (menu.getAttribute('data-menu') !== name) menu.classList.remove('open');
+  });
+  const menu = this.html.querySelector('[data-menu="' + name + '"]');
+  const button = this.html.querySelector('[data-action="toggle-' + name + '"]');
+  if (!menu) return;
+  const willOpen = !menu.classList.contains('open');
+  menu.classList.toggle('open', willOpen);
+  if (button) button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  if (willOpen && typeof Lampa !== 'undefined' && Lampa.Controller) {
+    const first = menu.querySelector('.selector.active') || menu.querySelector('.selector');
+    if (first) Lampa.Controller.collectionFocus(first, this.html);
+  }
+};
+
+Anime.prototype.closeMenus = function () {
+  if (!this.html) return;
+  this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) { menu.classList.remove('open'); });
+  this.html.querySelectorAll('[aria-expanded="true"]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); });
+};
+
+Anime.prototype.toggleDescription = function () {
+  const text = this.html && this.html.querySelector('[data-description="text"]');
+  const button = this.html && this.html.querySelector('[data-action="toggle-description"]');
+  if (!text || !button) return;
+  const expanded = text.classList.toggle('expanded');
+  text.classList.toggle('collapsed', !expanded);
+  button.textContent = expanded ? 'Свернуть' : 'Показать полностью';
+};
+
+Anime.prototype.selectStatus = function (status) {
+  if (status === this.anime.user_rate_status) {
+    this.closeMenus();
+    return;
+  }
+  this.upsertRate(status);
+};
+
+Anime.prototype.selectScore = function (value) {
+  const score = parseInt(value, 10);
+  if (isNaN(score) || score < 0 || score > 10) return;
+  if (!this.anime.rate_id) {
+    if (Lampa.Noty) Lampa.Noty.show('Сначала добавьте тайтл в список');
+    return;
+  }
+  if (score === Number(this.anime.user_score || 0)) {
+    this.closeMenus();
+    return;
+  }
+  this.setSaving(true);
+  const self = this;
+  userApi.updateAnimeRate(this.anime.rate_id, { score: score }).then(function (rate) {
+    self.setSaving(false);
+    self.saveRateResult(rate);
+    if (Lampa.Noty) Lampa.Noty.show(score ? 'Оценка сохранена' : 'Оценка удалена');
+  }).catch(function (err) {
+    self.setSaving(false);
+    logger.warn('score save error', err.message);
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить оценку');
+  });
+};
+
+Anime.prototype.setSaving = function (state) {
+  this.saving = !!state;
+  if (!this.html) return;
+  this.html.querySelectorAll('.shikimori-local__action, .shikimori-local__dropdown-item').forEach(function (el) {
+    el.classList.toggle('disabled', !!state);
+  });
+  const focused = this.html.querySelector('.selector.focus');
+  if (focused) focused.classList.toggle('loading', !!state);
+};
+
+Anime.prototype.confirmDeleteRate = function () {
+  if (!this.anime.rate_id) {
+    if (Lampa.Noty) Lampa.Noty.show('Тайтл не найден в списке');
+    return;
+  }
+  const self = this;
+  if (Lampa.Modal && Lampa.Modal.open) {
+    Lampa.Modal.open({
+      title: 'Удалить произведение из списка?',
+      html: '<div class="shikimori-local__confirm">Удалить произведение из списка?</div>',
+      buttons: [
+        { name: 'Отмена', onSelect: function () { Lampa.Modal.close(); } },
+        { name: 'Удалить', onSelect: function () { Lampa.Modal.close(); self.deleteRate(); } }
+      ]
+    });
+    return;
+  }
+  if (confirm('Удалить произведение из списка?')) self.deleteRate();
 };
 
 Anime.prototype.saveRateResult = function (rate, fallbackStatus) {
@@ -101,13 +193,16 @@ Anime.prototype.refreshView = function () {
 Anime.prototype.upsertRate = function (status) {
   const self = this;
   const done = function (rate) {
+    self.setSaving(false);
     self.saveRateResult(rate, status);
     if (Lampa.Noty) Lampa.Noty.show('ShikiLamp: статус сохранён — ' + (userApi.RATE_STATUS_TITLES[status] || status));
   };
   const fail = function (err) {
+    self.setSaving(false);
     logger.warn('rate save error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Ошибка Shikimori: ' + err.message);
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить статус');
   };
+  this.setSaving(true);
   if (this.anime.rate_id) {
     userApi.updateAnimeRate(this.anime.rate_id, { status: status }).then(done).catch(fail);
   } else {
@@ -172,6 +267,7 @@ Anime.prototype.deleteRate = function () {
     if (Lampa.Noty) Lampa.Noty.show('Тайтл не найден в списке');
     return;
   }
+  this.setSaving(true);
   userApi.deleteAnimeRate(this.anime.rate_id).then(function () {
     self.anime.rate_id = 0;
     self.anime.user_rate_status = '';
@@ -180,7 +276,9 @@ Anime.prototype.deleteRate = function () {
     self.refreshView();
     if (Lampa.Noty) Lampa.Noty.show('Удалено из списка Shikimori');
   }).catch(function (err) {
-    if (Lampa.Noty) Lampa.Noty.show('Ошибка Shikimori: ' + err.message);
+    self.setSaving(false);
+    logger.warn('delete rate error', err.message);
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось удалить из списка');
   });
 };
 
