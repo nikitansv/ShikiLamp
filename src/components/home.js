@@ -30,7 +30,6 @@ Home.prototype.create = function () {
   '<div class="shikimori-local__side-panel" aria-hidden="true">' +
     '<div class="shikimori-local__side-item selector" data-side-action="filter">Фильтр</div>' +
     '<div class="shikimori-local__side-item selector" data-side-action="lists">Мои списки</div>' +
-    '<div class="shikimori-local__side-item selector" data-side-action="settings">Настройки</div>' +
   '</div>';
   this.renderRows();
   this.bindStaticEvents();
@@ -181,10 +180,6 @@ Home.prototype.openSideAction = function (action) {
   if (action === 'lists') {
     if (Lampa.Noty) Lampa.Noty.show('Мои списки будут после авторизации');
     return;
-  }
-  if (action === 'settings') {
-    if (Lampa.Settings && Lampa.Settings.create) Lampa.Settings.create('shikilamp_local_settings');
-    else if (Lampa.Noty) Lampa.Noty.show('Откройте настройки ShikiLamp Local');
   }
 };
 
