@@ -25,9 +25,9 @@ Home.prototype.create = function () {
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
-    '<div class="shikimori-local__side-panel selector" tabindex="0" aria-hidden="true"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
-  '</div>';
+  '</div>' +
+  '<div class="shikimori-local__side-panel selector" tabindex="0" aria-hidden="true"></div>';
   this.renderRows();
   this.bindStaticEvents();
 };
@@ -83,6 +83,7 @@ Home.prototype.renderSectionItems = function (section, row, list) {
   });
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
+  more.__shikimoriMore = true;
   more.textContent = 'Ещё';
   more.addEventListener('hover:enter', function () { self.openCatalog(section); });
   more.addEventListener('click', function () { self.openCatalog(section); });
@@ -108,23 +109,21 @@ Home.prototype.createCard = function (anime) {
 };
 
 Home.prototype.onFocusChange = function (focused) {
-  if (focused && focused.__shikimoriAnime) this.lastCardFocus = focused;
+  if (focused && (focused.__shikimoriAnime || focused.__shikimoriMore)) this.lastCardFocus = focused;
 };
 
 Home.prototype.onRightEdge = function (focused) {
-  if (!focused || !focused.__shikimoriAnime || !focused.getBoundingClientRect) return false;
-  const rect = focused.getBoundingClientRect();
-  const limit = (window.innerWidth || document.documentElement.clientWidth || 0) - 420;
-  if (rect.right < limit) return false;
+  if (!focused || !focused.getBoundingClientRect) return false;
+  if (!focused.__shikimoriMore) return false;
   this.lastCardFocus = focused;
-  this.openSidePanel(focused.__shikimoriAnime);
+  this.openSidePanel(null);
   return true;
 };
 
 Home.prototype.onRightWall = function (focused) {
-  if (focused && focused.__shikimoriAnime) {
+  if (focused && focused.__shikimoriMore) {
     this.lastCardFocus = focused;
-    this.openSidePanel(focused.__shikimoriAnime);
+    this.openSidePanel(null);
   }
 };
 
@@ -139,6 +138,8 @@ Home.prototype.onLeftWall = function (focused) {
 Home.prototype.openSidePanel = function (anime) {
   const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
   if (!panel) return;
+  const root = this.html && this.html.querySelector('.home-page');
+  if (root) root.classList.add('side-open');
   panel.classList.add('visible');
   panel.setAttribute('aria-hidden', 'false');
   panel.setAttribute('data-shikimori-id', anime && anime.shikimori_id ? String(anime.shikimori_id) : '');
@@ -150,6 +151,8 @@ Home.prototype.openSidePanel = function (anime) {
 Home.prototype.closeSidePanel = function (restoreFocus) {
   const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
   if (!panel) return;
+  const root = this.html && this.html.querySelector('.home-page');
+  if (root) root.classList.remove('side-open');
   panel.classList.remove('visible', 'focus');
   panel.setAttribute('aria-hidden', 'true');
   panel.removeAttribute('data-shikimori-id');
