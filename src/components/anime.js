@@ -50,6 +50,10 @@ Anime.prototype.handleAction = function (action) {
     this.upsertRate('watching');
   } else if (action === 'add-completed') {
     this.upsertRate('completed');
+  } else if (action === 'add-on_hold') {
+    this.upsertRate('on_hold');
+  } else if (action === 'add-dropped') {
+    this.upsertRate('dropped');
   } else if (action === 'set-score') {
     this.askScore();
   } else if (action === 'set-episodes') {

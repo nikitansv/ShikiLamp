@@ -32,6 +32,10 @@ function injectStyles() {
     .shikimori-local__result.focus { outline: 2px solid #fff; }
     .shikimori-local__result-title { font-weight: 600; margin-top: 0.4em; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
+    .shikimori-local.anime-detail { display: flex; gap: 1.5em; align-items: flex-start; }
+    .shikimori-local__poster { width: 220px; height: 330px; flex: 0 0 auto; border-radius: 0.6em; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .shikimori-local__poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .shikimori-local__info { min-width: 0; flex: 1; }
     .shikimori-local__actions { margin-top: 1em; display: flex; gap: 0.8em; flex-wrap: wrap; }
     .shikimori-local__action { padding: 0.6em 1em; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; }
     .shikimori-local__action.focus { background: rgba(255,255,255,0.25); }
