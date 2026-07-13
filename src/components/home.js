@@ -16,6 +16,7 @@ function Home() {
   this.html = null;
   this.pages = {};
   this.loading = {};
+  this.lastCardFocus = null;
 }
 
 Home.prototype.create = function () {
@@ -24,7 +25,7 @@ Home.prototype.create = function () {
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
-    '<div class="shikimori-local__side-panel" aria-hidden="true"></div>' +
+    '<div class="shikimori-local__side-panel selector" tabindex="0" aria-hidden="true"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
   '</div>';
   this.renderRows();
@@ -107,29 +108,44 @@ Home.prototype.createCard = function (anime) {
 };
 
 Home.prototype.onFocusChange = function (focused) {
-  if (!focused || !focused.__shikimoriAnime) this.hideSidePanel();
+  if (focused && focused.__shikimoriAnime) this.lastCardFocus = focused;
 };
 
 Home.prototype.onRightWall = function (focused) {
   if (focused && focused.__shikimoriAnime) {
-    this.showSidePanel(focused.__shikimoriAnime);
+    this.lastCardFocus = focused;
+    this.openSidePanel(focused.__shikimoriAnime);
   }
 };
 
-Home.prototype.showSidePanel = function (anime) {
+Home.prototype.onLeftWall = function (focused) {
+  if (focused && focused.classList && focused.classList.contains('shikimori-local__side-panel')) {
+    this.closeSidePanel(true);
+    return true;
+  }
+  return false;
+};
+
+Home.prototype.openSidePanel = function (anime) {
   const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
   if (!panel) return;
   panel.classList.add('visible');
   panel.setAttribute('aria-hidden', 'false');
   panel.setAttribute('data-shikimori-id', anime && anime.shikimori_id ? String(anime.shikimori_id) : '');
+  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
+    Lampa.Controller.collectionFocus(panel, this.html);
+  }
 };
 
-Home.prototype.hideSidePanel = function () {
+Home.prototype.closeSidePanel = function (restoreFocus) {
   const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
   if (!panel) return;
-  panel.classList.remove('visible');
+  panel.classList.remove('visible', 'focus');
   panel.setAttribute('aria-hidden', 'true');
   panel.removeAttribute('data-shikimori-id');
+  if (restoreFocus && this.lastCardFocus && document.body.contains(this.lastCardFocus) && typeof Lampa !== 'undefined' && Lampa.Controller) {
+    Lampa.Controller.collectionFocus(this.lastCardFocus, this.html);
+  }
 };
 
 Home.prototype.openAnime = function (anime) {

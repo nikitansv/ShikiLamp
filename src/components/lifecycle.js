@@ -56,6 +56,8 @@ function addContentController(instance) {
       if (focused) Lampa.Controller.collectionFocus(focused, instance.html);
     },
     left: function () {
+      const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
+      if (typeof instance.onLeftWall === 'function' && instance.onLeftWall(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('left')) Navigator.move('left');
       else Lampa.Controller.toggle('menu');
       scrollFocusedIntoView();

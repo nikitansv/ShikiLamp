@@ -7,9 +7,9 @@ function injectStyles() {
   style.id = 'shikimori-local-styles';
   style.textContent = `
     .shikimori-local { padding: 1.5em; color: #fff; max-height: 100vh; overflow-y: auto; box-sizing: border-box; }
-    .shikimori-local.home-page { padding-bottom: 6em; padding-right: 23em; }
-    .shikimori-local__side-panel { position: fixed; top: 5.5em; right: 1.5em; width: 19em; height: calc(100vh - 8em); border-radius: 0.8em; background: rgba(0,0,0,0.32); border: 1px solid rgba(255,255,255,0.12); opacity: 0; transform: translateX(1.2em); pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease; }
-    .shikimori-local__side-panel.visible { opacity: 1; transform: translateX(0); }
+    .shikimori-local.home-page { padding-bottom: 6em; }
+    .shikimori-local__side-panel { position: fixed; top: 5.5em; right: 0; width: 19em; height: calc(100vh - 8em); border-radius: 0.8em 0 0 0.8em; background: rgba(0,0,0,0.34); border: 1px solid rgba(255,255,255,0.12); opacity: 0.35; transform: translateX(18.2em); pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease; }
+    .shikimori-local__side-panel.visible, .shikimori-local__side-panel.focus { opacity: 1; transform: translateX(0); background: rgba(0,0,0,0.46); }
     .shikimori-local__head { font-size: 1.5em; margin-bottom: 1em; font-weight: 600; }
     .shikimori-local__home-rows { display: flex; flex-direction: column; gap: 1.6em; }
     .shikimori-local__row-title { font-size: 1.25em; margin-bottom: 0.7em; font-weight: 600; }
