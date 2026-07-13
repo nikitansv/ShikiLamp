@@ -78,8 +78,23 @@ Anime.prototype.saveRateResult = function (rate, fallbackStatus) {
   if (rate) {
     this.anime.rate_id = rate.rate_id || rate.id || this.anime.rate_id || 0;
     this.anime.user_rate_status = rate.user_rate_status || fallbackStatus || this.anime.user_rate_status || '';
-    this.anime.user_score = rate.user_score || this.anime.user_score || 0;
-    this.anime.user_episodes = rate.user_episodes || this.anime.user_episodes || 0;
+    this.anime.user_score = typeof rate.user_score === 'number' ? rate.user_score : (this.anime.user_score || 0);
+    this.anime.user_episodes = typeof rate.user_episodes === 'number' ? rate.user_episodes : (this.anime.user_episodes || 0);
+  }
+  this.refreshView();
+};
+
+Anime.prototype.refreshView = function () {
+  if (!this.html) return;
+  const focusedAction = this.html.querySelector('.shikimori-local__action.focus');
+  const action = focusedAction ? focusedAction.getAttribute('data-action') : '';
+  this.html.innerHTML = templates.animeTemplate(this.anime);
+  this.bindEvents();
+  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
+    Lampa.Controller.collectionSet(this.html);
+    const target = action ? this.html.querySelector('[data-action="' + action + '"]') : null;
+    const focused = target || this.html.querySelector('.selector');
+    if (focused) Lampa.Controller.collectionFocus(focused, this.html);
   }
 };
 
@@ -162,6 +177,7 @@ Anime.prototype.deleteRate = function () {
     self.anime.user_rate_status = '';
     self.anime.user_score = 0;
     self.anime.user_episodes = 0;
+    self.refreshView();
     if (Lampa.Noty) Lampa.Noty.show('Удалено из списка Shikimori');
   }).catch(function (err) {
     if (Lampa.Noty) Lampa.Noty.show('Ошибка Shikimori: ' + err.message);

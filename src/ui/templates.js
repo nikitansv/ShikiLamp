@@ -31,6 +31,7 @@ function animeTemplate(anime) {
       '<div class="shikimori-local__meta">' +
         'Тип: ' + (anime.kind || '?') + ' · Статус: ' + (anime.status || '?') + ' · Эпизоды: ' + (anime.episodes || '?') + ' · Год: ' + (anime.year || '?') + ' · Рейтинг: ' + (anime.score || '?') +
       '</div>' +
+      userRateTemplate(anime) +
       '<div class="shikimori-local__description">' + description + '</div>' +
       '<div class="shikimori-local__actions">' +
         '<div class="shikimori-local__action selector" data-action="tmdb">Найти в TMDB</div>' +
@@ -46,6 +47,25 @@ function animeTemplate(anime) {
         '<div class="shikimori-local__action selector" data-action="external">Открыть на Shikimori</div>' +
       '</div>' +
     '</div>' +
+  '</div>';
+}
+
+function userRateTemplate(anime) {
+  const statusNames = {
+    planned: 'В планах',
+    watching: 'Смотрю',
+    completed: 'Просмотрено',
+    on_hold: 'Отложено',
+    dropped: 'Брошено'
+  };
+  const status = anime.user_rate_status ? (statusNames[anime.user_rate_status] || anime.user_rate_status) : 'нет в списке';
+  const score = anime.user_score ? anime.user_score : '—';
+  const episodes = anime.user_episodes ? anime.user_episodes : 0;
+  const total = anime.episodes || '?';
+  return '<div class="shikimori-local__user-rate">' +
+    '<span>Мой статус: ' + escapeHtml(status) + '</span>' +
+    '<span>Оценка: ' + escapeHtml(score) + '</span>' +
+    '<span>Эпизоды: ' + escapeHtml(episodes + '/' + total) + '</span>' +
   '</div>';
 }
 
