@@ -166,6 +166,7 @@ Anime.prototype.saveRateResult = function (rate, fallbackStatus) {
 };
 
 Anime.prototype.refreshView = function () {
+  this.saving = false;
   if (!this.html) return;
   const focusedAction = this.html.querySelector('.shikimori-local__action.focus');
   const action = focusedAction ? focusedAction.getAttribute('data-action') : '';
@@ -258,6 +259,7 @@ Anime.prototype.deleteRate = function () {
   }
   this.setSaving(true);
   userApi.deleteAnimeRate(this.anime.rate_id).then(function () {
+    self.setSaving(false);
     self.anime.rate_id = 0;
     self.anime.user_rate_status = '';
     self.anime.user_score = 0;
