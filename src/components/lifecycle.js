@@ -64,6 +64,7 @@ function addContentController(instance) {
     },
     right: function () {
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
+      if (typeof instance.onRightEdge === 'function' && instance.onRightEdge(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('right')) {
         Navigator.move('right');
         scrollFocusedIntoView();

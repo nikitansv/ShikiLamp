@@ -111,6 +111,16 @@ Home.prototype.onFocusChange = function (focused) {
   if (focused && focused.__shikimoriAnime) this.lastCardFocus = focused;
 };
 
+Home.prototype.onRightEdge = function (focused) {
+  if (!focused || !focused.__shikimoriAnime || !focused.getBoundingClientRect) return false;
+  const rect = focused.getBoundingClientRect();
+  const limit = (window.innerWidth || document.documentElement.clientWidth || 0) - 420;
+  if (rect.right < limit) return false;
+  this.lastCardFocus = focused;
+  this.openSidePanel(focused.__shikimoriAnime);
+  return true;
+};
+
 Home.prototype.onRightWall = function (focused) {
   if (focused && focused.__shikimoriAnime) {
     this.lastCardFocus = focused;
