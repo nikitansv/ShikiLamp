@@ -104,6 +104,10 @@ Line.prototype.createCard = function (anime) {
   });
   el.addEventListener('hover:enter', function () { self.openAnime(anime); });
   el.addEventListener('click', function () { self.openAnime(anime); });
+  el.addEventListener('contextmenu', function (event) {
+    event.preventDefault();
+    self.openShikimoriCard(anime);
+  });
   return el;
 };
 
