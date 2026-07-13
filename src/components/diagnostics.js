@@ -84,6 +84,7 @@ Diagnostics.prototype.handleAction = function (action) {
     });
   } else if (action === 'clear-log') {
     this.logEntries = [];
+    if (logger.clear) logger.clear();
     this.renderBody();
   } else if (action === 'export-report') {
     const report = this.buildReport();
@@ -103,20 +104,40 @@ Diagnostics.prototype.log = function (text) {
 
 Diagnostics.prototype.buildReport = function () {
   const data = this.collectData();
+  const runtimeLogs = logger.getEntries ? logger.getEntries() : [];
   return JSON.stringify({
     plugin_id: config.PLUGIN_ID,
     version: data.version,
     lampa_version: data.lampaVersion,
-    has_maker: data.hasMaker,
-    has_content_rows: data.hasContentRows,
+    environment: {
+      href: sanitizeUrl(typeof location !== 'undefined' ? location.href : ''),
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      platform: typeof navigator !== 'undefined' ? navigator.platform : '',
+      appready: typeof window !== 'undefined' ? !!window.appready : false
+    },
+    capabilities: {
+      has_maker: data.hasMaker,
+      has_content_rows: data.hasContentRows,
+      has_storage: !!(typeof Lampa !== 'undefined' && Lampa.Storage),
+      has_network: !!(typeof Lampa !== 'undefined' && Lampa.Network),
+      has_fetch: typeof fetch === 'function'
+    },
     api_base_url: data.apiBaseUrl,
     cache_size: data.cacheSize,
     mapping_count: data.mappingCount,
-    log: this.logEntries,
+    diagnostics_log: this.logEntries.slice(),
+    runtime_log: runtimeLogs,
     token_present: data.hasToken,
+    token_value: '[REDACTED]',
     exported_at: Date.now ? Date.now() : new Date().getTime()
   }, null, 2);
 };
+
+function sanitizeUrl(url) {
+  return String(url || '')
+    .replace(/([?&](?:token|access_token|refresh_token|code|client_secret|email)=)[^&]+/gi, '$1[REDACTED]')
+    .slice(0, 500);
+}
 
 Diagnostics.prototype.render = function () {
   return this.html;
