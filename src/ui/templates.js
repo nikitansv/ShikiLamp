@@ -176,7 +176,8 @@ function diagnosticsTemplate(data) {
 
 function mappingTemplate(anime, candidates) {
   let html = '<div class="shikimori-local mapping-page">' +
-    '<div class="shikimori-local__head">Выберите соответствие для ' + escapeHtml(anime.title) + '</div>';
+    '<div class="shikimori-local__head">Выберите соответствие для ' + escapeHtml(anime.title) + '</div>' +
+    '<div class="shikimori-local__actions"><div class="shikimori-local__action selector" data-action="change-query">Изменить запрос</div></div>';
   if (candidates.length === 0) html += '<div class="shikimori-local__empty">Варианты не найдены. Введите TMDB ID вручную.</div>';
   candidates.forEach(function (c, i) {
     html += '<div class="shikimori-local__candidate selector" data-index="' + i + '" data-type="' + c.type + '" data-id="' + c.item.id + '" data-score="' + c.score + '" data-name="' + escapeHtml(c.item.name) + '">' +

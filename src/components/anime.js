@@ -296,7 +296,9 @@ Anime.prototype.openLampaSearch = function () {
         return;
       }
       const type = item.name ? 'tv' : 'movie';
-      const mapping = matcher.saveManual(self.anime, item.id, type, 1, 0);
+      const poster = item.poster_path ? matcher.tmdbPosterUrl(item.poster_path) : (item.poster || item.img || '');
+      const mapping = matcher.saveManual(self.anime, item.id, type, 1, 0, { poster: poster });
+      self.refreshView();
       if (Lampa.Noty) Lampa.Noty.show('Соответствие сохранено');
       if (done) done();
       matcher.openLampaCard(self.anime, mapping);

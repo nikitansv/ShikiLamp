@@ -40,6 +40,11 @@ function createResult(mapping, source, confidence) {
 function matchLocal(anime) {
   const local = storage.get(anime.shikimori_id);
   if (!local) return null;
+  if (local.poster) {
+    anime.tmdb_poster = local.poster;
+    anime.poster = local.poster;
+    anime.image = local.poster;
+  }
   return createResult(local, local.mapping_source || 'local', local.confidence || 1.0);
 }
 
@@ -166,7 +171,7 @@ function findBest(anime) {
   });
 }
 
-function saveManual(anime, tmdbId, tmdbType, season, episodeOffset) {
+function saveManual(anime, tmdbId, tmdbType, season, episodeOffset, extra) {
   const mapping = {
     shikimori_id: anime.shikimori_id,
     mal_id: anime.mal_id || 0,
@@ -174,11 +179,17 @@ function saveManual(anime, tmdbId, tmdbType, season, episodeOffset) {
     tmdb_type: tmdbType,
     tmdb_season: parseInt(season, 10) || 1,
     episode_offset: parseInt(episodeOffset, 10) || 0,
+    poster: extra && extra.poster ? extra.poster : '',
     confidence: 1.0,
     mapping_source: 'manual',
     verified: true
   };
   storage.set(mapping);
+  if (mapping.poster) {
+    anime.tmdb_poster = mapping.poster;
+    anime.poster = mapping.poster;
+    anime.image = mapping.poster;
+  }
   return mapping;
 }
 

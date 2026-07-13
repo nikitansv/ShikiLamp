@@ -10,6 +10,7 @@ function Mapping(params) {
   this.params = params || {};
   this.html = null;
   this.anime = this.params.anime || {};
+  this.searchQuery = this.anime.title || this.anime.original_title || '';
   this.candidates = [];
 }
 
@@ -23,7 +24,13 @@ Mapping.prototype.create = function () {
 Mapping.prototype.loadCandidates = function () {
   const self = this;
   this.html.innerHTML = templates.mappingTemplate(this.anime, []);
-  matcher.searchTmdb(this.anime).then(function (candidates) {
+  this.bindEvents();
+  const queryAnime = Object.assign({}, this.anime, {
+    title: this.searchQuery,
+    russian_title: this.searchQuery,
+    original_title: this.searchQuery
+  });
+  matcher.searchTmdb(queryAnime).then(function (candidates) {
     self.candidates = candidates;
     self.html.innerHTML = templates.mappingTemplate(self.anime, candidates);
     self.bindEvents();
@@ -41,13 +48,20 @@ Mapping.prototype.bindEvents = function () {
   const self = this;
   this.html.querySelectorAll('.shikimori-local__candidate').forEach(function (el) {
     el.addEventListener('hover:enter', function () {
+      const index = parseInt(el.getAttribute('data-index'), 10);
+      const candidate = self.candidates[index];
       const id = parseInt(el.getAttribute('data-id'), 10);
       const type = el.getAttribute('data-type');
       const season = parseInt(prompt('Номер сезона', '1') || '1', 10);
       const offset = parseInt(prompt('Смещение эпизодов', '0') || '0', 10);
-      self.save(id, type, season, offset);
+      self.save(id, type, season, offset, candidate);
     });
   });
+  const queryBtn = this.html.querySelector('[data-action="change-query"]');
+  if (queryBtn) {
+    queryBtn.addEventListener('hover:enter', function () { self.changeQuery(); });
+    queryBtn.addEventListener('click', function () { self.changeQuery(); });
+  }
   const saveBtn = this.html.querySelector('[data-action="manual-save"]');
   if (saveBtn) {
     saveBtn.addEventListener('hover:enter', function () {
@@ -61,8 +75,24 @@ Mapping.prototype.bindEvents = function () {
   }
 };
 
-Mapping.prototype.save = function (tmdbId, type, season, offset) {
-  const mapping = matcher.saveManual(this.anime, tmdbId, type, season, offset);
+Mapping.prototype.changeQuery = function () {
+  const self = this;
+  const save = function (value) {
+    value = String(value || '').trim();
+    if (!value) return;
+    self.searchQuery = value;
+    self.loadCandidates();
+  };
+  if (Lampa.Input && Lampa.Input.edit) {
+    Lampa.Input.edit({ title: 'Запрос TMDB', value: this.searchQuery, free: true }, save);
+    return;
+  }
+  save(prompt('Запрос TMDB', this.searchQuery));
+};
+
+Mapping.prototype.save = function (tmdbId, type, season, offset, candidate) {
+  const poster = candidate && candidate.item && candidate.item.poster_path ? matcher.tmdbPosterUrl(candidate.item.poster_path) : '';
+  const mapping = matcher.saveManual(this.anime, tmdbId, type, season, offset, { poster: poster });
   if (Lampa.Noty) Lampa.Noty.show('Mapping сохранён');
   if (matcher.openLampaCard(this.anime, mapping)) {
     Lampa.Activity.backward();
