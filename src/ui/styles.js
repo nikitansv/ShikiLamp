@@ -8,8 +8,8 @@ function injectStyles() {
   style.textContent = `
     .shikimori-local { padding: 1.5em; color: #fff; max-height: 100vh; overflow-y: auto; box-sizing: border-box; }
     .shikimori-local.home-page { padding-bottom: 6em; transition: transform 0.14s ease, padding-right 0.14s ease; }
-    .shikimori-local.home-page.side-open { transform: translateX(-19em); padding-right: 19em; }
-    .shikimori-local__side-panel { position: fixed; top: 5.5em; right: 0; width: 19em; height: calc(100vh - 8em); padding: 1em; box-sizing: border-box; border-radius: 0.8em 0 0 0.8em; background: linear-gradient(180deg, rgba(38,38,42,0.95), rgba(18,18,22,0.95)); border: 1px solid rgba(255,255,255,0.12); opacity: 0.85; transform: translateX(18.2em); pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease; }
+    .shikimori-local.home-page.side-open { transform: translateX(-15.5em); padding-right: 15.5em; }
+    .shikimori-local__side-panel { position: fixed; top: 5.5em; right: 0; width: 15.5em; height: calc(100vh - 8em); padding: 0.8em; box-sizing: border-box; border-radius: 0.8em 0 0 0.8em; background: linear-gradient(180deg, rgba(38,38,42,0.95), rgba(18,18,22,0.95)); border: 1px solid rgba(255,255,255,0.12); opacity: 0.85; transform: translateX(14.8em); pointer-events: none; transition: opacity 0.12s ease, transform 0.12s ease, background 0.12s ease; }
     .shikimori-local__side-panel.visible { opacity: 1; transform: translateX(0); }
     .shikimori-local__side-item { padding: 0.95em 1em; margin-bottom: 0.45em; border-radius: 0.65em; background: rgba(255,255,255,0.04); color: #fff; font-size: 1.05em; }
     .shikimori-local__side-item.focus { background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(180,180,190,0.78)); color: #111; }
