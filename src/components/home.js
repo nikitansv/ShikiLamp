@@ -27,7 +27,11 @@ Home.prototype.create = function () {
     '<div class="shikimori-local__home-rows"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
   '</div>' +
-  '<div class="shikimori-local__side-panel selector" tabindex="0" aria-hidden="true"></div>';
+  '<div class="shikimori-local__side-panel" aria-hidden="true">' +
+    '<div class="shikimori-local__side-item selector" data-side-action="filter">Фильтр</div>' +
+    '<div class="shikimori-local__side-item selector" data-side-action="lists">Мои списки</div>' +
+    '<div class="shikimori-local__side-item selector" data-side-action="settings">Настройки</div>' +
+  '</div>';
   this.renderRows();
   this.bindStaticEvents();
 };
@@ -51,6 +55,11 @@ Home.prototype.bindStaticEvents = function () {
   this.html.querySelectorAll('[data-section="diagnostics"]').forEach(function (el) {
     el.addEventListener('hover:enter', function () { self.openSection(el.getAttribute('data-section')); });
     el.addEventListener('click', function () { self.openSection(el.getAttribute('data-section')); });
+  });
+  this.html.querySelectorAll('[data-side-action]').forEach(function (el) {
+    const run = function () { self.openSideAction(el.getAttribute('data-side-action')); };
+    el.addEventListener('hover:enter', run);
+    el.addEventListener('click', run);
   });
 };
 
@@ -128,7 +137,8 @@ Home.prototype.onRightWall = function (focused) {
 };
 
 Home.prototype.onLeftWall = function (focused) {
-  if (focused && focused.classList && focused.classList.contains('shikimori-local__side-panel')) {
+  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
+  if (panel && focused && panel.contains(focused)) {
     this.closeSidePanel(true);
     return true;
   }
@@ -143,8 +153,9 @@ Home.prototype.openSidePanel = function (anime) {
   panel.classList.add('visible');
   panel.setAttribute('aria-hidden', 'false');
   panel.setAttribute('data-shikimori-id', anime && anime.shikimori_id ? String(anime.shikimori_id) : '');
+  const first = panel.querySelector('.selector') || panel;
   if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionFocus(panel, this.html);
+    Lampa.Controller.collectionFocus(first, this.html);
   }
 };
 
@@ -154,10 +165,26 @@ Home.prototype.closeSidePanel = function (restoreFocus) {
   const root = this.html && this.html.querySelector('.home-page');
   if (root) root.classList.remove('side-open');
   panel.classList.remove('visible', 'focus');
+  panel.querySelectorAll('.focus').forEach(function (el) { el.classList.remove('focus'); });
   panel.setAttribute('aria-hidden', 'true');
   panel.removeAttribute('data-shikimori-id');
   if (restoreFocus && this.lastCardFocus && document.body.contains(this.lastCardFocus) && typeof Lampa !== 'undefined' && Lampa.Controller) {
     Lampa.Controller.collectionFocus(this.lastCardFocus, this.html);
+  }
+};
+
+Home.prototype.openSideAction = function (action) {
+  if (action === 'filter') {
+    if (Lampa.Noty) Lampa.Noty.show('Фильтр будет добавлен следующим этапом');
+    return;
+  }
+  if (action === 'lists') {
+    if (Lampa.Noty) Lampa.Noty.show('Мои списки будут после авторизации');
+    return;
+  }
+  if (action === 'settings') {
+    if (Lampa.Settings && Lampa.Settings.create) Lampa.Settings.create('shikilamp_local_settings');
+    else if (Lampa.Noty) Lampa.Noty.show('Откройте настройки ShikiLamp Local');
   }
 };
 
