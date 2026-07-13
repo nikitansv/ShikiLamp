@@ -205,6 +205,13 @@ function openLampaCard(anime, mapping) {
   return true;
 }
 
+function openConfident(anime) {
+  return findBest(anime).then(function (out) {
+    if (!out.result) return false;
+    return openLampaCard(anime, out.result);
+  });
+}
+
 function openBestOrFirst(anime) {
   return findBest(anime).then(function (out) {
     if (out.result) return openLampaCard(anime, out.result);
@@ -253,6 +260,7 @@ module.exports = {
   findBest,
   saveManual,
   openLampaCard,
+  openConfident,
   openBestOrFirst,
   buildLampaCard,
   getThreshold,

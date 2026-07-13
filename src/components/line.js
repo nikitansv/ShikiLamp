@@ -158,12 +158,22 @@ Line.prototype.forceFocus = function (target) {
 };
 
 Line.prototype.openAnime = function (anime) {
+  const self = this;
   if (Lampa.Noty) Lampa.Noty.show('Поиск TMDB...');
-  matcher.openBestOrFirst(anime).then(function (ok) {
-    if (!ok && Lampa.Noty) Lampa.Noty.show('TMDB версия не найдена');
+  matcher.openConfident(anime).then(function (ok) {
+    if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
     logger.warn('openAnime error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Ошибка TMDB: ' + err.message);
+    self.openShikimoriCard(anime);
+  });
+};
+
+Line.prototype.openShikimoriCard = function (anime) {
+  Lampa.Activity.push({
+    url: '',
+    title: anime.title,
+    component: 'shikimori_local_anime',
+    anime: anime
   });
 };
 

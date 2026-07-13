@@ -312,10 +312,6 @@ Anime.prototype.onUp = function (focused) {
     this.bumpEpisodes(1);
     return true;
   }
-  if (action === 'toggle-status-menu') {
-    this.bumpStatus(1);
-    return true;
-  }
   if (action === 'toggle-score-menu') {
     this.bumpScore(1);
     return true;
@@ -327,10 +323,6 @@ Anime.prototype.onDown = function (focused) {
   const action = focused && focused.getAttribute('data-action');
   if (action === 'set-episodes') {
     this.bumpEpisodes(-1);
-    return true;
-  }
-  if (action === 'toggle-status-menu') {
-    this.bumpStatus(-1);
     return true;
   }
   if (action === 'toggle-score-menu') {
@@ -353,20 +345,6 @@ function formatErrorSuffix(err) {
   if (message) return ': ' + message.slice(0, 80);
   return '';
 }
-
-Anime.prototype.bumpStatus = function (delta) {
-  const statuses = ['planned', 'watching', 'completed', 'on_hold', 'dropped'];
-  const current = this.anime.user_rate_status || '';
-  if (delta < 0 && current) {
-    this.confirmDeleteRate();
-    return;
-  }
-  let index = statuses.indexOf(current);
-  if (index < 0) index = delta > 0 ? -1 : 0;
-  const next = statuses[Math.max(0, Math.min(statuses.length - 1, index + delta))];
-  if (!next || next === current) return;
-  this.upsertRate(next);
-};
 
 Anime.prototype.bumpScore = function (delta) {
   if (!this.anime.rate_id) {
