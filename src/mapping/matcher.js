@@ -207,8 +207,17 @@ function openLampaCard(anime, mapping) {
 
 function openConfident(anime) {
   return findBest(anime).then(function (out) {
-    if (!out.result) return false;
-    return openLampaCard(anime, out.result);
+    if (out.result) return openLampaCard(anime, out.result);
+    const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
+    if (!best || best.score < 0.55) return false;
+    return openLampaCard(anime, createResult({
+      shikimori_id: anime.shikimori_id,
+      mal_id: anime.mal_id,
+      tmdb_id: best.item.id,
+      tmdb_type: best.type,
+      tmdb_season: 1,
+      episode_offset: 0
+    }, 'best-candidate', best.score));
   });
 }
 

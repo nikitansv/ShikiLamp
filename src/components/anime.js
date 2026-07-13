@@ -42,6 +42,8 @@ Anime.prototype.handleAction = function (action) {
   if (this.saving) return;
   if (action === 'tmdb') {
     this.findAndOpen();
+  } else if (action === 'lampa-search') {
+    this.openLampaSearch();
   } else if (action === 'mapping') {
     Lampa.Activity.push({
       url: '',
@@ -275,6 +277,15 @@ Anime.prototype.deleteRate = function () {
     logger.warn('delete rate error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Не удалось удалить из списка' + formatErrorSuffix(err));
   });
+};
+
+Anime.prototype.openLampaSearch = function () {
+  const query = this.anime.title || this.anime.original_title || this.anime.russian_title || '';
+  if (typeof Lampa !== 'undefined' && Lampa.Search && typeof Lampa.Search.open === 'function') {
+    Lampa.Search.open({ input: query });
+    return;
+  }
+  if (Lampa.Noty) Lampa.Noty.show('Поиск Lampa недоступен');
 };
 
 Anime.prototype.findAndOpen = function () {

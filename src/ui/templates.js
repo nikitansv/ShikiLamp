@@ -48,6 +48,7 @@ function animeTemplate(anime) {
       scoreMenu(anime) +
       '<div class="shikimori-local__service-actions">' +
         '<div class="shikimori-local__action tertiary selector" data-action="tmdb">Найти в TMDB</div>' +
+        '<div class="shikimori-local__action tertiary selector" data-action="lampa-search">Найти в Lampa</div>' +
         '<div class="shikimori-local__action tertiary selector" data-action="external">Открыть на Shikimori ↗</div>' +
       '</div>' +
     '</div>' +
