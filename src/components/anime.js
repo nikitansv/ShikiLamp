@@ -132,7 +132,7 @@ Anime.prototype.selectScore = function (value) {
   }).catch(function (err) {
     self.setSaving(false);
     logger.warn('score save error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить оценку');
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить оценку' + formatErrorSuffix(err));
   });
 };
 
@@ -151,19 +151,8 @@ Anime.prototype.confirmDeleteRate = function () {
     if (Lampa.Noty) Lampa.Noty.show('Тайтл не найден в списке');
     return;
   }
-  const self = this;
-  if (Lampa.Modal && Lampa.Modal.open) {
-    Lampa.Modal.open({
-      title: 'Удалить произведение из списка?',
-      html: '<div class="shikimori-local__confirm">Удалить произведение из списка?</div>',
-      buttons: [
-        { name: 'Отмена', onSelect: function () { Lampa.Modal.close(); } },
-        { name: 'Удалить', onSelect: function () { Lampa.Modal.close(); self.deleteRate(); } }
-      ]
-    });
-    return;
-  }
-  if (confirm('Удалить произведение из списка?')) self.deleteRate();
+  if (typeof confirm === 'function' && !confirm('Удалить произведение из списка?')) return;
+  this.deleteRate();
 };
 
 Anime.prototype.saveRateResult = function (rate, fallbackStatus) {
@@ -200,7 +189,7 @@ Anime.prototype.upsertRate = function (status) {
   const fail = function (err) {
     self.setSaving(false);
     logger.warn('rate save error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить статус');
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить статус' + formatErrorSuffix(err));
   };
   this.setSaving(true);
   if (this.anime.rate_id) {
@@ -278,7 +267,7 @@ Anime.prototype.deleteRate = function () {
   }).catch(function (err) {
     self.setSaving(false);
     logger.warn('delete rate error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Не удалось удалить из списка');
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось удалить из списка' + formatErrorSuffix(err));
   });
 };
 
@@ -332,6 +321,15 @@ function isDropdownButtonFor(focused, menu) {
   return focused && focused.getAttribute && focused.getAttribute('data-action') === 'toggle-' + name;
 }
 
+function formatErrorSuffix(err) {
+  if (!err) return '';
+  const status = err.status || err.code || '';
+  const message = err.message || '';
+  if (status) return ' (' + status + ')';
+  if (message) return ': ' + message.slice(0, 80);
+  return '';
+}
+
 Anime.prototype.bumpEpisodes = function (delta) {
   if (!this.anime.rate_id) {
     if (Lampa.Noty) Lampa.Noty.show('Сначала добавьте тайтл в список');
@@ -356,7 +354,7 @@ Anime.prototype.saveEpisodes = function (episodes) {
   }).catch(function (err) {
     self.setSaving(false);
     logger.warn('episodes save error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить эпизоды');
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить эпизоды' + formatErrorSuffix(err));
   });
 };
 
