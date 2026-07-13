@@ -280,12 +280,12 @@ Anime.prototype.deleteRate = function () {
 };
 
 Anime.prototype.openLampaSearch = function () {
-  const query = this.anime.title || this.anime.original_title || this.anime.russian_title || '';
-  if (typeof Lampa !== 'undefined' && Lampa.Search && typeof Lampa.Search.open === 'function') {
-    Lampa.Search.open({ input: query });
-    return;
-  }
-  if (Lampa.Noty) Lampa.Noty.show('Поиск Lampa недоступен');
+  Lampa.Activity.push({
+    url: '',
+    title: 'Соответствие: ' + this.anime.title,
+    component: 'shikimori_local_mapping',
+    anime: this.anime
+  });
 };
 
 Anime.prototype.findAndOpen = function () {
