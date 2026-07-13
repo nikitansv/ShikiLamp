@@ -97,9 +97,6 @@ Home.prototype.createCard = function (anime) {
   el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
     '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
     '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + ' · ' + (anime.score || '?') + '</div>';
-  el.addEventListener('hover:hover', function () { self.showSidePanel(anime); });
-  el.addEventListener('mouseenter', function () { self.showSidePanel(anime); });
-  el.addEventListener('focus', function () { self.showSidePanel(anime); });
   el.addEventListener('hover:enter', function () { self.openAnime(anime); });
   el.addEventListener('click', function () { self.openAnime(anime); });
   el.addEventListener('contextmenu', function (event) {
@@ -110,11 +107,13 @@ Home.prototype.createCard = function (anime) {
 };
 
 Home.prototype.onFocusChange = function (focused) {
+  if (!focused || !focused.__shikimoriAnime) this.hideSidePanel();
+};
+
+Home.prototype.onRightWall = function (focused) {
   if (focused && focused.__shikimoriAnime) {
     this.showSidePanel(focused.__shikimoriAnime);
-    return;
   }
-  this.hideSidePanel();
 };
 
 Home.prototype.showSidePanel = function (anime) {

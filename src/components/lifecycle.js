@@ -61,8 +61,13 @@ function addContentController(instance) {
       scrollFocusedIntoView();
     },
     right: function () {
-      if (typeof Navigator !== 'undefined' && Navigator.move) Navigator.move('right');
-      scrollFocusedIntoView();
+      const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
+      if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('right')) {
+        Navigator.move('right');
+        scrollFocusedIntoView();
+      } else if (typeof instance.onRightWall === 'function') {
+        instance.onRightWall(focused);
+      }
     },
     up: function () {
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) {
