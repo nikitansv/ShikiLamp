@@ -33,6 +33,12 @@ function animeTemplate(anime) {
       '<div class="shikimori-local__description">' + description + '</div>' +
       '<div class="shikimori-local__actions">' +
         '<div class="shikimori-local__action selector" data-action="tmdb">Найти в TMDB</div>' +
+        '<div class="shikimori-local__action selector" data-action="add-planned">В планы</div>' +
+        '<div class="shikimori-local__action selector" data-action="add-watching">Смотрю</div>' +
+        '<div class="shikimori-local__action selector" data-action="add-completed">Просмотрено</div>' +
+        '<div class="shikimori-local__action selector" data-action="set-score">Оценка</div>' +
+        '<div class="shikimori-local__action selector" data-action="set-episodes">Эпизоды</div>' +
+        '<div class="shikimori-local__action selector" data-action="delete-rate">Удалить из списка</div>' +
         '<div class="shikimori-local__action selector" data-action="mapping">Выбрать соответствие</div>' +
         '<div class="shikimori-local__action selector" data-action="external">Открыть на Shikimori</div>' +
       '</div>' +

@@ -77,7 +77,10 @@ function execute(job) {
     dataType: 'json'
   };
 
-  if (job.method === 'POST' || job.body) {
+  if (job.method && job.method !== 'GET') {
+    params.type = job.method;
+    if (job.body) params.post_data = typeof job.body === 'string' ? job.body : JSON.stringify(job.body || {});
+  } else if (job.body) {
     params.type = 'POST';
     params.post_data = typeof job.body === 'string' ? job.body : JSON.stringify(job.body || {});
   }

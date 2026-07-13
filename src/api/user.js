@@ -53,9 +53,50 @@ function listAnimeRates(userId, status, page, limit) {
   }).then(normalizeRates);
 }
 
+function createAnimeRate(animeId, status) {
+  if (!animeId) return Promise.reject(new Error('Anime ID пустой'));
+  return client.request('/api/v2/user_rates', {
+    method: 'POST',
+    authenticated: true,
+    skipCache: true,
+    timeout: 20000,
+    body: {
+      user_rate: {
+        target_id: animeId,
+        target_type: 'Anime',
+        status: status || 'planned'
+      }
+    }
+  }).then(normalizeRate);
+}
+
+function updateAnimeRate(rateId, patch) {
+  if (!rateId) return Promise.reject(new Error('Rate ID пустой'));
+  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), {
+    method: 'PATCH',
+    authenticated: true,
+    skipCache: true,
+    timeout: 20000,
+    body: { user_rate: patch || {} }
+  }).then(normalizeRate);
+}
+
+function deleteAnimeRate(rateId) {
+  if (!rateId) return Promise.reject(new Error('Rate ID пустой'));
+  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), {
+    method: 'DELETE',
+    authenticated: true,
+    skipCache: true,
+    timeout: 20000
+  });
+}
+
 module.exports = {
   RATE_STATUS_TITLES: RATE_STATUS_TITLES,
   listAnimeRates: listAnimeRates,
+  createAnimeRate: createAnimeRate,
+  updateAnimeRate: updateAnimeRate,
+  deleteAnimeRate: deleteAnimeRate,
   normalizeRate: normalizeRate,
   normalizeRates: normalizeRates
 };
