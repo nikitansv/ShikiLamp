@@ -3,6 +3,7 @@
  */
 const client = require('./client');
 const normalizer = require('./normalizer');
+const config = require('../config');
 
 const RATE_STATUS_TITLES = {
   planned: 'В планах',
@@ -53,8 +54,16 @@ function listAnimeRates(userId, status, page, limit) {
   }).then(normalizeRates);
 }
 
+function getCachedUserId() {
+  if (typeof Lampa === 'undefined' || !Lampa.Storage) return null;
+  const user = Lampa.Storage.get(config.STORAGE_KEYS.authUser, null);
+  return user && user.id ? user.id : null;
+}
+
 function createAnimeRate(animeId, status) {
   if (!animeId) return Promise.reject(new Error('Anime ID пустой'));
+  const userId = getCachedUserId();
+  if (!userId) return Promise.reject(new Error('User ID пустой: проверьте вход Shikimori'));
   return client.request('/api/v2/user_rates', {
     method: 'POST',
     authenticated: true,
@@ -62,6 +71,7 @@ function createAnimeRate(animeId, status) {
     timeout: 20000,
     body: {
       user_rate: {
+        user_id: userId,
         target_id: animeId,
         target_type: 'Anime',
         status: status || 'planned'
