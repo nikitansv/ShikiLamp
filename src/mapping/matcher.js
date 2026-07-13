@@ -120,11 +120,50 @@ function normalizeTmdbItem(item, type) {
 function tmdbPosterUrl(path) {
   if (!path) return '';
   if (/^https?:\/\//i.test(path)) return path;
-  return 'https://image.tmdb.org/t/p/w500' + path;
+  const normalized = path.charAt(0) === '/' ? path.slice(1) : path;
+  if (typeof Lampa !== 'undefined' && Lampa.TMDB && Lampa.TMDB.image) {
+    return Lampa.TMDB.image('t/p/w500/' + normalized);
+  }
+  return 'https://image.tmdb.org/t/p/w500/' + normalized;
+}
+
+function fetchTmdbPoster(mapping) {
+  if (!mapping || !mapping.tmdb_id || typeof Lampa === 'undefined' || !Lampa.TMDB || !Lampa.TMDB.api) {
+    return Promise.resolve('');
+  }
+  return new Promise(function (resolve) {
+    const network = (Lampa.Network || (Lampa.Reguest ? new Lampa.Reguest() : null));
+    if (!network || !network.quiet) return resolve('');
+    const method = mapping.tmdb_type === 'movie' ? 'movie' : 'tv';
+    const key = Lampa.TMDB.key ? Lampa.TMDB.key() : '';
+    const url = Lampa.TMDB.api(method + '/' + mapping.tmdb_id + '?language=ru' + (key ? '&api_key=' + key : ''));
+    network.quiet(url, function (data) {
+      resolve(data && data.poster_path ? tmdbPosterUrl(data.poster_path) : '');
+    }, function () { resolve(''); });
+  });
 }
 
 function applyBestPoster(anime) {
   if (!anime || !anime.shikimori_id) return Promise.resolve(anime);
+  const local = storage.get(anime.shikimori_id);
+  if (local && local.poster) {
+    anime.tmdb_poster = local.poster;
+    anime.poster = local.poster;
+    anime.image = local.poster;
+    return Promise.resolve(anime);
+  }
+  if (local && !local.poster) {
+    return fetchTmdbPoster(local).then(function (poster) {
+      if (poster) {
+        local.poster = poster;
+        storage.set(local);
+        anime.tmdb_poster = poster;
+        anime.poster = poster;
+        anime.image = poster;
+      }
+      return anime;
+    });
+  }
   return findBest(anime).then(function (out) {
     const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
     const poster = best && best.item ? tmdbPosterUrl(best.item.poster_path) : '';
