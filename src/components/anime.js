@@ -280,12 +280,34 @@ Anime.prototype.deleteRate = function () {
 };
 
 Anime.prototype.openLampaSearch = function () {
-  Lampa.Activity.push({
-    url: '',
-    title: 'Соответствие: ' + this.anime.title,
-    component: 'shikimori_local_mapping',
-    anime: this.anime
+  const self = this;
+  const query = this.anime.title || this.anime.original_title || this.anime.russian_title || '';
+  if (typeof Lampa === 'undefined' || !Lampa.Search || !Lampa.Api || !Lampa.Api.availableDiscovery) {
+    if (Lampa.Noty) Lampa.Noty.show('Поиск Lampa недоступен');
+    return;
+  }
+  const sources = Lampa.Api.availableDiscovery().map(function (source) {
+    const wrapped = Object.assign({}, source);
+    wrapped.onSelect = function (event, done) {
+      const item = event && (event.item_data || event.element);
+      if (!item || !item.id) {
+        if (Lampa.Noty) Lampa.Noty.show('Не удалось выбрать результат Lampa');
+        if (done) done();
+        return;
+      }
+      const type = item.name ? 'tv' : 'movie';
+      const mapping = matcher.saveManual(self.anime, item.id, type, 1, 0);
+      if (Lampa.Noty) Lampa.Noty.show('Соответствие сохранено');
+      if (done) done();
+      matcher.openLampaCard(self.anime, mapping);
+    };
+    return wrapped;
   });
+  if (!sources.length) {
+    if (Lampa.Noty) Lampa.Noty.show('Источники поиска Lampa не найдены');
+    return;
+  }
+  Lampa.Search.open({ input: query, sources: sources });
 };
 
 Anime.prototype.findAndOpen = function () {
