@@ -178,7 +178,11 @@ Home.prototype.openSideAction = function (action) {
     return;
   }
   if (action === 'lists') {
-    if (Lampa.Noty) Lampa.Noty.show('Мои списки будут после авторизации');
+    Lampa.Activity.push({
+      url: '',
+      title: 'Мои списки Shikimori',
+      component: 'shikimori_local_userlists'
+    });
     return;
   }
 };

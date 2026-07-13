@@ -12,6 +12,7 @@ const styles = require('./ui/styles');
 const Home = require('./components/home');
 const Anime = require('./components/anime');
 const Line = require('./components/line');
+const UserLists = require('./components/userlists');
 const Mapping = require('./components/mapping');
 const Mappings = require('./components/mappings');
 const Diagnostics = require('./components/diagnostics');
@@ -53,6 +54,7 @@ function registerComponents() {
     shikimori_local_home: lifecycle.attachLifecycle(Home),
     shikimori_local_anime: lifecycle.attachLifecycle(Anime),
     shikimori_local_line: lifecycle.attachLifecycle(Line),
+    shikimori_local_userlists: lifecycle.attachLifecycle(UserLists),
     shikimori_local_mapping: lifecycle.attachLifecycle(Mapping),
     shikimori_local_mappings: lifecycle.attachLifecycle(Mappings),
     shikimori_local_diagnostics: lifecycle.attachLifecycle(Diagnostics)

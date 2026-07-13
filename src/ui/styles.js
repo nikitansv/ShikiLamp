@@ -13,6 +13,10 @@ function injectStyles() {
     .shikimori-local__side-panel.visible { opacity: 1; transform: translateX(0); }
     .shikimori-local__side-item { padding: 0.95em 1em; margin-bottom: 0.45em; border-radius: 0.65em; background: rgba(255,255,255,0.04); color: #fff; font-size: 1.05em; }
     .shikimori-local__side-item.focus { background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(180,180,190,0.78)); color: #111; }
+    .shikimori-local__tabs { display: flex; gap: 0.7em; flex-wrap: wrap; margin-bottom: 1.2em; }
+    .shikimori-local__tab { padding: 0.75em 1em; border-radius: 0.6em; background: rgba(255,255,255,0.08); color: #fff; }
+    .shikimori-local__tab.active { border: 1px solid rgba(255,255,255,0.35); }
+    .shikimori-local__tab.focus { background: rgba(255,255,255,0.9); color: #111; }
     .shikimori-local__head { font-size: 1.5em; margin-bottom: 1em; font-weight: 600; }
     .shikimori-local__home-rows { display: flex; flex-direction: column; gap: 1.6em; }
     .shikimori-local__row-title { font-size: 1.25em; margin-bottom: 0.7em; font-weight: 600; }
