@@ -22,11 +22,11 @@ afterEach(() => {
   delete global.Lampa;
 });
 
-test('buildAuthorizationUrl uses OOB redirect and user_rates scope', () => {
+test('buildAuthorizationUrl uses bundled client id, OOB redirect and user_rates scope', () => {
   const auth = loadAuth(makeStorage(), jest.fn());
-  const url = new URL(auth.buildAuthorizationUrl('client-id'));
+  const url = new URL(auth.buildAuthorizationUrl());
   expect(url.origin + url.pathname).toBe('https://shikimori.io/oauth/authorize');
-  expect(url.searchParams.get('client_id')).toBe('client-id');
+  expect(url.searchParams.get('client_id')).toBe(config.OAUTH_CLIENT_ID);
   expect(url.searchParams.get('redirect_uri')).toBe('urn:ietf:wg:oauth:2.0:oob');
   expect(url.searchParams.get('response_type')).toBe('code');
   expect(url.searchParams.get('scope')).toBe('user_rates');

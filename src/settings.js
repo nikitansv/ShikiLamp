@@ -174,10 +174,6 @@ function register() {
     showAuthInfo();
   });
 
-  addAction('oauthCredentials', 'Настроить OAuth приложение', function () {
-    askOAuthCredentials();
-  });
-
   addAction('oauthAuthorize', 'Войти через Shikimori', function () {
     openOAuthAuthorization();
   });
@@ -257,25 +253,6 @@ function showAuthInfo() {
     return;
   }
   Lampa.Noty.show('ShikiLamp: не авторизован. Введите Shikimori access token.');
-}
-
-function askOAuthCredentials() {
-  askSettingValue('oauthClientId', 'OAuth Client ID', auth.getClientId(), function (clientId) {
-    clientId = String(clientId || '').trim();
-    if (!clientId) {
-      Lampa.Noty.show('ShikiLamp: Client ID пустой');
-      return;
-    }
-    askSettingValue('oauthClientSecret', 'OAuth Client Secret', auth.getClientSecret(), function (clientSecret) {
-      clientSecret = String(clientSecret || '').trim();
-      if (!clientSecret) {
-        Lampa.Noty.show('ShikiLamp: Client Secret пустой');
-        return;
-      }
-      auth.setCredentials(clientId, clientSecret);
-      Lampa.Noty.show('ShikiLamp: OAuth приложение сохранено');
-    });
-  });
 }
 
 function openOAuthAuthorization() {

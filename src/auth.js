@@ -32,11 +32,11 @@ function getRefreshToken() {
 }
 
 function getClientId() {
-  return String(getValue(config.STORAGE_KEYS.oauthClientId, '') || '').trim();
+  return String(getValue(config.STORAGE_KEYS.oauthClientId, '') || config.OAUTH_CLIENT_ID || '').trim();
 }
 
 function getClientSecret() {
-  return String(getValue(config.STORAGE_KEYS.oauthClientSecret, '') || '').trim();
+  return String(getValue(config.STORAGE_KEYS.oauthClientSecret, '') || config.OAUTH_CLIENT_SECRET || '').trim();
 }
 
 function setCredentials(clientId, clientSecret) {

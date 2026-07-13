@@ -6,6 +6,8 @@ const VERSION = '0.1.0';
 const SHIKIMORI_HOST_DEFAULT = 'https://shikimori.io';
 const GRAPHQL_PATH = '/api/graphql';
 const REST_PATH = '/api/animes';
+const OAUTH_CLIENT_ID = 'Uq9bIbu12YiIzHh9SBkvsgYJHijYNOTgMN0esx1fdsU';
+const OAUTH_CLIENT_SECRET = 'egUyRoKKO3nFiorchb7qCKmMBGv1VQsdV7scIJjofrw';
 
 const STORAGE_KEYS = {
   enabled: 'shikimori_local_enabled',
@@ -58,6 +60,8 @@ module.exports = {
   SHIKIMORI_HOST_DEFAULT,
   GRAPHQL_PATH,
   REST_PATH,
+  OAUTH_CLIENT_ID,
+  OAUTH_CLIENT_SECRET,
   STORAGE_KEYS,
   CACHE_TTL_MS,
   DEFAULTS,
