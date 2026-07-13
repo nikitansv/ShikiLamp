@@ -22,7 +22,7 @@ Anime.prototype.create = function () {
 
 Anime.prototype.bindEvents = function () {
   const self = this;
-  this.html.querySelectorAll('.shikimori-local__action').forEach(function (el) {
+  this.html.querySelectorAll('[data-action]').forEach(function (el) {
     el.addEventListener('hover:enter', function () {
       const action = el.getAttribute('data-action');
       self.handleAction(action);
@@ -300,6 +300,63 @@ Anime.prototype.findAndOpen = function () {
   }).catch(function (err) {
     logger.warn('findAndOpen error', err.message);
     self.showError('Ошибка: ' + err.message);
+  });
+};
+
+Anime.prototype.onFocusChange = function (focused) {
+  if (!focused) return;
+  const openMenu = this.html && this.html.querySelector('.shikimori-local__dropdown.open');
+  if (openMenu && !openMenu.contains(focused) && !isDropdownButtonFor(focused, openMenu)) {
+    this.closeMenus();
+  }
+};
+
+Anime.prototype.onUp = function (focused) {
+  if (focused && focused.getAttribute('data-action') === 'set-episodes') {
+    this.bumpEpisodes(1);
+    return true;
+  }
+  return false;
+};
+
+Anime.prototype.onDown = function (focused) {
+  if (focused && focused.getAttribute('data-action') === 'set-episodes') {
+    this.bumpEpisodes(-1);
+    return true;
+  }
+  return false;
+};
+
+function isDropdownButtonFor(focused, menu) {
+  const name = menu.getAttribute('data-menu');
+  return focused && focused.getAttribute && focused.getAttribute('data-action') === 'toggle-' + name;
+}
+
+Anime.prototype.bumpEpisodes = function (delta) {
+  if (!this.anime.rate_id) {
+    if (Lampa.Noty) Lampa.Noty.show('Сначала добавьте тайтл в список');
+    return;
+  }
+  const total = Number(this.anime.episodes || 0);
+  const current = Number(this.anime.user_episodes || 0);
+  let next = current + delta;
+  if (next < 0) next = 0;
+  if (total && next > total) next = total;
+  if (next === current) return;
+  this.saveEpisodes(next);
+};
+
+Anime.prototype.saveEpisodes = function (episodes) {
+  const self = this;
+  this.setSaving(true);
+  userApi.updateAnimeRate(this.anime.rate_id, { episodes: episodes }).then(function (rate) {
+    self.setSaving(false);
+    self.saveRateResult(rate);
+    if (Lampa.Noty) Lampa.Noty.show('Эпизоды: ' + episodes);
+  }).catch(function (err) {
+    self.setSaving(false);
+    logger.warn('episodes save error', err.message);
+    if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить эпизоды');
   });
 };
 

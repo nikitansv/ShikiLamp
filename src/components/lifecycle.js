@@ -73,6 +73,8 @@ function addContentController(instance) {
       }
     },
     up: function () {
+      const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
+      if (typeof instance.onUp === 'function' && instance.onUp(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) {
         Navigator.move('up');
         scrollFocusedIntoView();
@@ -83,6 +85,8 @@ function addContentController(instance) {
       }
     },
     down: function () {
+      const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
+      if (typeof instance.onDown === 'function' && instance.onDown(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('down')) {
         Navigator.move('down');
         scrollFocusedIntoView();
