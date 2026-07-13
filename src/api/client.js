@@ -56,6 +56,43 @@ function runNext() {
   execute(job);
 }
 
+function executeFetch(url, params, id, done, fail) {
+  const controller = new AbortController();
+  abortControllers[id] = controller;
+  fetch(url, {
+    method: params.type || 'GET',
+    headers: params.headers,
+    body: params.post_data,
+    signal: controller.signal,
+    mode: 'cors'
+  }).then(function (response) {
+    delete abortControllers[id];
+    if (!response.ok) {
+      return response.text().then(function (text) {
+        const fakeXhr = { status: response.status, decode_error: text || ('HTTP ' + response.status) };
+        fail(fakeXhr, new Error(fakeXhr.decode_error));
+      });
+    }
+    if (response.status === 204) {
+      done({}, false);
+      return null;
+    }
+    return response.text().then(function (text) {
+      if (!text) return done({}, false);
+      try {
+        done(JSON.parse(text), false);
+      } catch (e) {
+        fail({ status: 500, decode_error: 'JSON parse error: ' + e.message }, e);
+      }
+      return null;
+    });
+  }).catch(function (e) {
+    delete abortControllers[id];
+    if (e.name === 'AbortError') return;
+    fail({ status: 0, decode_error: e.message }, e);
+  });
+}
+
 function execute(job) {
   const network = getNetwork();
   const url = buildUrl(job.path);
@@ -120,6 +157,12 @@ function execute(job) {
       }
       finish(job, err, null);
     };
+
+    const preferFetch = typeof fetch === 'function' && job.authenticated && params.type && params.type !== 'GET';
+    if (preferFetch) {
+      executeFetch(url, params, id, done, fail);
+      return;
+    }
 
     if (network && network.quiet) {
       network.quiet(url, done, fail, params.post_data, params);
