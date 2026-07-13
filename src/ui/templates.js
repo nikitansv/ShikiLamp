@@ -120,14 +120,13 @@ function statusMenu(anime) {
 }
 
 function scoreMenu(anime) {
-  const labels = { 10: 'Шедевр', 9: 'Отлично', 8: 'Очень хорошо', 7: 'Хорошо', 6: 'Нормально', 5: 'Средне', 4: 'Плохо', 3: 'Очень плохо', 2: 'Ужасно', 1: 'Хуже некуда' };
   let html = '<div class="shikimori-local__dropdown score-grid" data-menu="score-menu" role="listbox">';
   for (let i = 10; i >= 1; i -= 1) {
     const active = Number(anime.user_score) === i;
-    html += '<div class="shikimori-local__dropdown-item selector' + (active ? ' active' : '') + '" aria-selected="' + (active ? 'true' : 'false') + '" data-action="score-' + i + '">' + (active ? '✓ ' : '') + i + ' — ' + labels[i] + '</div>';
+    html += '<div class="shikimori-local__dropdown-item score selector' + (active ? ' active' : '') + '" aria-selected="' + (active ? 'true' : 'false') + '" data-action="score-' + i + '">' + (active ? '✓ ' : '') + i + '</div>';
   }
   if (anime.user_score) {
-    html += '<div class="shikimori-local__dropdown-separator"></div><div class="shikimori-local__dropdown-item destructive selector" data-action="score-0">Удалить оценку</div>';
+    html += '<div class="shikimori-local__dropdown-separator score-separator"></div><div class="shikimori-local__dropdown-item destructive selector" data-action="score-0">Удалить оценку</div>';
   }
   html += '</div>';
   return html;

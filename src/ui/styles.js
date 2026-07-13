@@ -32,12 +32,12 @@ function injectStyles() {
     .shikimori-local__result.focus { outline: 2px solid #fff; }
     .shikimori-local__result-title { font-weight: 600; margin-top: 0.4em; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
-    .shikimori-local.anime-detail { display: flex; gap: 2em; align-items: flex-start; min-height: calc(100vh - 8em); padding: 2em; border-radius: 18px; }
-    .shikimori-local__poster { width: 240px; aspect-ratio: 2 / 3; flex: 0 0 240px; border-radius: 14px; background: rgba(255,255,255,0.06); overflow: hidden; align-self: flex-start; }
+    .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
+    .shikimori-local__poster { width: 320px; aspect-ratio: 2 / 3; flex: 0 0 320px; border-radius: 16px; background: rgba(255,255,255,0.06); overflow: hidden; align-self: flex-start; }
     .shikimori-local__poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .shikimori-local__poster-fallback { height: 100%; display: flex; align-items: center; justify-content: center; padding: 1em; text-align: center; color: rgba(255,255,255,0.72); }
-    .shikimori-local__info { min-width: 0; flex: 1; max-width: 980px; padding-top: 0.15em; }
-    .shikimori-local__info h1 { font-size: 2.35em; font-weight: 700; line-height: 1.15; margin: 0 0 0.2em; white-space: normal; overflow-wrap: anywhere; }
+    .shikimori-local__info { min-width: 0; flex: 1; max-width: 1120px; padding-top: 0.35em; }
+    .shikimori-local__info h1 { font-size: 2.65em; font-weight: 700; line-height: 1.13; margin: 0 0 0.22em; white-space: normal; overflow-wrap: anywhere; }
     .shikimori-local__sub { font-size: 1.05em; color: rgba(255,255,255,0.68); margin-top: 0.35em; }
     .shikimori-local__meta { display: flex; flex-wrap: wrap; gap: 0.45em 0.75em; margin: 1em 0; color: rgba(255,255,255,0.76); }
     .shikimori-local__meta span { white-space: nowrap; }
@@ -57,12 +57,14 @@ function injectStyles() {
     .shikimori-local__action.loading::after { content: ' · Сохранение…'; }
     .shikimori-local__dropdown { display: none; max-width: 520px; margin: 0.55em 0 0.9em; padding: 0.45em; border-radius: 14px; background: rgba(24,24,28,0.98); border: 1px solid rgba(255,255,255,0.12); }
     .shikimori-local__dropdown.open { display: grid; gap: 0.35em; }
-    .shikimori-local__dropdown.score-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .shikimori-local__dropdown.score-grid { grid-template-columns: repeat(5, minmax(44px, 1fr)); max-width: 320px; }
+    .shikimori-local__dropdown.score-grid .score { text-align: center; justify-content: center; font-size: 1.05em; }
+    .shikimori-local__dropdown.score-grid .score-separator, .shikimori-local__dropdown.score-grid .destructive { grid-column: 1 / -1; }
     .shikimori-local__dropdown-item { padding: 0.72em 0.8em; border-radius: 10px; background: rgba(255,255,255,0.05); }
     .shikimori-local__dropdown-item.active { background: rgba(255,255,255,0.18); }
     .shikimori-local__dropdown-item.destructive { color: #ff8d8d; }
     .shikimori-local__dropdown-separator { height: 1px; background: rgba(255,255,255,0.12); margin: 0.25em 0; }
-    @media (max-width: 1024px) { .shikimori-local__poster { width: 200px; flex-basis: 200px; } .shikimori-local__info h1 { font-size: 2em; } }
+    @media (max-width: 1024px) { .shikimori-local__poster { width: 240px; flex-basis: 240px; } .shikimori-local__info h1 { font-size: 2.15em; } .shikimori-local.anime-detail { padding: 2em; gap: 2em; } }
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
