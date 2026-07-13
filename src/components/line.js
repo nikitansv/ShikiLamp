@@ -159,7 +159,6 @@ Line.prototype.forceFocus = function (target) {
 
 Line.prototype.openAnime = function (anime) {
   const self = this;
-  if (Lampa.Noty) Lampa.Noty.show('Поиск TMDB...');
   matcher.openConfident(anime).then(function (ok) {
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
