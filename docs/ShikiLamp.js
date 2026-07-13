@@ -92,10 +92,11 @@ var ShikimoriLocalPlugin=(()=>{var __getOwnPropNames=Object.getOwnPropertyNames;
     .shikimori-local__result.focus { outline: 2px solid #fff; }
     .shikimori-local__result-title { font-weight: 600; margin-top: 0.4em; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
-    .shikimori-local.anime-detail { display: flex; gap: 1.5em; align-items: flex-start; }
-    .shikimori-local__poster { width: 220px; height: 330px; flex: 0 0 auto; border-radius: 0.6em; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .shikimori-local.anime-detail { display: flex; gap: 2.4em; align-items: flex-start; min-height: calc(100vh - 8em); padding: 2.2em 3em; }
+    .shikimori-local__poster { width: 300px; height: 450px; flex: 0 0 300px; border-radius: 0.75em; background: rgba(255,255,255,0.06); overflow: hidden; }
     .shikimori-local__poster img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .shikimori-local__info { min-width: 0; flex: 1; }
+    .shikimori-local__info { min-width: 0; flex: 1; max-width: 980px; padding-top: 0.5em; }
+    .shikimori-local__info h1 { font-size: 2.15em; line-height: 1.08; margin: 0 0 0.25em; }
     .shikimori-local__user-rate { display: flex; gap: 0.65em; flex-wrap: wrap; margin: 0.9em 0; }
     .shikimori-local__user-rate span { padding: 0.45em 0.65em; border-radius: 0.45em; background: rgba(255,255,255,0.08); font-size: 0.9em; }
     .shikimori-local__actions { margin-top: 1em; display: flex; gap: 0.8em; flex-wrap: wrap; }
