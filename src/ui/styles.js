@@ -78,6 +78,15 @@ function injectStyles() {
     .shikimori-local__manual input, .shikimori-local__manual select { padding: 0.5em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.3em; }
     .shikimori-local__diag { display: grid; gap: 0.5em; margin-bottom: 1em; }
     .shikimori-local__diag div { padding: 0.4em; background: rgba(255,255,255,0.05); border-radius: 0.3em; }
+    .shikilamp-auth { position: fixed; inset: 0; z-index: 9999999; display: flex; align-items: center; justify-content: center; padding: 2em; box-sizing: border-box; background: rgba(8,8,12,0.94); color: #fff; }
+    .shikilamp-auth__panel { width: min(920px, 92vw); text-align: center; }
+    .shikilamp-auth__title { font-size: 2em; font-weight: 700; margin-bottom: 0.5em; }
+    .shikilamp-auth__hint { font-size: 1.15em; line-height: 1.4; opacity: 0.82; max-width: 760px; margin: 0 auto 1em; }
+    .shikilamp-auth__qr { display: block; width: min(340px, 42vh); height: min(340px, 42vh); margin: 0.8em auto; background: #fff; border-radius: 12px; image-rendering: pixelated; }
+    .shikilamp-auth__url { max-width: 880px; margin: 0.8em auto; font-size: 0.8em; line-height: 1.35; opacity: 0.65; word-break: break-all; }
+    .shikilamp-auth__actions { display: flex; justify-content: center; gap: 1em; margin-top: 1.2em; }
+    .shikilamp-auth button { padding: 0.85em 1.2em; border: 0; border-radius: 10px; font-size: 1.1em; }
+    .shikilamp-auth button:focus, .shikilamp-auth button.focus { outline: 3px solid #fff; outline-offset: 3px; }
   `;
   document.head.appendChild(style);
 }

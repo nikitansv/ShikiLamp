@@ -6,6 +6,7 @@ const logger = require('./logger');
 const cache = require('./cache');
 const mappingStorage = require('./mapping/storage');
 const auth = require('./auth');
+const authUi = require('./ui/auth');
 
 const COMPONENT = 'shikilamp_local_settings';
 const LEGACY_COMPONENT = 'shikimori_local';
@@ -263,13 +264,10 @@ function openOAuthAuthorization() {
     Lampa.Noty.show('ShikiLamp: сначала настройте OAuth приложение');
     return;
   }
-  try {
-    if (Lampa.Utils && Lampa.Utils.openUrl) Lampa.Utils.openUrl(url);
-    else if (typeof window !== 'undefined' && window.open) window.open(url, '_blank');
-  } catch (err) {
-    logger.warn('OAuth open error', err.message);
-  }
-  Lampa.Noty.show('ShikiLamp: подтвердите доступ и введите полученный код');
+  authUi.open({
+    url: url,
+    onCode: askAuthorizationCode
+  });
 }
 
 function askAuthorizationCode() {
