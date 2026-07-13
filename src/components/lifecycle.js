@@ -23,6 +23,8 @@ function addContentController(instance) {
       const focused = instance.html.querySelector('.selector.focus');
       if (!focused) return;
 
+      if (typeof instance.onFocusChange === 'function') instance.onFocusChange(focused);
+
       if (focused.scrollIntoView) {
         focused.scrollIntoView({ block: 'center', inline: 'nearest' });
       }

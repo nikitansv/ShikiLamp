@@ -24,6 +24,7 @@ Home.prototype.create = function () {
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
+    '<div class="shikimori-local__side-panel" aria-hidden="true"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
   '</div>';
   this.renderRows();
@@ -92,9 +93,13 @@ Home.prototype.createCard = function (anime) {
   const self = this;
   const el = document.createElement('div');
   el.className = 'shikimori-local__result selector';
+  el.__shikimoriAnime = anime;
   el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
     '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
     '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + ' · ' + (anime.score || '?') + '</div>';
+  el.addEventListener('hover:hover', function () { self.showSidePanel(anime); });
+  el.addEventListener('mouseenter', function () { self.showSidePanel(anime); });
+  el.addEventListener('focus', function () { self.showSidePanel(anime); });
   el.addEventListener('hover:enter', function () { self.openAnime(anime); });
   el.addEventListener('click', function () { self.openAnime(anime); });
   el.addEventListener('contextmenu', function (event) {
@@ -102,6 +107,30 @@ Home.prototype.createCard = function (anime) {
     self.openShikimoriCard(anime);
   });
   return el;
+};
+
+Home.prototype.onFocusChange = function (focused) {
+  if (focused && focused.__shikimoriAnime) {
+    this.showSidePanel(focused.__shikimoriAnime);
+    return;
+  }
+  this.hideSidePanel();
+};
+
+Home.prototype.showSidePanel = function (anime) {
+  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
+  if (!panel) return;
+  panel.classList.add('visible');
+  panel.setAttribute('aria-hidden', 'false');
+  panel.setAttribute('data-shikimori-id', anime && anime.shikimori_id ? String(anime.shikimori_id) : '');
+};
+
+Home.prototype.hideSidePanel = function () {
+  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
+  if (!panel) return;
+  panel.classList.remove('visible');
+  panel.setAttribute('aria-hidden', 'true');
+  panel.removeAttribute('data-shikimori-id');
 };
 
 Home.prototype.openAnime = function (anime) {
