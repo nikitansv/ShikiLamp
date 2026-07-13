@@ -125,6 +125,10 @@ UserLists.prototype.createCard = function (anime) {
   el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
     '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
     '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + progress + score + '</div>';
+  matcher.applyBestPoster(anime).then(function () {
+    const img = el.querySelector('img');
+    if (img && anime.poster) img.src = anime.poster;
+  });
   el.addEventListener('hover:enter', function () { self.openAnime(anime); });
   el.addEventListener('click', function () { self.openAnime(anime); });
   el.addEventListener('contextmenu', function (event) {
@@ -146,12 +150,12 @@ UserLists.prototype.appendMore = function () {
 };
 
 UserLists.prototype.openAnime = function (anime) {
-  if (Lampa.Noty) Lampa.Noty.show('Поиск TMDB...');
+  const self = this;
   matcher.openBestOrFirst(anime).then(function (ok) {
-    if (!ok && Lampa.Noty) Lampa.Noty.show('TMDB версия не найдена');
+    if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
     logger.warn('open user list anime error', err.message);
-    if (Lampa.Noty) Lampa.Noty.show('Ошибка TMDB: ' + err.message);
+    self.openShikimoriCard(anime);
   });
 };
 
