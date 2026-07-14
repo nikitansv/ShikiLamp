@@ -5,6 +5,7 @@ const auth = require('../auth');
 const userApi = require('../api/user');
 const templates = require('../ui/templates');
 const logger = require('../logger');
+const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 
 const STATUSES = ['planned', 'watching', 'completed', 'on_hold', 'dropped'];
@@ -82,8 +83,11 @@ UserLists.prototype.load = function (append) {
     self.renderResults(list || [], append);
   }).catch(function (err) {
     self.loading = false;
-    logger.warn('User list error', err.message);
-    self.results.innerHTML = '<div class="shikimori-local__error">' + templates.escapeHtml(err.message) + '</div>';
+    if (typeof document !== 'undefined') {
+      logger.warn('User list error', err.message);
+      self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
+      self.results.innerHTML = '<div class="shikimori-local__error">' + templates.escapeHtml(err.message) + '</div>';
+    }
     self.refocus();
   });
 };
@@ -117,25 +121,14 @@ UserLists.prototype.renderResults = function (list, append) {
 
 UserLists.prototype.createCard = function (anime) {
   const self = this;
-  const el = document.createElement('div');
-  el.className = 'shikimori-local__result selector';
-  el.__shikimoriAnime = anime;
-  const progress = anime.user_episodes ? ' · эп. ' + anime.user_episodes + '/' + (anime.episodes || '?') : '';
-  const score = anime.user_score ? ' · оценка ' + anime.user_score : '';
-  el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
-    '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
-    '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + progress + score + '</div>';
-  matcher.applyBestPoster(anime).then(function () {
-    const img = el.querySelector('img');
-    if (img && anime.poster) img.src = anime.poster;
+  const progress = anime.user_episodes ? 'эп. ' + anime.user_episodes + '/' + (anime.episodes || '?') : '';
+  const score = anime.user_score ? 'оценка ' + anime.user_score : '';
+  const extra = [progress, score].filter(Boolean).join(' · ');
+  return cards.createDomCard(anime, {
+    extraMeta: extra,
+    onEnter: function () { self.openAnime(anime); },
+    onLongPress: function () { self.openShikimoriCard(anime); }
   });
-  el.addEventListener('hover:enter', function () { self.openAnime(anime); });
-  el.addEventListener('click', function () { self.openAnime(anime); });
-  el.addEventListener('contextmenu', function (event) {
-    event.preventDefault();
-    self.openShikimoriCard(anime);
-  });
-  return el;
 };
 
 UserLists.prototype.appendMore = function () {
@@ -175,7 +168,7 @@ UserLists.prototype.refocus = function () {
   this.pendingFocus = null;
   if (focused) {
     Lampa.Controller.collectionFocus(focused, this.html);
-    if (focused.scrollIntoView) focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+    if (focused.scrollIntoView) focused.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 };
 
