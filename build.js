@@ -5,8 +5,10 @@ const UglifyJS = require('uglify-js');
 
 const srcDir = path.join(__dirname, 'src');
 const outDir = path.join(__dirname, 'dist');
+const docsDir = path.join(__dirname, 'docs');
 const entry = path.join(srcDir, 'index.js');
 const outFile = path.join(outDir, 'plugin.js');
+const docsFile = path.join(docsDir, 'ShikiLamp.js');
 
 (async () => {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -33,6 +35,9 @@ const outFile = path.join(outDir, 'plugin.js');
   code = minified.code || code;
 
   fs.writeFileSync(outFile, code, 'utf8');
+  if (fs.existsSync(docsDir)) {
+    fs.writeFileSync(docsFile, code, 'utf8');
+  }
   console.log(`Built ${outFile} (${Buffer.byteLength(code)} bytes)`);
 })().catch((err) => {
   console.error('Build failed:', err);

@@ -26,17 +26,8 @@ function addContentController(instance) {
       if (typeof instance.onFocusChange === 'function') instance.onFocusChange(focused);
 
       if (focused.scrollIntoView) {
-        focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+        focused.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       }
-
-      const rootRect = instance.html.getBoundingClientRect ? instance.html.getBoundingClientRect() : null;
-      const itemRect = focused.getBoundingClientRect ? focused.getBoundingClientRect() : null;
-      if (!rootRect || !itemRect) return;
-
-      const topGap = itemRect.top - rootRect.top;
-      const bottomGap = rootRect.bottom - itemRect.bottom;
-      if (topGap < 90) instance.html.scrollTop -= 90 - topGap;
-      else if (bottomGap < 140) instance.html.scrollTop += 140 - bottomGap;
     };
 
     apply();

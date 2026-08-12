@@ -4,6 +4,7 @@
 const api = require('../api');
 const templates = require('../ui/templates');
 const logger = require('../logger');
+const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 
 function Search(params) {
@@ -103,16 +104,9 @@ Search.prototype.renderResults = function (list, append) {
 
 Search.prototype.createCard = function (anime) {
   const self = this;
-  const el = document.createElement('div');
-  el.className = 'shikimori-local__result selector';
-  el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
-    '<div class="shikimori-local__result-info">' +
-      '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
-      '<div class="shikimori-local__result-meta">' + templates.escapeHtml(anime.original_title || '') + ' · ' + (anime.year || '?') + ' · ' + (anime.kind || '?') + ' · ' + (anime.score || '?') + '</div>' +
-    '</div>';
-  el.addEventListener('hover:enter', function () { self.openAnime(anime); });
-  el.addEventListener('click', function () { self.openAnime(anime); });
-  return el;
+  return cards.createDomCard(anime, {
+    onEnter: function () { self.openAnime(anime); }
+  });
 };
 
 Search.prototype.addMoreButton = function () {
