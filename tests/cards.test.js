@@ -32,10 +32,8 @@ test('createDomCard returns consistent selector card with escaped fields', () =>
   expect(card.classList.contains('selector')).toBe(true);
   expect(card.__shikimoriAnime).toBe(anime);
   expect(card.querySelector('.shikimori-local__result-title').textContent).toBe('<Test>');
-  expect(card.querySelector('.shikimori-local__result-meta').textContent).toContain('2024');
-  expect(card.querySelector('.shikimori-local__result-meta').textContent).toContain('tv');
-  expect(card.querySelector('.shikimori-local__result-meta').textContent).toContain('8.5');
-  expect(card.querySelector('img').src).toBe('https://example.com/poster.jpg');
+  expect(card.querySelector('.shikimori-local__result-poster img').src).toBe('https://example.com/poster.jpg');
+  expect(card.querySelector('.shikimori-local__result-score').textContent).toBe('8.5');
 
   card.dispatchEvent(new Event('hover:enter'));
   expect(onEnter).toHaveBeenCalledTimes(1);
@@ -61,10 +59,9 @@ test('createDomCard omits long-press handler when not provided', () => {
   expect(contextEvent.preventDefault).not.toHaveBeenCalled();
 });
 
-test('createDomCard supports extra meta segments', () => {
+test('createDomCard renders exact Shikimori score on poster', () => {
   const anime = { shikimori_id: 3, title: 'List', year: 2022, kind: 'ova', score: 6 };
-  const card = cards.createDomCard(anime, { extraMeta: 'эп. 3/12 · оценка 9' });
-  const meta = card.querySelector('.shikimori-local__result-meta').textContent;
-  expect(meta).toContain('эп. 3/12');
-  expect(meta).toContain('оценка 9');
+  const card = cards.createDomCard(anime);
+  expect(card.querySelector('.shikimori-local__result-score').textContent).toBe('6');
+  expect(card.querySelector('.shikimori-local__result-meta')).toBeNull();
 });

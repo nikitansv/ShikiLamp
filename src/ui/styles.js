@@ -30,9 +30,11 @@ function injectStyles() {
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1em; }
     .shikimori-local__result { cursor: pointer; }
-    .shikimori-local__result img { width: 100%; border-radius: 0.4em; }
+    .shikimori-local__result-poster { position: relative; }
+    .shikimori-local__result-poster img { width: 100%; border-radius: 0.4em; display: block; }
+    .shikimori-local__result-score { position: absolute; top: 0.4em; right: 0.4em; background: rgba(0,0,0,0.72); color: #ffd54a; font-weight: 700; font-size: 0.9em; padding: 0.15em 0.45em; border-radius: 0.3em; }
     .shikimori-local__result.focus { outline: 2px solid #fff; }
-    .shikimori-local__result-title { font-weight: 600; margin-top: 0.4em; }
+    .shikimori-local__result-title { font-weight: 600; margin-top: 0.4em; font-size: 2.5em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
     .shikimori-local__poster { width: 360px; aspect-ratio: 2 / 3; flex: 0 0 360px; border-radius: 16px; background: rgba(255,255,255,0.08); overflow: hidden; align-self: flex-start; margin-top: 0.12em; }

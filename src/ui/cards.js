@@ -12,13 +12,14 @@ function createDomCard(anime, options) {
     el.__shikimoriAnime = anime;
   }
 
-  const parts = [anime.year || '?', anime.kind || '?', anime.score || '?'];
-  if (options.extraMeta) parts.push(options.extraMeta);
+  const score = anime.score && Number(anime.score) > 0 ? anime.score : '';
 
-  el.innerHTML = '<img src="' + templates.escapeHtml(anime.poster || '') + '" />' +
+  el.innerHTML = '<div class="shikimori-local__result-poster">' +
+      '<img src="' + templates.escapeHtml(anime.poster || '') + '" />' +
+      (score ? '<div class="shikimori-local__result-score">' + templates.escapeHtml(String(score)) + '</div>' : '') +
+    '</div>' +
     '<div class="shikimori-local__result-info">' +
       '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
-      '<div class="shikimori-local__result-meta">' + parts.map(function (p) { return templates.escapeHtml(String(p)); }).join(' · ') + '</div>' +
     '</div>';
 
   if (typeof options.onEnter === 'function') {
