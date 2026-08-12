@@ -88,6 +88,12 @@ Home.prototype.renderSectionItems = function (section, row, list) {
   list.slice(0, 20).forEach(function (anime) {
     row.appendChild(self.createCard(anime));
   });
+  const more = document.createElement('div');
+  more.className = 'shikimori-local__more selector';
+  more.textContent = 'Ещё';
+  more.addEventListener('hover:enter', function () { self.openCatalog(section); });
+  more.addEventListener('click', function () { self.openCatalog(section); });
+  row.appendChild(more);
   this.refocus();
 };
 
@@ -170,6 +176,15 @@ Home.prototype.openShikimoriCard = function (anime) {
     title: anime.title,
     component: 'shikimori_local_anime',
     anime: anime
+  });
+};
+
+Home.prototype.openCatalog = function (section) {
+  Lampa.Activity.push({
+    url: '',
+    title: 'Shikimori: ' + section.title,
+    component: 'shikimori_local_line',
+    section: section.id
   });
 };
 
