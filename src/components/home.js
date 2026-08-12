@@ -4,12 +4,11 @@
 const api = require('../api');
 const templates = require('../ui/templates');
 const logger = require('../logger');
+const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 
 const SECTIONS = [
-  { id: 'latest', title: 'Недавно вышедшее', loader: api.latest },
-  { id: 'ongoing', title: 'Онгоинги', loader: api.ongoing },
-  { id: 'popular', title: 'Популярное', loader: api.popular }
+  { id: 'ongoing', title: 'Сейчас на экранах', loader: api.ongoing }
 ];
 
 function Home() {
@@ -86,57 +85,22 @@ Home.prototype.renderSectionItems = function (section, row, list) {
     row.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
     return;
   }
-  list.slice(0, 8).forEach(function (anime) {
+  list.slice(0, 20).forEach(function (anime) {
     row.appendChild(self.createCard(anime));
   });
-  const more = document.createElement('div');
-  more.className = 'shikimori-local__more selector';
-  more.__shikimoriMore = true;
-  more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.openCatalog(section); });
-  more.addEventListener('click', function () { self.openCatalog(section); });
-  row.appendChild(more);
   this.refocus();
 };
 
 Home.prototype.createCard = function (anime) {
   const self = this;
-  const el = document.createElement('div');
-  el.className = 'shikimori-local__result selector';
-  el.__shikimoriAnime = anime;
-  el.innerHTML = '<img src="' + (anime.poster || '') + '" />' +
-    '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
-    '<div class="shikimori-local__result-meta">' + (anime.year || '?') + ' · ' + (anime.kind || '?') + ' · ' + (anime.score || '?') + '</div>';
-  matcher.applyBestPoster(anime).then(function () {
-    const img = el.querySelector('img');
-    if (img && anime.poster) img.src = anime.poster;
+  return cards.createDomCard(anime, {
+    onEnter: function () { self.openAnime(anime); },
+    onLongPress: function () { self.openShikimoriCard(anime); }
   });
-  el.addEventListener('hover:enter', function () { self.openAnime(anime); });
-  el.addEventListener('click', function () { self.openAnime(anime); });
-  el.addEventListener('contextmenu', function (event) {
-    event.preventDefault();
-    self.openShikimoriCard(anime);
-  });
-  return el;
 };
 
 Home.prototype.onFocusChange = function (focused) {
-  if (focused && (focused.__shikimoriAnime || focused.__shikimoriMore)) this.lastCardFocus = focused;
-};
-
-Home.prototype.onRightEdge = function (focused) {
-  if (!focused || !focused.getBoundingClientRect) return false;
-  if (!focused.__shikimoriMore) return false;
-  this.lastCardFocus = focused;
-  this.openSidePanel(null);
-  return true;
-};
-
-Home.prototype.onRightWall = function (focused) {
-  if (focused && focused.__shikimoriMore) {
-    this.lastCardFocus = focused;
-    this.openSidePanel(null);
-  }
+  if (focused && focused.__shikimoriAnime) this.lastCardFocus = focused;
 };
 
 Home.prototype.onLeftWall = function (focused) {
@@ -206,15 +170,6 @@ Home.prototype.openShikimoriCard = function (anime) {
     title: anime.title,
     component: 'shikimori_local_anime',
     anime: anime
-  });
-};
-
-Home.prototype.openCatalog = function (section) {
-  Lampa.Activity.push({
-    url: '',
-    title: 'Shikimori: ' + section.title,
-    component: 'shikimori_local_line',
-    section: section.id
   });
 };
 
