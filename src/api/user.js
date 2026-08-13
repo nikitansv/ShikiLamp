@@ -90,9 +90,7 @@ function hydrateAnimeDetails(rates) {
 }
 
 function isCurrentlyAiring(anime) {
-  const aired = parseInt(anime && anime.episodes_aired, 10) || 0;
-  const total = parseInt(anime && anime.episodes, 10) || 0;
-  return aired > 0 && (!total || aired < total);
+  return String(anime && anime.status || '').toLowerCase() === 'ongoing';
 }
 
 function listCurrentAnimeRates(userId, page, limit) {

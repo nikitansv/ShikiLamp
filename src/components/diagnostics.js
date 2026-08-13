@@ -125,8 +125,8 @@ Diagnostics.prototype.checkUserLists = function () {
       planned: summarizeList(lists[0]),
       watching: summarizeList(lists[1])
     };
-    self.log('В планах: ' + self.listCheck.planned.total + ', выходит: ' + self.listCheck.planned.ongoing.length);
-    self.log('Смотрю: ' + self.listCheck.watching.total + ', выходит: ' + self.listCheck.watching.ongoing.length);
+    self.log('В планах: ' + self.listCheck.planned.total + ', status=ongoing: ' + self.listCheck.planned.status_ongoing_count + ', по сериям: ' + self.listCheck.planned.episode_airing_count);
+    self.log('Смотрю: ' + self.listCheck.watching.total + ', status=ongoing: ' + self.listCheck.watching.status_ongoing_count + ', по сериям: ' + self.listCheck.watching.episode_airing_count);
     self.renderBody();
   }).catch(function (err) {
     self.log('Мои списки FAIL: ' + err.message);
@@ -135,7 +135,7 @@ Diagnostics.prototype.checkUserLists = function () {
 };
 
 function summarizeList(list) {
-  const ongoing = (list || []).filter(userApi.isCurrentlyAiring).map(function (anime) {
+  const titles = (list || []).map(function (anime) {
     return {
       id: anime.shikimori_id,
       title: anime.title,
@@ -145,7 +145,17 @@ function summarizeList(list) {
       release_date: anime.release_date
     };
   });
-  return { total: (list || []).length, ongoing: ongoing };
+  const ongoing = titles.filter(function (anime) { return anime.status === 'ongoing'; });
+  const episodeAiring = titles.filter(function (anime) {
+    return anime.episodes_aired > 0 && (!anime.episodes || anime.episodes_aired < anime.episodes);
+  });
+  return {
+    total: titles.length,
+    status_ongoing_count: ongoing.length,
+    episode_airing_count: episodeAiring.length,
+    ongoing: ongoing,
+    titles: titles
+  };
 }
 
 Diagnostics.prototype.log = function (text) {

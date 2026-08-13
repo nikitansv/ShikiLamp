@@ -58,15 +58,20 @@ describe('user api normalization', () => {
   test('keeps only current anime and removes duplicates across lists', async () => {
     client.request
       .mockResolvedValueOnce([
-        { id: 1, name: 'Current', episodes: 12, episodes_aired: 5 },
-        { id: 2, name: 'Not started', episodes: 12, episodes_aired: 0 }
+        { id: 1, name: 'Current', status: 'ongoing', episodes: 12, episodes_aired: 5 },
+        { id: 2, name: 'Not started', status: 'anons', episodes: 12, episodes_aired: 0 }
       ])
       .mockResolvedValueOnce([
-        { id: 1, name: 'Current', episodes: 12, episodes_aired: 5 },
-        { id: 3, name: 'Finished', episodes: 12, episodes_aired: 12 }
+        { id: 1, name: 'Current', status: 'ongoing', episodes: 12, episodes_aired: 5 },
+        { id: 3, name: 'Finished', status: 'released', episodes: 12, episodes_aired: 12 }
       ]);
 
     const list = await userApi.listCurrentAnimeRates(1, 1, 20);
     expect(list.map(anime => anime.shikimori_id)).toEqual([1]);
+  });
+
+  test('matches Shikimori ongoing status even with zero aired episodes', () => {
+    expect(userApi.isCurrentlyAiring({ status: 'ongoing', episodes: 12, episodes_aired: 0 })).toBe(true);
+    expect(userApi.isCurrentlyAiring({ status: 'released', episodes: 12, episodes_aired: 11 })).toBe(false);
   });
 });
