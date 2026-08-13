@@ -23,12 +23,13 @@ Home.prototype.create = function () {
   this.html.className = 'shikimori-local activity-page';
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
+    '<div class="shikimori-local__tabs">' +
+      '<div class="shikimori-local__tab selector active" data-tab="home">Сейчас на экранах</div>' +
+      '<div class="shikimori-local__tab selector" data-tab="lists">Мои списки</div>' +
+      '<div class="shikimori-local__tab selector" data-tab="filter">Фильтр</div>' +
+    '</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
-  '</div>' +
-  '<div class="shikimori-local__side-panel" aria-hidden="true">' +
-    '<div class="shikimori-local__side-item selector" data-side-action="filter">Фильтр</div>' +
-    '<div class="shikimori-local__side-item selector" data-side-action="lists">Мои списки</div>' +
   '</div>';
   this.renderRows();
   this.bindStaticEvents();
@@ -54,8 +55,8 @@ Home.prototype.bindStaticEvents = function () {
     el.addEventListener('hover:enter', function () { self.openSection(el.getAttribute('data-section')); });
     el.addEventListener('click', function () { self.openSection(el.getAttribute('data-section')); });
   });
-  this.html.querySelectorAll('[data-side-action]').forEach(function (el) {
-    const run = function () { self.openSideAction(el.getAttribute('data-side-action')); };
+  this.html.querySelectorAll('[data-tab]').forEach(function (el) {
+    const run = function () { self.openTab(el.getAttribute('data-tab')); };
     el.addEventListener('hover:enter', run);
     el.addEventListener('click', run);
   });
@@ -109,55 +110,20 @@ Home.prototype.onFocusChange = function (focused) {
   if (focused && focused.__shikimoriAnime) this.lastCardFocus = focused;
 };
 
-Home.prototype.onLeftWall = function (focused) {
-  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
-  if (panel && focused && panel.contains(focused)) {
-    this.closeSidePanel(true);
-    return true;
-  }
-  return false;
-};
-
-Home.prototype.openSidePanel = function (anime) {
-  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
-  if (!panel) return;
-  const root = this.html && this.html.querySelector('.home-page');
-  if (root) root.classList.add('side-open');
-  panel.classList.add('visible');
-  panel.setAttribute('aria-hidden', 'false');
-  panel.setAttribute('data-shikimori-id', anime && anime.shikimori_id ? String(anime.shikimori_id) : '');
-  const first = panel.querySelector('.selector') || panel;
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionFocus(first, this.html);
-  }
-};
-
-Home.prototype.closeSidePanel = function (restoreFocus) {
-  const panel = this.html && this.html.querySelector('.shikimori-local__side-panel');
-  if (!panel) return;
-  const root = this.html && this.html.querySelector('.home-page');
-  if (root) root.classList.remove('side-open');
-  panel.classList.remove('visible', 'focus');
-  panel.querySelectorAll('.focus').forEach(function (el) { el.classList.remove('focus'); });
-  panel.setAttribute('aria-hidden', 'true');
-  panel.removeAttribute('data-shikimori-id');
-  if (restoreFocus && this.lastCardFocus && document.body.contains(this.lastCardFocus) && typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionFocus(this.lastCardFocus, this.html);
-  }
-};
-
-Home.prototype.openSideAction = function (action) {
-  if (action === 'filter') {
-    if (Lampa.Noty) Lampa.Noty.show('Фильтр будет добавлен следующим этапом');
-    return;
-  }
-  if (action === 'lists') {
+Home.prototype.openTab = function (tab) {
+  if (tab === 'lists') {
     Lampa.Activity.push({
       url: '',
       title: 'Мои списки Shikimori',
       component: 'shikimori_local_userlists'
     });
-    return;
+  }
+  if (tab === 'filter') {
+    Lampa.Activity.push({
+      url: '',
+      title: 'Фильтр Shikimori',
+      component: 'shikimori_local_filter'
+    });
   }
 };
 Home.prototype.openAnime = function (anime) {
