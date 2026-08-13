@@ -7,8 +7,10 @@ const cache = require('./cache');
 const mappingStorage = require('./mapping/storage');
 const auth = require('./auth');
 const authUi = require('./ui/auth');
+const styles = require('./ui/styles');
 
 const COMPONENT = 'shikilamp_local_settings';
+const DEVELOPER_COMPONENT = 'shikilamp_local_developer';
 const LEGACY_COMPONENT = 'shikimori_local';
 const SETTINGS_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -67,15 +69,29 @@ function getExperimentalToken() {
   return get('experimentalToken', '');
 }
 
+function getUi() {
+  const value = get('ui', {});
+  return value && typeof value === 'object' ? value : {};
+}
+
+function updateUi(key, value) {
+  const ui = getUi();
+  ui[key] = value;
+  set('ui', ui);
+  styles.applyUiSettings(ui);
+}
+
 function cleanupLegacySettings() {
   try {
     if (Lampa.SettingsApi.removeParams) {
       Lampa.SettingsApi.removeParams(LEGACY_COMPONENT);
       Lampa.SettingsApi.removeParams(COMPONENT);
+      Lampa.SettingsApi.removeParams(DEVELOPER_COMPONENT);
     }
     if (Lampa.SettingsApi.removeComponent) {
       Lampa.SettingsApi.removeComponent(LEGACY_COMPONENT);
       Lampa.SettingsApi.removeComponent(COMPONENT);
+      Lampa.SettingsApi.removeComponent(DEVELOPER_COMPONENT);
     }
   } catch (e) {
     logger.warn('Legacy settings cleanup failed', e.message);
@@ -92,19 +108,14 @@ function register() {
     icon: SETTINGS_ICON,
     name: 'ShikiLamp Local'
   });
+  Lampa.SettingsApi.addComponent({
+    component: DEVELOPER_COMPONENT,
+    icon: SETTINGS_ICON,
+    name: 'ShikiLamp Developer'
+  });
+  styles.applyUiSettings(getUi());
 
   addTrigger('enabled', 'Включить плагин', config.DEFAULTS.enabled);
-  addAction('apiBaseUrl', 'API Base URL: ' + getApiBaseUrl(), function () {
-    askSettingValue('apiBaseUrl', 'API Base URL', getApiBaseUrl(), function (value) {
-      const url = String(value || '').trim().replace(/\/$/, '');
-      if (!/^https?:\/\//i.test(url)) {
-        Lampa.Noty.show('ShikiLamp: URL должен начинаться с http:// или https://');
-        return;
-      }
-      set('apiBaseUrl', url);
-      Lampa.Noty.show('ShikiLamp: API Base URL сохранён');
-    });
-  });
   addSelect('language', 'Язык результатов', [
     { title: 'Русский', code: 'russian' },
     { title: 'English', code: 'english' }
@@ -121,28 +132,9 @@ function register() {
       Lampa.Noty.show('ShikiLamp: число результатов сохранено');
     });
   });
-  addAction('mappingThreshold', 'Порог mapping: ' + getMappingThreshold(), function () {
-    askSettingValue('mappingThreshold', 'Порог mapping 0.5–1.0', String(getMappingThreshold()), function (value) {
-      const n = parseFloat(value);
-      if (isNaN(n) || n < 0.5 || n > 1.0) {
-        Lampa.Noty.show('ShikiLamp: порог должен быть 0.5–1.0');
-        return;
-      }
-      set('mappingThreshold', String(n));
-      Lampa.Noty.show('ShikiLamp: порог mapping сохранён');
-    });
-  });
-  addTrigger('autoOpenExact', 'Автоматически открывать точное соответствие', config.DEFAULTS.autoOpenExact);
-  addTrigger('debug', 'Показывать диагностические сообщения', config.DEFAULTS.debug);
-
   addAction('clearCache', 'Очистить API-кэш', function () {
     cache.clear();
     Lampa.Noty.show('API-кэш плагина Shikimori очищен');
-  });
-
-  addAction('clearMappings', 'Очистить mapping', function () {
-    mappingStorage.clear();
-    Lampa.Noty.show('Mapping плагина Shikimori очищен');
   });
 
   addAction('exportMappings', 'Экспортировать mapping', function () {
@@ -185,10 +177,6 @@ function register() {
     askAuthorizationCode();
   });
 
-  addAction('authToken', 'Режим разработчика: access token', function () {
-    askToken();
-  });
-
   addAction('authCheck', 'Проверить вход Shikimori', function () {
     checkAuth();
   });
@@ -197,6 +185,7 @@ function register() {
     auth.clearToken();
     Lampa.Noty.show('ShikiLamp: авторизация удалена');
   });
+  registerDeveloperSettings();
 }
 
 function addTrigger(name, title, defaultValue) {
@@ -220,11 +209,84 @@ function addSelect(name, title, values, defaultValue) {
 }
 
 function addAction(name, title, onSelect) {
+  addComponentAction(COMPONENT, name, title, onSelect);
+}
+
+function addDeveloperAction(name, title, onSelect) {
+  addComponentAction(DEVELOPER_COMPONENT, name, title, onSelect);
+}
+
+function addComponentAction(component, name, title, onSelect) {
   Lampa.SettingsApi.addParam({
-    component: COMPONENT,
+    component: component,
     param: { name: 'shikimori_local_action_' + name, type: 'button' },
     field: { name: title },
     onChange: onSelect
+  });
+}
+
+function registerDeveloperSettings() {
+  addDeveloperAction('apiBaseUrl', 'API Base URL: ' + getApiBaseUrl(), function () {
+    askSettingValue('apiBaseUrl', 'API Base URL', getApiBaseUrl(), function (value) {
+      const url = String(value || '').trim().replace(/\/$/, '');
+      if (!/^https?:\/\//i.test(url)) return Lampa.Noty.show('ShikiLamp: URL должен начинаться с http:// или https://');
+      set('apiBaseUrl', url);
+      Lampa.Noty.show('ShikiLamp: API Base URL сохранён');
+    });
+  });
+  addDeveloperAction('mappingThreshold', 'Порог mapping: ' + getMappingThreshold(), function () {
+    askSettingValue('mappingThreshold', 'Порог mapping 0.5–1.0', String(getMappingThreshold()), function (value) {
+      const n = parseFloat(value);
+      if (isNaN(n) || n < 0.5 || n > 1) return Lampa.Noty.show('ShikiLamp: порог должен быть 0.5–1.0');
+      set('mappingThreshold', String(n));
+      Lampa.Noty.show('Порог mapping сохранён');
+    });
+  });
+  addDeveloperTrigger('autoOpenExact', 'Автооткрытие точного mapping', config.DEFAULTS.autoOpenExact);
+  addDeveloperTrigger('debug', 'Диагностические сообщения', config.DEFAULTS.debug);
+  addDeveloperAction('authToken', 'Ручной access token', askToken);
+  addDeveloperAction('clearMappings', 'Очистить mapping', function () { mappingStorage.clear(); Lampa.Noty.show('Mapping очищен'); });
+  addDeveloperAction('uiCardScale', 'UI: масштаб focus card', function () { askUiNumber('cardScale', 'Focus card 100–115%', 100, 115, 100); });
+  addDeveloperAction('uiCardSize', 'UI: размер карточек', function () { askUiNumber('cardSize', 'Карточки 60–180%', 60, 180, 100); });
+  addDeveloperAction('uiFontScale', 'UI: размер шрифта', function () { askUiNumber('fontScale', 'Шрифт 70–180%', 70, 180, 100); });
+  addDeveloperAction('uiHeadingScale', 'UI: размер заголовков', function () { askUiNumber('headingScale', 'Заголовки 70–180%', 70, 180, 100); });
+  addDeveloperAction('uiRadius', 'UI: скругление карточек', function () { askUiNumber('radius', 'Скругление 0–24px', 0, 24, 10); });
+  addDeveloperAction('uiMotion', 'UI: плавность', function () {
+    const current = getUi().motion || 'normal';
+    if (Lampa.Select && Lampa.Select.show) Lampa.Select.show({ title: 'Плавность UI', items: ['off', 'fast', 'normal', 'soft'].map(function (value) { return { title: value, value: value, selected: value === current }; }), onSelect: function (item) { updateUi('motion', item.value); Lampa.Noty.show('UI применён'); } });
+  });
+  addUiColorActions();
+}
+
+function addDeveloperTrigger(name, title, defaultValue) {
+  Lampa.SettingsApi.addParam({ component: DEVELOPER_COMPONENT, param: { name: config.STORAGE_KEYS[name], type: 'trigger', default: defaultValue }, field: { name: title }, onChange: onSettingChange });
+}
+
+function askUiNumber(key, title, min, max, fallback) {
+  const current = getUi()[key] || fallback;
+  askSettingValue(key, title, String(current), function (value) {
+    const n = parseFloat(value);
+    if (isNaN(n) || n < min || n > max) return Lampa.Noty.show('Допустимо: ' + min + '–' + max);
+    updateUi(key, n);
+    Lampa.Noty.show('UI применён');
+  });
+}
+
+function addUiColorActions() {
+  const colors = [
+    ['focusColor', 'UI: цвет focus'], ['accentColor', 'UI: акцентный цвет'], ['cardColor', 'UI: фон карточки'],
+    ['ratingBackground', 'Рейтинг: фон'], ['ratingLow', 'Рейтинг: низкий'], ['ratingMid', 'Рейтинг: средний'], ['ratingHigh', 'Рейтинг: высокий'],
+    ['typeTv', 'Тип TV'], ['typeOva', 'Тип OVA'], ['typeOna', 'Тип ONA'], ['typeMovie', 'Тип Movie'], ['typeSpecial', 'Тип Special'],
+    ['groupOngoing', 'Группа ongoing'], ['groupReleased', 'Группа released'], ['groupAnons', 'Группа anons'], ['groupPlanned', 'Группа planned'], ['groupWatching', 'Группа watching']
+  ];
+  colors.forEach(function (entry) {
+    addDeveloperAction('ui_' + entry[0], 'Цвет: ' + entry[1], function () {
+      askSettingValue(entry[0], 'CSS цвет: ' + entry[1], getUi()[entry[0]] || '', function (value) {
+        if (!String(value || '').trim()) return;
+        updateUi(entry[0], String(value).trim());
+        Lampa.Noty.show('UI применён');
+      });
+    });
   });
 }
 
@@ -338,6 +400,7 @@ module.exports = {
   getMappingThreshold,
   isExperimentalEnabled,
   getExperimentalToken,
+  getUi,
   get,
   set
 };

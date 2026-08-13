@@ -70,6 +70,19 @@ function announced(page) {
   return graphqlRequest(graphql.announcedAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
 }
 
+function catalog(filters) {
+  filters = filters || {};
+  const params = [];
+  Object.keys(filters).forEach(function (key) {
+    const value = filters[key];
+    if (value !== undefined && value !== null && value !== '') params.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(value)));
+  });
+  if (!filters.limit) params.push('limit=' + getPageSize());
+  return client.request('/api/animes?' + params.join('&'), {
+    method: 'GET', skipCache: false, cacheTtl: config.CACHE_TTL_MS.catalog, timeout: 20000
+  }).then(normalizer.normalizeList);
+}
+
 function testConnection() {
   return client.request(graphql.graphqlPath(), {
     method: 'POST',
@@ -87,6 +100,7 @@ module.exports = {
   ongoing,
   latest,
   announced,
+  catalog,
   testConnection,
   graphqlRequest
 };

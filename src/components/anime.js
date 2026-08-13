@@ -76,6 +76,8 @@ Anime.prototype.handleAction = function (action) {
     } else {
       window.open(url, '_blank');
     }
+  } else if (action.indexOf('studio-') === 0) {
+    Lampa.Activity.push({ url: '', title: 'Студия', component: 'shikimori_local_line', section: 'studio', studio: action.replace('studio-', '') });
   }
 };
 

@@ -27,7 +27,7 @@ const ANIME_CARD_FIELDS = `
   nextEpisodeAt
   poster { originalUrl mainUrl mainAltUrl }
   genres { name russian }
-  studios { name }
+  studios { id name }
   externalLinks { kind url }
 `;
 

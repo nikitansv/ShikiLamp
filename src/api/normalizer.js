@@ -107,7 +107,7 @@ function normalizeAnime(item) {
     image: getImage(item),
     url: item.url || '',
     genres: (item.genres || []).map(function (g) { return g.russian || g.name || ''; }).filter(Boolean),
-    studios: (item.studios || []).map(function (s) { return s.name || ''; }).filter(Boolean),
+    studios: (item.studios || []).map(function (s) { return { id: s.id || 0, name: s.name || '' }; }).filter(function (s) { return s.name; }),
     external_links: (item.externalLinks || []).map(function (l) {
       return { kind: l.kind || '', url: l.url || '' };
     })

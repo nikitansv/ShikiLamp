@@ -28,7 +28,9 @@ const STORAGE_KEYS = {
   experimentalFeatures: 'shikimori_local_experimental_features',
   authUser: 'shikimori_local_auth_user',
   authCheckedAt: 'shikimori_local_auth_checked_at',
-  lastCleared: 'shikimori_local_last_cleared'
+  lastCleared: 'shikimori_local_last_cleared',
+  ui: 'shikimori_local_ui',
+  filter: 'shikimori_local_filter'
 };
 
 const CACHE_TTL_MS = {

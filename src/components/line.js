@@ -13,6 +13,8 @@ function Line(params) {
   this.params = params || {};
   this.html = null;
   this.section = this.params.section || 'popular';
+  this.studio = this.params.studio || '';
+  this.filters = this.params.filters || null;
   this.page = 1;
   this.loading = false;
   this.ended = false;
@@ -38,6 +40,8 @@ Line.prototype.loaderFor = function (section) {
       if (!auth.getToken() || !user || !user.id) return Promise.reject(new Error('Нужна авторизация Shikimori'));
       return userApi.listCurrentAnimeRates(user.id, page, 20);
     };
+    case 'studio': return function (page) { return api.catalog({ studio: this.studio, order: 'ranked', page: page }); }.bind(this);
+    case 'filter': return function (page) { return api.catalog(Object.assign({}, this.filters || {}, { page: page, order: (this.filters && this.filters.order) || 'ranked' })); }.bind(this);
     case 'ongoing': return api.ongoing;
     case 'latest': return api.latest;
     case 'announced': return api.announced;
@@ -51,7 +55,9 @@ Line.prototype.titleFor = function (section) {
     ongoing: 'Онгоинги',
     latest: 'Недавно вышедшее',
     announced: 'Анонсы',
-    my_ongoing: 'Сейчас на экранах — мои списки'
+    my_ongoing: 'Сейчас на экранах — мои списки',
+    studio: 'Аниме студии',
+    filter: 'Каталог Shikimori'
   };
   return titles[section] || 'Shikimori';
 };

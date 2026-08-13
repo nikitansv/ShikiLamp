@@ -37,7 +37,8 @@ function animeTemplate(anime) {
     '<div class="shikimori-local__info">' +
       '<h1>' + title + '</h1>' +
       (altTitle ? '<div class="shikimori-local__sub">' + escapeHtml(altTitle) + '</div>' : '') +
-      metadataTemplate(anime) +
+       metadataTemplate(anime) +
+       studiosTemplate(anime) +
       (description ? '<div class="shikimori-local__description collapsed" data-description="text">' + escapeHtml(description) + '</div><div class="shikimori-local__text-toggle selector" data-action="toggle-description">Показать полностью</div>' : '') +
       '<div class="shikimori-local__primary-actions">' +
         dropdownButton('status-menu', statusButtonText(anime), 'primary') +
@@ -70,9 +71,18 @@ function metadataTemplate(anime) {
   if (anime.year) parts.push(String(anime.year));
   if (anime.score) parts.push('Рейтинг ' + anime.score);
   if (anime.status) parts.push(API_STATUS_LABELS[anime.status] || anime.status);
+  if (anime.episodes_aired > 0 && (anime.status === 'ongoing' || !anime.episodes || anime.episodes_aired < anime.episodes)) parts.push('Вышло: ' + anime.episodes_aired + ' / ' + (anime.episodes || '?'));
   return '<div class="shikimori-local__meta">' + parts.map(function (part) {
     return '<span>' + escapeHtml(part) + '</span>';
   }).join('') + '</div>';
+}
+
+function studiosTemplate(anime) {
+  const studios = (anime.studios || []).filter(function (studio) { return studio && studio.name; });
+  if (!studios.length) return '';
+  return '<div class="shikimori-local__studios">Студия: ' + studios.map(function (studio) {
+    return studio.id ? '<span class="shikimori-local__studio selector" data-action="studio-' + studio.id + '">' + escapeHtml(studio.name) + '</span>' : escapeHtml(studio.name);
+  }).join(', ') + '</div>';
 }
 
 function formatEpisodes(count) {
