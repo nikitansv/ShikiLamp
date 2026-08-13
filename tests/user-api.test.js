@@ -48,4 +48,19 @@ describe('user api normalization', () => {
     await userApi.listAnimeRates(1, 'completed', 1, 20);
     expect(client.request.mock.calls[0][0]).toContain('order=updated_at');
   });
+
+  test('keeps only current anime and removes duplicates across lists', async () => {
+    client.request
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Current', episodes: 12, episodes_aired: 5 },
+        { id: 2, name: 'Not started', episodes: 12, episodes_aired: 0 }
+      ])
+      .mockResolvedValueOnce([
+        { id: 1, name: 'Current', episodes: 12, episodes_aired: 5 },
+        { id: 3, name: 'Finished', episodes: 12, episodes_aired: 12 }
+      ]);
+
+    const list = await userApi.listCurrentAnimeRates(1, 1, 20);
+    expect(list.map(anime => anime.shikimori_id)).toEqual([1]);
+  });
 });

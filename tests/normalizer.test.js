@@ -28,6 +28,11 @@ describe('api/normalizer', () => {
     expect(anime.release_date).toBe('2025-10-04');
   });
 
+  test('normalizes REST aired episode count', () => {
+    const anime = normalizer.normalizeAnime({ id: 4, name: 'Episodes', episodes: 12, episodes_aired: 5 });
+    expect(anime.episodes_aired).toBe(5);
+  });
+
   test('gets MAL id fallback', () => {
     expect(normalizer.getMalId({ malId: 123 })).toBe(123);
     expect(normalizer.getMalId({ myanimelist_id: 456 })).toBe(456);

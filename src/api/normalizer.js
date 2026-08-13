@@ -97,7 +97,7 @@ function normalizeAnime(item) {
     year: getYear(item),
     release_date: getReleaseDate(item),
     episodes: getEpisodes(item),
-    episodes_aired: parseInt(item.episodesAired, 10) || 0,
+    episodes_aired: parseInt(item.episodesAired || item.episodes_aired, 10) || 0,
     duration: getDuration(item),
     score: getScore(item),
     rating: item.rating || '',

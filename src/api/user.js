@@ -54,6 +54,28 @@ function listAnimeRates(userId, status, page, limit) {
   }).then(normalizeRates);
 }
 
+function isCurrentlyAiring(anime) {
+  const aired = parseInt(anime && anime.episodes_aired, 10) || 0;
+  const total = parseInt(anime && anime.episodes, 10) || 0;
+  return aired > 0 && (!total || aired < total);
+}
+
+function listCurrentAnimeRates(userId, page, limit) {
+  return Promise.all([
+    listAnimeRates(userId, 'planned', page, limit),
+    listAnimeRates(userId, 'watching', page, limit)
+  ]).then(function (lists) {
+    const seen = {};
+    return lists[0].concat(lists[1]).filter(function (anime) {
+      if (!isCurrentlyAiring(anime) || seen[anime.shikimori_id]) return false;
+      seen[anime.shikimori_id] = true;
+      return true;
+    }).sort(function (a, b) {
+      return String(b.release_date || '').localeCompare(String(a.release_date || ''));
+    });
+  });
+}
+
 function getCachedUserId() {
   if (typeof Lampa === 'undefined' || !Lampa.Storage) return null;
   const user = Lampa.Storage.get(config.STORAGE_KEYS.authUser, null);
@@ -104,6 +126,8 @@ function deleteAnimeRate(rateId) {
 module.exports = {
   RATE_STATUS_TITLES: RATE_STATUS_TITLES,
   listAnimeRates: listAnimeRates,
+  listCurrentAnimeRates: listCurrentAnimeRates,
+  isCurrentlyAiring: isCurrentlyAiring,
   createAnimeRate: createAnimeRate,
   updateAnimeRate: updateAnimeRate,
   deleteAnimeRate: deleteAnimeRate,

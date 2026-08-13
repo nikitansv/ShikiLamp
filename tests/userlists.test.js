@@ -90,9 +90,9 @@ test('planned list renders current, released, and upcoming carousels', () => {
   userlists.refocus = jest.fn();
 
   userlists.renderResults([
-    { shikimori_id: 1, title: 'Current', status: 'ongoing', release_date: '2025-01-01', score: 8 },
-    { shikimori_id: 2, title: 'Released', status: 'released', release_date: '2024-01-01', score: 8 },
-    { shikimori_id: 3, title: 'Upcoming', status: 'anons', release_date: '2030-01-01', score: 8 }
+    { shikimori_id: 1, title: 'Current', episodes: 12, episodes_aired: 5, release_date: '2025-01-01', score: 8 },
+    { shikimori_id: 2, title: 'Released', episodes: 12, episodes_aired: 12, release_date: '2024-01-01', score: 8 },
+    { shikimori_id: 3, title: 'Upcoming', episodes: 12, episodes_aired: 0, release_date: '2030-01-01', score: 8 }
   ], false);
 
   expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(3);

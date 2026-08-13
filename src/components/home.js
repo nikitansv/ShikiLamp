@@ -2,6 +2,8 @@
  * Shikimori home screen component.
  */
 const api = require('../api');
+const auth = require('../auth');
+const userApi = require('../api/user');
 const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
@@ -46,6 +48,32 @@ Home.prototype.renderRows = function () {
       '<div class="shikimori-local__row-items"></div>' +
     '</div>');
     self.loadSection(section);
+  });
+  this.loadMyOngoing();
+};
+
+Home.prototype.loadMyOngoing = function () {
+  const user = auth.getCachedUser();
+  if (!auth.getToken() || !user || !user.id) return;
+  const wrap = this.html.querySelector('.shikimori-local__home-rows');
+  const section = { id: 'my_ongoing', title: 'Из моих списков' };
+  wrap.insertAdjacentHTML('beforeend', '<div class="shikimori-local__row" data-row="my_ongoing">' +
+    '<div class="shikimori-local__row-title">' + section.title + '</div>' +
+    '<div class="shikimori-local__row-items"><div class="shikimori-local__loading">Загрузка...</div></div>' +
+  '</div>');
+  const row = wrap.querySelector('[data-row="my_ongoing"]');
+  const items = row.querySelector('.shikimori-local__row-items');
+  const self = this;
+  userApi.listCurrentAnimeRates(user.id, 1, 20).then(function (list) {
+    if (!list.length) {
+      row.remove();
+      return;
+    }
+    items.innerHTML = '';
+    self.renderSectionItems(section, items, list);
+  }).catch(function (err) {
+    logger.warn('Home my lists row error', err.message);
+    row.remove();
   });
 };
 

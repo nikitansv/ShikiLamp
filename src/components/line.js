@@ -2,6 +2,8 @@
  * Line/catalog component for popular, ongoing, latest, announced.
  */
 const api = require('../api');
+const auth = require('../auth');
+const userApi = require('../api/user');
 const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
@@ -31,6 +33,11 @@ Line.prototype.create = function () {
 
 Line.prototype.loaderFor = function (section) {
   switch (section) {
+    case 'my_ongoing': return function (page) {
+      const user = auth.getCachedUser();
+      if (!auth.getToken() || !user || !user.id) return Promise.reject(new Error('Нужна авторизация Shikimori'));
+      return userApi.listCurrentAnimeRates(user.id, page, 20);
+    };
     case 'ongoing': return api.ongoing;
     case 'latest': return api.latest;
     case 'announced': return api.announced;
@@ -43,7 +50,8 @@ Line.prototype.titleFor = function (section) {
     popular: 'Популярное',
     ongoing: 'Онгоинги',
     latest: 'Недавно вышедшее',
-    announced: 'Анонсы'
+    announced: 'Анонсы',
+    my_ongoing: 'Сейчас на экранах — мои списки'
   };
   return titles[section] || 'Shikimori';
 };
@@ -81,7 +89,17 @@ Line.prototype.renderResults = function (list, append) {
     this.ended = true;
     return;
   }
-  list.forEach(function (anime) {
+  const renderedIds = {};
+  this.results.querySelectorAll('.shikimori-local__result').forEach(function (card) {
+    if (card.__shikimoriAnime && card.__shikimoriAnime.shikimori_id) {
+      renderedIds[card.__shikimoriAnime.shikimori_id] = true;
+    }
+  });
+  list.filter(function (anime) {
+    if (!anime || !anime.shikimori_id || renderedIds[anime.shikimori_id]) return false;
+    renderedIds[anime.shikimori_id] = true;
+    return true;
+  }).forEach(function (anime) {
     const card = self.createCard(anime);
     if (!firstNew) firstNew = card;
     self.results.appendChild(card);

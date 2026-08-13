@@ -176,12 +176,14 @@ UserLists.prototype.createCarouselGroups = function (groups) {
 };
 
 UserLists.prototype.groupForAnime = function (anime) {
+  if (this.status === 'planned') {
+    const aired = parseInt(anime.episodes_aired, 10) || 0;
+    const total = parseInt(anime.episodes, 10) || 0;
+    if (aired === 0) return 'upcoming';
+    return total > 0 && aired >= total ? 'released' : 'ongoing';
+  }
   const status = String(anime.status || '').toLowerCase();
   if (status === 'ongoing') return 'ongoing';
-  if (this.status === 'planned') {
-    const today = new Date().toISOString().slice(0, 10);
-    if (status === 'anons' || (anime.release_date && anime.release_date > today)) return 'upcoming';
-  }
   return 'released';
 };
 
