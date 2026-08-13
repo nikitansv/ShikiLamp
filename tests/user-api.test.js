@@ -55,19 +55,14 @@ describe('user api normalization', () => {
     expect(client.request.mock.calls[0][0]).toContain('page=1');
   });
 
-  test('keeps only current anime and removes duplicates across lists', async () => {
-    client.request
-      .mockResolvedValueOnce([
-        { id: 1, name: 'Current', status: 'ongoing', episodes: 12, episodes_aired: 5 },
-        { id: 2, name: 'Not started', status: 'anons', episodes: 12, episodes_aired: 0 }
-      ])
-      .mockResolvedValueOnce([
-        { id: 1, name: 'Current', status: 'ongoing', episodes: 12, episodes_aired: 5 },
-        { id: 3, name: 'Finished', status: 'released', episodes: 12, episodes_aired: 12 }
-      ]);
-
+  test('uses Shikimori site filter for planned and watching ongoing anime', async () => {
+    client.request.mockResolvedValueOnce([
+      { id: 1, name: 'Current', status: 'ongoing', episodes: 12, episodes_aired: 5 }
+    ]);
     const list = await userApi.listCurrentAnimeRates(1, 1, 20);
     expect(list.map(anime => anime.shikimori_id)).toEqual([1]);
+    expect(client.request.mock.calls[0][0]).toContain('status=ongoing');
+    expect(client.request.mock.calls[0][0]).toContain('mylist=planned%2Cwatching');
   });
 
   test('matches active seasons by aired episode count', () => {

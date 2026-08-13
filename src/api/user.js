@@ -96,19 +96,15 @@ function isCurrentlyAiring(anime) {
 }
 
 function listCurrentAnimeRates(userId, page, limit) {
-  return Promise.all([
-    listAllAnimeRates(userId, 'planned'),
-    listAllAnimeRates(userId, 'watching')
-  ]).then(function (lists) {
-    const seen = {};
-    return lists[0].concat(lists[1]).filter(function (anime) {
-      if (!isCurrentlyAiring(anime) || seen[anime.shikimori_id]) return false;
-      seen[anime.shikimori_id] = true;
-      return true;
-    }).sort(function (a, b) {
-      return String(b.release_date || '').localeCompare(String(a.release_date || ''));
-    });
+  const query = buildQuery({
+    status: 'ongoing',
+    mylist: 'planned,watching',
+    page: page || 1,
+    limit: limit || 50
   });
+  return client.request('/api/animes?' + query, {
+    method: 'GET', authenticated: true, skipCache: true, timeout: 20000
+  }).then(normalizer.normalizeList);
 }
 
 function getCachedUserId() {
