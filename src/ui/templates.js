@@ -168,6 +168,7 @@ function diagnosticsTemplate(data) {
       '<div class="shikimori-local__action selector" data-action="test-api">Проверить API</div>' +
       '<div class="shikimori-local__action selector" data-action="test-graphql">Проверить GraphQL</div>' +
       '<div class="shikimori-local__action selector" data-action="test-search">Тестовый поиск</div>' +
+      '<div class="shikimori-local__action selector" data-action="check-user-lists">Проверить мои списки</div>' +
       '<div class="shikimori-local__action selector" data-action="clear-log">Очистить журнал</div>' +
       '<div class="shikimori-local__action selector" data-action="export-report">Скачать логи JSON</div>' +
     '</div>' +

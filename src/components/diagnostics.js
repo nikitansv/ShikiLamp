@@ -9,10 +9,12 @@ const mappingStorage = require('../mapping/storage');
 const settings = require('../settings');
 const api = require('../api');
 const auth = require('../auth');
+const userApi = require('../api/user');
 
 function Diagnostics() {
   this.html = null;
   this.logEntries = [];
+  this.listCheck = null;
 }
 
 Diagnostics.prototype.create = function () {
@@ -85,6 +87,8 @@ Diagnostics.prototype.handleAction = function (action) {
       self.log('Search FAIL: ' + err.message);
       self.renderBody();
     });
+  } else if (action === 'check-user-lists') {
+    this.checkUserLists();
   } else if (action === 'clear-log') {
     this.logEntries = [];
     if (logger.clear) logger.clear();
@@ -100,6 +104,49 @@ Diagnostics.prototype.handleAction = function (action) {
     URL.revokeObjectURL(url);
   }
 };
+
+Diagnostics.prototype.checkUserLists = function () {
+  const self = this;
+  const user = auth.getCachedUser();
+  if (!auth.getToken() || !user || !user.id) {
+    this.log('Мои списки: нужна проверенная авторизация Shikimori');
+    this.renderBody();
+    return;
+  }
+
+  this.log('Мои списки: загружаю полный список...');
+  this.renderBody();
+  Promise.all([
+    userApi.listAllAnimeRates(user.id, 'planned'),
+    userApi.listAllAnimeRates(user.id, 'watching')
+  ]).then(function (lists) {
+    self.listCheck = {
+      user: { id: user.id, nickname: user.nickname || user.name || '' },
+      planned: summarizeList(lists[0]),
+      watching: summarizeList(lists[1])
+    };
+    self.log('В планах: ' + self.listCheck.planned.total + ', выходит: ' + self.listCheck.planned.ongoing.length);
+    self.log('Смотрю: ' + self.listCheck.watching.total + ', выходит: ' + self.listCheck.watching.ongoing.length);
+    self.renderBody();
+  }).catch(function (err) {
+    self.log('Мои списки FAIL: ' + err.message);
+    self.renderBody();
+  });
+};
+
+function summarizeList(list) {
+  const ongoing = (list || []).filter(userApi.isCurrentlyAiring).map(function (anime) {
+    return {
+      id: anime.shikimori_id,
+      title: anime.title,
+      status: anime.status,
+      episodes: anime.episodes,
+      episodes_aired: anime.episodes_aired,
+      release_date: anime.release_date
+    };
+  });
+  return { total: (list || []).length, ongoing: ongoing };
+}
 
 Diagnostics.prototype.log = function (text) {
   this.logEntries.push(text);
@@ -128,6 +175,8 @@ Diagnostics.prototype.buildReport = function () {
     api_base_url: data.apiBaseUrl,
     cache_size: data.cacheSize,
     mapping_count: data.mappingCount,
+    auth_user: this.listCheck ? this.listCheck.user : null,
+    user_lists: this.listCheck,
     diagnostics_log: this.logEntries.slice(),
     runtime_log: runtimeLogs,
     token_present: data.hasToken,
