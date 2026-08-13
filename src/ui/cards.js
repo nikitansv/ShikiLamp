@@ -13,10 +13,11 @@ function createDomCard(anime, options) {
   }
 
   const score = anime.score && Number(anime.score) > 0 ? anime.score : '';
+  const scoreClass = Number(score) < 6 ? ' score-low' : Number(score) < 7.5 ? ' score-mid' : ' score-high';
 
   el.innerHTML = '<div class="shikimori-local__result-poster">' +
       '<img src="' + templates.escapeHtml(anime.poster || '') + '" />' +
-      (score ? '<div class="shikimori-local__result-score">' + templates.escapeHtml(String(score)) + '</div>' : '') +
+      (score ? '<div class="shikimori-local__result-score' + scoreClass + '">' + templates.escapeHtml(String(score)) + '</div>' : '') +
     '</div>' +
     '<div class="shikimori-local__result-info">' +
       '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +

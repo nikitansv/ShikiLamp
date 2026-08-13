@@ -34,6 +34,7 @@ test('createDomCard returns consistent selector card with escaped fields', () =>
   expect(card.querySelector('.shikimori-local__result-title').textContent).toBe('<Test>');
   expect(card.querySelector('.shikimori-local__result-poster img').src).toBe('https://example.com/poster.jpg');
   expect(card.querySelector('.shikimori-local__result-score').textContent).toBe('8.5');
+  expect(card.querySelector('.shikimori-local__result-score').classList.contains('score-high')).toBe(true);
 
   card.dispatchEvent(new Event('hover:enter'));
   expect(onEnter).toHaveBeenCalledTimes(1);
@@ -64,4 +65,11 @@ test('createDomCard renders exact Shikimori score on poster', () => {
   const card = cards.createDomCard(anime);
   expect(card.querySelector('.shikimori-local__result-score').textContent).toBe('6');
   expect(card.querySelector('.shikimori-local__result-meta')).toBeNull();
+});
+
+test('createDomCard colors low and medium scores', () => {
+  const low = cards.createDomCard({ shikimori_id: 4, title: 'Low', score: 5.9 });
+  const medium = cards.createDomCard({ shikimori_id: 5, title: 'Medium', score: 6 });
+  expect(low.querySelector('.shikimori-local__result-score').classList.contains('score-low')).toBe(true);
+  expect(medium.querySelector('.shikimori-local__result-score').classList.contains('score-mid')).toBe(true);
 });

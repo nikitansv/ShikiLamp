@@ -25,9 +25,13 @@ function injectStyles() {
     .shikimori-local__result { cursor: pointer; }
     .shikimori-local__result-poster { position: relative; }
     .shikimori-local__result-poster img { width: 100%; border-radius: 0.4em; display: block; }
-    .shikimori-local__result-score { position: absolute; top: 0.4em; right: 0.4em; background: rgba(0,0,0,0.72); color: #ffd54a; font-weight: 700; font-size: 0.9em; padding: 0.15em 0.45em; border-radius: 0.3em; }
+    .shikimori-local__result-score { position: absolute; top: 0.4em; right: 0.4em; background: rgba(0,0,0,0.72); font-weight: 700; font-size: 0.9em; padding: 0.15em 0.45em; border-radius: 0.3em; }
+    .shikimori-local__result-score.score-low { color: #ff6b6b; }
+    .shikimori-local__result-score.score-mid { color: #e5e7eb; }
+    .shikimori-local__result-score.score-high { color: #ffd54a; }
     .shikimori-local__result.focus { outline: 2px solid #fff; }
     .shikimori-local__result-title { display: -webkit-box; margin-top: 0.4em; overflow: hidden; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .shikimori-local.userlists-page .shikimori-local__result-title { font-size: 2em; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
     .shikimori-local__poster { width: 360px; aspect-ratio: 2 / 3; flex: 0 0 360px; border-radius: 16px; background: rgba(255,255,255,0.08); overflow: hidden; align-self: flex-start; margin-top: 0.12em; }
@@ -65,7 +69,7 @@ function injectStyles() {
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
-    .shikimori-local__more { padding: 1em; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; text-align: center; }
+    .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; text-align: center; font-size: 1.2em; }
     .shikimori-local__more.focus { background: rgba(255,255,255,0.25); }
     .shikimori-local__candidate { display: flex; gap: 1em; padding: 0.8em; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .shikimori-local__candidate.focus { background: rgba(255,255,255,0.12); }

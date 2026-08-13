@@ -44,7 +44,7 @@ function listAnimeRates(userId, status, page, limit) {
     status: status,
     page: page || 1,
     limit: limit || 20,
-    order: 'updated_at'
+    order: status === 'planned' || status === 'watching' ? 'aired_on' : 'updated_at'
   });
   return client.request('/api/users/' + encodeURIComponent(String(userId)) + '/anime_rates?' + query, {
     method: 'GET',

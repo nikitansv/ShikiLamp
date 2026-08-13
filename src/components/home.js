@@ -86,7 +86,7 @@ Home.prototype.renderSectionItems = function (section, row, list) {
     row.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
     return;
   }
-  list.slice(0, 20).forEach(function (anime) {
+  list.slice(0, 8).forEach(function (anime) {
     row.appendChild(self.createCard(anime));
   });
   const more = document.createElement('div');

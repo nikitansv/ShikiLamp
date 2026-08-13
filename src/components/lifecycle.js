@@ -97,6 +97,45 @@ function addContentController(instance) {
   Lampa.Controller.toggle('content');
   focusFirst(instance.html);
   scrollFocusedIntoView();
+  bindWheelScrolling(instance);
+}
+
+function bindWheelScrolling(instance) {
+  if (!instance || !instance.html || instance.__shikimoriWheelHandler) return;
+  const root = instance.html.querySelector('.shikimori-local');
+  if (!root) return;
+
+  instance.__shikimoriWheelRoot = root;
+  instance.__shikimoriWheelHandler = function (event) {
+    let target = event.target;
+    let rail = null;
+    while (target && target !== root) {
+      if (target.classList && target.classList.contains('shikimori-local__row-items')) {
+        rail = target;
+        break;
+      }
+      target = target.parentNode;
+    }
+
+    const delta = event.deltaY || event.deltaX || 0;
+    if (rail && rail.scrollWidth > rail.clientWidth) {
+      rail.scrollLeft += delta;
+      event.preventDefault();
+      return;
+    }
+    if (root.scrollHeight > root.clientHeight) {
+      root.scrollTop += event.deltaY;
+      event.preventDefault();
+    }
+  };
+  root.addEventListener('wheel', instance.__shikimoriWheelHandler, { passive: false });
+}
+
+function unbindWheelScrolling(instance) {
+  if (!instance || !instance.__shikimoriWheelHandler) return;
+  instance.__shikimoriWheelRoot.removeEventListener('wheel', instance.__shikimoriWheelHandler);
+  delete instance.__shikimoriWheelRoot;
+  delete instance.__shikimoriWheelHandler;
 }
 
 function attachLifecycle(Component) {
@@ -110,6 +149,12 @@ function attachLifecycle(Component) {
 
   if (!Component.prototype.pause) Component.prototype.pause = function () {};
   if (!Component.prototype.stop) Component.prototype.stop = function () {};
+
+  const destroy = Component.prototype.destroy;
+  Component.prototype.destroy = function () {
+    unbindWheelScrolling(this);
+    if (destroy) destroy.call(this);
+  };
 
   return Component;
 }
