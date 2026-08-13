@@ -13,7 +13,7 @@ const CAROUSEL_GROUPS = {
   planned: [
     { id: 'ongoing', title: 'Выходит сейчас' },
     { id: 'released', title: 'Уже вышло' },
-    { id: 'upcoming', title: 'Ещё не вышло' }
+    { id: 'upcoming', status: 'anons', title: 'Ещё не вышло' }
   ],
   watching: [
     { id: 'ongoing', title: 'Выходит сейчас' },
@@ -86,7 +86,7 @@ UserLists.prototype.load = function (append) {
   this.loading = true;
   this.results.innerHTML = '<div class="shikimori-local__loading">Загрузка списка...</div>';
 
-  userApi.listAllAnimeRates(user.id, this.status).then(function (list) {
+  this.loadListData(user.id).then(function (list) {
     self.loading = false;
     self.renderResults(list || [], append);
   }).catch(function (err) {
@@ -100,6 +100,16 @@ UserLists.prototype.load = function (append) {
   });
 };
 
+UserLists.prototype.loadListData = function (userId) {
+  const groups = CAROUSEL_GROUPS[this.status];
+  if (!groups) return userApi.listAllAnimeRates(userId, this.status);
+  return Promise.all(groups.map(function (group) {
+    return userApi.listMyListAnimes(this.status, group.status || group.id, 1, 50).then(function (list) {
+      return { id: group.id, list: list };
+    });
+  }, this));
+};
+
 UserLists.prototype.renderResults = function (list, append) {
   const self = this;
   let firstNew = null;
@@ -110,21 +120,18 @@ UserLists.prototype.renderResults = function (list, append) {
     this.refocus();
     return;
   }
-  const unique = this.uniqueAnimes(list);
   if (groups) {
-    if (!append) this.createCarouselGroups(groups);
-    groups.forEach(function (group) {
-      const row = self.results.querySelector('[data-group="' + group.id + '"] .shikimori-local__row-items');
-      self.sortByReleaseDate(unique.filter(function (anime) {
-        return self.groupForAnime(anime) === group.id;
-      })).forEach(function (anime) {
+    this.createCarouselGroups(groups);
+    list.forEach(function (result) {
+      const row = self.results.querySelector('[data-group="' + result.id + '"] .shikimori-local__row-items');
+      result.list.forEach(function (anime) {
         const card = self.createCard(anime);
         if (!firstNew) firstNew = card;
         row.appendChild(card);
       });
-      self.sortCarousel(row);
     });
   } else {
+    const unique = this.uniqueAnimes(list);
     unique.forEach(function (anime) {
       const card = self.createCard(anime);
       if (!firstNew) firstNew = card;
@@ -157,35 +164,6 @@ UserLists.prototype.createCarouselGroups = function (groups) {
       '<div class="shikimori-local__row-title">' + group.title + '</div>' +
       '<div class="shikimori-local__row-items"></div>' +
     '</div>');
-  });
-};
-
-UserLists.prototype.groupForAnime = function (anime) {
-  if (this.status === 'planned') {
-    const aired = parseInt(anime.episodes_aired, 10) || 0;
-    const total = parseInt(anime.episodes, 10) || 0;
-    if (aired === 0) return 'upcoming';
-    return total > 0 && aired >= total ? 'released' : 'ongoing';
-  }
-  const status = String(anime.status || '').toLowerCase();
-  if (status === 'ongoing') return 'ongoing';
-  return 'released';
-};
-
-UserLists.prototype.sortByReleaseDate = function (list) {
-  return list.sort(function (a, b) {
-    return String(b.release_date || '').localeCompare(String(a.release_date || ''));
-  });
-};
-
-UserLists.prototype.sortCarousel = function (row) {
-  const cards = Array.prototype.slice.call(row.querySelectorAll('.shikimori-local__result'));
-  cards.sort(function (a, b) {
-    const first = a.__shikimoriAnime || {};
-    const second = b.__shikimoriAnime || {};
-    return String(second.release_date || '').localeCompare(String(first.release_date || ''));
-  }).forEach(function (card) {
-    row.appendChild(card);
   });
 };
 

@@ -96,9 +96,13 @@ function isCurrentlyAiring(anime) {
 }
 
 function listCurrentAnimeRates(userId, page, limit) {
+  return listMyListAnimes('planned,watching', 'ongoing', page, limit);
+}
+
+function listMyListAnimes(mylist, status, page, limit) {
   const query = buildQuery({
-    status: 'ongoing',
-    mylist: 'planned,watching',
+    status: status || '',
+    mylist: mylist,
     page: page || 1,
     limit: limit || 50
   });
@@ -159,6 +163,7 @@ module.exports = {
   listAnimeRates: listAnimeRates,
   listAllAnimeRates: listAllAnimeRates,
   listCurrentAnimeRates: listCurrentAnimeRates,
+  listMyListAnimes: listMyListAnimes,
   isCurrentlyAiring: isCurrentlyAiring,
   createAnimeRate: createAnimeRate,
   updateAnimeRate: updateAnimeRate,

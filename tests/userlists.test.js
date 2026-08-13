@@ -64,7 +64,7 @@ test('userlists openAnime falls back to shikimori card when matcher returns no m
   }, 50);
 });
 
-test('userlists sorts planned releases and skips duplicate cards', () => {
+test('planned list renders direct filter results', () => {
   const userlists = new UserLists({ status: 'planned' });
   userlists.html = document.createElement('div');
   userlists.results = document.createElement('div');
@@ -72,14 +72,14 @@ test('userlists sorts planned releases and skips duplicate cards', () => {
   userlists.refocus = jest.fn();
 
   userlists.renderResults([
-    { shikimori_id: 1, title: 'Old', release_date: '2024-01-01', score: 7 },
-    { shikimori_id: 2, title: 'New', release_date: '2025-01-01', score: 8 },
-    { shikimori_id: 2, title: 'New duplicate', release_date: '2025-01-01', score: 8 }
+    { id: 'ongoing', list: [{ shikimori_id: 1, title: 'Current', score: 8 }] },
+    { id: 'released', list: [{ shikimori_id: 2, title: 'Released', score: 7 }] },
+    { id: 'upcoming', list: [{ shikimori_id: 3, title: 'Upcoming', score: 7 }] }
   ], false);
 
   const cards = userlists.results.querySelectorAll('.shikimori-local__result');
-  expect(cards).toHaveLength(2);
-  expect(cards[0].__shikimoriAnime.title).toBe('New');
+  expect(cards).toHaveLength(3);
+  expect(cards[0].__shikimoriAnime.title).toBe('Current');
 });
 
 test('planned list renders current, released, and upcoming carousels', () => {
@@ -90,9 +90,9 @@ test('planned list renders current, released, and upcoming carousels', () => {
   userlists.refocus = jest.fn();
 
   userlists.renderResults([
-    { shikimori_id: 1, title: 'Current', episodes: 12, episodes_aired: 5, release_date: '2025-01-01', score: 8 },
-    { shikimori_id: 2, title: 'Released', episodes: 12, episodes_aired: 12, release_date: '2024-01-01', score: 8 },
-    { shikimori_id: 3, title: 'Upcoming', episodes: 12, episodes_aired: 0, release_date: '2030-01-01', score: 8 }
+    { id: 'ongoing', list: [{ shikimori_id: 1, title: 'Current', score: 8 }] },
+    { id: 'released', list: [{ shikimori_id: 2, title: 'Released', score: 8 }] },
+    { id: 'upcoming', list: [{ shikimori_id: 3, title: 'Upcoming', score: 8 }] }
   ], false);
 
   expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(3);
@@ -109,8 +109,8 @@ test('watching list renders current and released carousels', () => {
   userlists.refocus = jest.fn();
 
   userlists.renderResults([
-    { shikimori_id: 1, title: 'Current', status: 'ongoing', release_date: '2025-01-01', score: 8 },
-    { shikimori_id: 2, title: 'Released', status: 'released', release_date: '2024-01-01', score: 8 }
+    { id: 'ongoing', list: [{ shikimori_id: 1, title: 'Current', score: 8 }] },
+    { id: 'released', list: [{ shikimori_id: 2, title: 'Released', score: 8 }] }
   ], false);
 
   expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(2);
