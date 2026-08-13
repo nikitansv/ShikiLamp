@@ -10,6 +10,7 @@ const settings = require('../settings');
 const api = require('../api');
 const auth = require('../auth');
 const userApi = require('../api/user');
+const client = require('../api/client');
 
 function Diagnostics() {
   this.html = null;
@@ -89,6 +90,8 @@ Diagnostics.prototype.handleAction = function (action) {
     });
   } else if (action === 'check-user-lists') {
     this.checkUserLists();
+  } else if (action === 'check-site-filter') {
+    this.checkSiteFilter();
   } else if (action === 'clear-log') {
     this.logEntries = [];
     if (logger.clear) logger.clear();
@@ -103,6 +106,24 @@ Diagnostics.prototype.handleAction = function (action) {
     a.click();
     URL.revokeObjectURL(url);
   }
+};
+
+Diagnostics.prototype.checkSiteFilter = function () {
+  const self = this;
+  this.log('Фильтр сайта: проверяю OAuth-доступ...');
+  this.renderBody();
+  client.request('/api/animes?status=ongoing&mylist=planned%2Cwatching&limit=50', {
+    method: 'GET', authenticated: true, skipCache: true, timeout: 20000
+  }).then(function (list) {
+    const ids = (Array.isArray(list) ? list : []).map(function (anime) { return anime.id; });
+    self.listCheck = self.listCheck || {};
+    self.listCheck.site_filter = { count: ids.length, ids: ids };
+    self.log('Фильтр сайта через OAuth: ' + ids.length + ' тайтлов');
+    self.renderBody();
+  }).catch(function (err) {
+    self.log('Фильтр сайта FAIL: ' + err.message);
+    self.renderBody();
+  });
 };
 
 Diagnostics.prototype.checkUserLists = function () {
