@@ -28,6 +28,13 @@ function getYear(item) {
   return 0;
 }
 
+function getReleaseDate(item) {
+  const aired = item.airedOn || item.aired_on || item.releasedOn || item.released_on;
+  if (!aired) return '';
+  if (typeof aired === 'string') return aired;
+  return aired.date || '';
+}
+
 function getStatus(item) {
   return item.status || 'unknown';
 }
@@ -88,6 +95,7 @@ function normalizeAnime(item) {
     kind: getKind(item),
     status: getStatus(item),
     year: getYear(item),
+    release_date: getReleaseDate(item),
     episodes: getEpisodes(item),
     episodes_aired: parseInt(item.episodesAired, 10) || 0,
     duration: getDuration(item),
@@ -131,6 +139,7 @@ module.exports = {
   normalizeSearchResponse,
   normalizeAnimeResponse,
   getYear,
+  getReleaseDate,
   getKind,
   getMalId,
   getTitles

@@ -106,7 +106,25 @@ UserLists.prototype.renderResults = function (list, append) {
     if (oldMore) oldMore.remove();
   }
 
-  list.forEach(function (anime) {
+  if (this.status === 'planned' || this.status === 'watching') {
+    list.sort(function (a, b) {
+      return String(b.release_date || '').localeCompare(String(a.release_date || ''));
+    });
+  }
+
+  const renderedIds = {};
+  this.results.querySelectorAll('.shikimori-local__result').forEach(function (card) {
+    if (card.__shikimoriAnime && card.__shikimoriAnime.shikimori_id) {
+      renderedIds[card.__shikimoriAnime.shikimori_id] = true;
+    }
+  });
+  const unique = list.filter(function (anime) {
+    if (!anime || !anime.shikimori_id || renderedIds[anime.shikimori_id]) return false;
+    renderedIds[anime.shikimori_id] = true;
+    return true;
+  });
+
+  unique.forEach(function (anime) {
     const card = self.createCard(anime);
     if (!firstNew) firstNew = card;
     self.results.appendChild(card);
@@ -114,7 +132,7 @@ UserLists.prototype.renderResults = function (list, append) {
 
   if (append && firstNew) this.pendingFocus = firstNew;
   this.page += 1;
-  if (list.length < 20) this.ended = true;
+  if (list.length < 20 || (append && unique.length === 0)) this.ended = true;
   if (!this.ended) this.appendMore();
   this.refocus();
 };

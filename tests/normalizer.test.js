@@ -23,6 +23,11 @@ describe('api/normalizer', () => {
     expect(normalizer.getYear({ airedOn: { year: 2020 } })).toBe(2020);
   });
 
+  test('preserves full release date', () => {
+    const anime = normalizer.normalizeAnime({ id: 3, name: 'Date', aired_on: '2025-10-04' });
+    expect(anime.release_date).toBe('2025-10-04');
+  });
+
   test('gets MAL id fallback', () => {
     expect(normalizer.getMalId({ malId: 123 })).toBe(123);
     expect(normalizer.getMalId({ myanimelist_id: 456 })).toBe(456);

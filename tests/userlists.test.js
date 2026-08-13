@@ -63,3 +63,21 @@ test('userlists openAnime falls back to shikimori card when matcher returns no m
     done();
   }, 50);
 });
+
+test('userlists sorts planned releases and skips duplicate cards', () => {
+  const userlists = new UserLists({ status: 'planned' });
+  userlists.html = document.createElement('div');
+  userlists.results = document.createElement('div');
+  userlists.html.appendChild(userlists.results);
+  userlists.refocus = jest.fn();
+
+  userlists.renderResults([
+    { shikimori_id: 1, title: 'Old', release_date: '2024-01-01', score: 7 },
+    { shikimori_id: 2, title: 'New', release_date: '2025-01-01', score: 8 },
+    { shikimori_id: 2, title: 'New duplicate', release_date: '2025-01-01', score: 8 }
+  ], false);
+
+  const cards = userlists.results.querySelectorAll('.shikimori-local__result');
+  expect(cards).toHaveLength(2);
+  expect(cards[0].__shikimoriAnime.title).toBe('New');
+});
