@@ -22,7 +22,10 @@ function injectStyles() {
     .shikimori-local__section { padding: 1em; background: rgba(255,255,255,0.08); border-radius: 0.5em; cursor: pointer; transition: background 0.15s; }
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1em; }
-    .shikimori-local.userlists-page .shikimori-local__results { grid-template-columns: repeat(auto-fill, 320px); }
+    .shikimori-local.userlists-page .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
+    .shikimori-local.userlists-page .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; padding-bottom: 0.4em; }
+    .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__result,
+    .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__more { flex: 0 0 320px; min-width: 0; }
     .shikimori-local__result { cursor: pointer; }
     .shikimori-local__result-poster { position: relative; }
     .shikimori-local__result-poster img { width: 100%; border-radius: 0.4em; display: block; }
@@ -70,7 +73,6 @@ function injectStyles() {
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
     .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: rgba(255,255,255,0.12); border-radius: 0.4em; cursor: pointer; text-align: center; font-size: 1.2em; }
-    .shikimori-local.userlists-page .shikimori-local__more { width: 100%; }
     .shikimori-local__more.focus { background: rgba(255,255,255,0.25); }
     .shikimori-local__candidate { display: flex; gap: 1em; padding: 0.8em; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .shikimori-local__candidate.focus { background: rgba(255,255,255,0.12); }

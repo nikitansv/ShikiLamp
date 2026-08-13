@@ -81,3 +81,37 @@ test('userlists sorts planned releases and skips duplicate cards', () => {
   expect(cards).toHaveLength(2);
   expect(cards[0].__shikimoriAnime.title).toBe('New');
 });
+
+test('planned list renders current, released, and upcoming carousels', () => {
+  const userlists = new UserLists({ status: 'planned' });
+  userlists.html = document.createElement('div');
+  userlists.results = document.createElement('div');
+  userlists.html.appendChild(userlists.results);
+  userlists.refocus = jest.fn();
+
+  userlists.renderResults([
+    { shikimori_id: 1, title: 'Current', status: 'ongoing', release_date: '2025-01-01', score: 8 },
+    { shikimori_id: 2, title: 'Released', status: 'released', release_date: '2024-01-01', score: 8 },
+    { shikimori_id: 3, title: 'Upcoming', status: 'anons', release_date: '2030-01-01', score: 8 }
+  ], false);
+
+  expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(3);
+  expect(userlists.results.querySelector('[data-group="ongoing"] .shikimori-local__result').__shikimoriAnime.title).toBe('Current');
+  expect(userlists.results.querySelector('[data-group="released"] .shikimori-local__result').__shikimoriAnime.title).toBe('Released');
+  expect(userlists.results.querySelector('[data-group="upcoming"] .shikimori-local__result').__shikimoriAnime.title).toBe('Upcoming');
+});
+
+test('watching list renders current and released carousels', () => {
+  const userlists = new UserLists({ status: 'watching' });
+  userlists.html = document.createElement('div');
+  userlists.results = document.createElement('div');
+  userlists.html.appendChild(userlists.results);
+  userlists.refocus = jest.fn();
+
+  userlists.renderResults([
+    { shikimori_id: 1, title: 'Current', status: 'ongoing', release_date: '2025-01-01', score: 8 },
+    { shikimori_id: 2, title: 'Released', status: 'released', release_date: '2024-01-01', score: 8 }
+  ], false);
+
+  expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(2);
+});
