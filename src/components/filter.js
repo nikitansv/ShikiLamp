@@ -25,12 +25,12 @@ Filter.prototype.create = function () {
 Filter.prototype.renderBody = function () {
   const self = this;
   const fields = Object.keys(OPTIONS).map(function (key) {
-    return '<div class="shikimori-local__action selector" data-field="' + key + '">' + fieldName(key) + ': ' + optionTitle(key, self.filters[key]) + '</div>';
+    return '<div class="shikimori-local__action shikimori-local__filter-field selector" data-field="' + key + '"><span>' + fieldName(key) + '</span><span class="shikimori-local__filter-value">' + optionTitle(key, self.filters[key]) + '</span></div>';
   }).join('');
   this.html.innerHTML = '<div class="shikimori-local filter-page">' +
-    '<div class="shikimori-local__head">Библиотека Shikimori</div>' +
-    '<div class="shikimori-local__filter-fields">' + fields + '</div>' +
-    '<div class="shikimori-local__actions"><div class="shikimori-local__action primary selector" data-action="apply">Применить</div><div class="shikimori-local__action selector" data-action="reset">Сбросить</div></div>' +
+    '<div class="shikimori-local__filter-main"><div class="shikimori-local__head">Библиотека Shikimori</div><div class="shikimori-local__empty">Настройте фильтры справа. Нажатие на параметр переключает следующее значение.</div></div>' +
+    '<div class="shikimori-local__filter-panel"><div class="shikimori-local__filter-fields">' + fields + '</div>' +
+    '<div class="shikimori-local__actions"><div class="shikimori-local__action primary selector" data-action="apply">Применить</div><div class="shikimori-local__action selector" data-action="reset">Сбросить</div></div></div>' +
   '</div>';
   this.html.querySelectorAll('[data-field]').forEach(function (el) {
     const open = function () { self.selectField(el.getAttribute('data-field')); };
@@ -43,9 +43,11 @@ Filter.prototype.renderBody = function () {
 };
 
 Filter.prototype.selectField = function (field) {
-  if (!Lampa.Select || !Lampa.Select.show) return Lampa.Noty.show('Выбор недоступен в этой версии Lampa');
-  const self = this;
-  Lampa.Select.show({ title: fieldName(field), items: OPTIONS[field].map(function (item) { return { title: item[1], value: item[0], selected: item[0] === (self.filters[field] || '') }; }), onSelect: function (item) { self.filters[field] = item.value; self.renderBody(); } });
+  const options = OPTIONS[field];
+  const current = this.filters[field] || '';
+  const index = options.map(function (item) { return item[0]; }).indexOf(current);
+  this.filters[field] = options[(index + 1) % options.length][0];
+  this.renderBody();
 };
 
 Filter.prototype.action = function (action) {

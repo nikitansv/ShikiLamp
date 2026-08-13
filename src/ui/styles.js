@@ -19,7 +19,7 @@ function injectStyles() {
     .shikimori-local__row-title::before { content: '●'; margin-right: 0.45em; color: var(--shiki-group-ongoing); }
     .shikimori-local__row[data-group="released"] .shikimori-local__row-title::before { color: var(--shiki-group-released); }
     .shikimori-local__row[data-group="upcoming"] .shikimori-local__row-title::before { color: var(--shiki-group-anons); }
-    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; padding-bottom: 0.4em; }
+    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 1.2em 0.8em; margin: -0.8em; }
     .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(375px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
@@ -27,7 +27,7 @@ function injectStyles() {
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(160px * var(--shiki-card-size)), 1fr)); gap: 1em; }
     .shikimori-local.userlists-page .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
-    .shikimori-local.userlists-page .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; padding-bottom: 0.4em; }
+    .shikimori-local.userlists-page .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 1.2em 0.8em; margin: -0.8em; }
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(320px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__result { cursor: pointer; border-radius: var(--shiki-card-radius); transition: transform var(--shiki-motion), box-shadow var(--shiki-motion), opacity var(--shiki-motion); }
@@ -43,7 +43,7 @@ function injectStyles() {
     .shikimori-local__result-score.score-low { color: var(--shiki-rating-low); }
     .shikimori-local__result-score.score-mid { color: var(--shiki-rating-mid); }
     .shikimori-local__result-score.score-high { color: var(--shiki-rating-high); }
-    .shikimori-local__result.focus { outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; transform: scale(var(--shiki-card-scale)); box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 1; }
+    .shikimori-local__result.focus { outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 1; }
     .shikimori-local__result-title { display: -webkit-box; margin-top: 0.4em; overflow: hidden; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
@@ -83,10 +83,15 @@ function injectStyles() {
     @media (max-width: 1024px) { .shikimori-local__poster { width: 260px; flex-basis: 260px; } .shikimori-local__info h1 { font-size: 2.15em; } .shikimori-local.anime-detail { padding: 2em; gap: 2em; } }
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
-    .shikimori-local__filter-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75em; margin-bottom: 1.2em; }
+    .shikimori-local.filter-page { display: flex; gap: 1.5em; min-height: calc(100vh - 3em); }
+    .shikimori-local__filter-main { flex: 1; min-width: 0; }
+    .shikimori-local__filter-panel { width: min(360px, 32vw); flex: 0 0 min(360px, 32vw); align-self: flex-start; padding: 1em; box-sizing: border-box; border-radius: var(--shiki-card-radius); background: var(--shiki-card-bg); box-shadow: 0 12px 36px rgba(0,0,0,0.18); }
+    .shikimori-local__filter-fields { display: grid; gap: 0.75em; margin-bottom: 1.2em; }
+    .shikimori-local__filter-field { width: 100%; justify-content: space-between; text-align: left; }
+    .shikimori-local__filter-value { color: var(--shiki-accent); margin-left: 1em; }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
     .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: var(--shiki-card-bg); border-radius: var(--shiki-card-radius); cursor: pointer; text-align: center; font-size: 1.2em; transition: transform var(--shiki-motion), background var(--shiki-motion); }
-    .shikimori-local__more.focus { background: color-mix(in srgb, var(--shiki-accent) 32%, var(--shiki-card-bg)); transform: scale(var(--shiki-card-scale)); }
+    .shikimori-local__more.focus { background: color-mix(in srgb, var(--shiki-accent) 32%, var(--shiki-card-bg)); outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; }
     .shikimori-local__candidate { display: flex; gap: 1em; padding: 0.8em; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); }
     .shikimori-local__candidate.focus { background: rgba(255,255,255,0.12); }
     .shikimori-local__candidate img { width: 92px; border-radius: 0.3em; }
