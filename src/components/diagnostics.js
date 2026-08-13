@@ -8,6 +8,7 @@ const cache = require('../cache');
 const mappingStorage = require('../mapping/storage');
 const settings = require('../settings');
 const api = require('../api');
+const auth = require('../auth');
 
 function Diagnostics() {
   this.html = null;
@@ -42,6 +43,7 @@ Diagnostics.prototype.renderBody = function () {
 Diagnostics.prototype.collectData = function () {
   const hasMaker = !!(typeof Lampa !== 'undefined' && Lampa.Maker && Lampa.Maker.make);
   const hasContentRows = !!(typeof Lampa !== 'undefined' && Lampa.ContentRows && Lampa.ContentRows.add);
+  const user = auth.getCachedUser();
   return {
     version: config.VERSION,
     lampaVersion: (typeof Lampa !== 'undefined' && Lampa.Manifest && Lampa.Manifest.app_version) ? Lampa.Manifest.app_version : '?',
@@ -52,7 +54,8 @@ Diagnostics.prototype.collectData = function () {
     cacheSize: cache.size(),
     mappingCount: mappingStorage.count(),
     corsTest: 'pending',
-    hasToken: !!settings.getExperimentalToken()
+    hasToken: !!settings.getExperimentalToken(),
+    authUser: user ? (user.nickname || user.name || 'ID ' + user.id) + ' (ID ' + user.id + ')' : 'не проверен'
   };
 };
 

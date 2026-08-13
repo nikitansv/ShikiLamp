@@ -39,7 +39,7 @@ function normalizeRates(list) {
   return Array.isArray(list) ? list.map(normalizeRate).filter(Boolean) : [];
 }
 
-function listAnimeRates(userId, status, page, limit) {
+function fetchAnimeRatesPage(userId, status, page, limit) {
   if (!userId) return Promise.reject(new Error('User ID пустой'));
   const query = buildQuery({
     status: status,
@@ -52,7 +52,27 @@ function listAnimeRates(userId, status, page, limit) {
     authenticated: true,
     skipCache: true,
     timeout: 20000
-  }).then(normalizeRates).then(hydrateAnimeDetails);
+  }).then(normalizeRates);
+}
+
+function listAnimeRates(userId, status, page, limit) {
+  return fetchAnimeRatesPage(userId, status, page, limit).then(hydrateAnimeDetails);
+}
+
+function listAllAnimeRates(userId, status) {
+  const pageSize = 100;
+  const maxPages = 5;
+  const all = [];
+
+  function load(page) {
+    return fetchAnimeRatesPage(userId, status, page, pageSize).then(function (list) {
+      all.push.apply(all, list);
+      if (list.length === pageSize && page < maxPages) return load(page + 1);
+      return hydrateAnimeDetails(all);
+    });
+  }
+
+  return load(1);
 }
 
 function hydrateAnimeDetails(rates) {
@@ -77,8 +97,8 @@ function isCurrentlyAiring(anime) {
 
 function listCurrentAnimeRates(userId, page, limit) {
   return Promise.all([
-    listAnimeRates(userId, 'planned', page, limit),
-    listAnimeRates(userId, 'watching', page, limit)
+    listAllAnimeRates(userId, 'planned'),
+    listAllAnimeRates(userId, 'watching')
   ]).then(function (lists) {
     const seen = {};
     return lists[0].concat(lists[1]).filter(function (anime) {
@@ -141,6 +161,7 @@ function deleteAnimeRate(rateId) {
 module.exports = {
   RATE_STATUS_TITLES: RATE_STATUS_TITLES,
   listAnimeRates: listAnimeRates,
+  listAllAnimeRates: listAllAnimeRates,
   listCurrentAnimeRates: listCurrentAnimeRates,
   isCurrentlyAiring: isCurrentlyAiring,
   createAnimeRate: createAnimeRate,

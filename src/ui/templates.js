@@ -162,6 +162,7 @@ function diagnosticsTemplate(data) {
       '<div>Последний запрос: ' + (data.lastRequestStatus || '-') + '</div>' +
       '<div>CORS тест: ' + (data.corsTest || '-') + '</div>' +
       '<div>Экспериментальный токен: ' + (data.hasToken ? 'установлен' : 'не установлен') + '</div>' +
+      '<div>Shikimori аккаунт: ' + escapeHtml(data.authUser || 'не проверен') + '</div>' +
     '</div>' +
     '<div class="shikimori-local__actions">' +
       '<div class="shikimori-local__action selector" data-action="test-api">Проверить API</div>' +

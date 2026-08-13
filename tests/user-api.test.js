@@ -49,6 +49,12 @@ describe('user api normalization', () => {
     expect(client.request.mock.calls[0][0]).toContain('order=updated_at');
   });
 
+  test('loads planned list in 100-item pages', async () => {
+    await userApi.listAllAnimeRates(1, 'planned');
+    expect(client.request.mock.calls[0][0]).toContain('limit=100');
+    expect(client.request.mock.calls[0][0]).toContain('page=1');
+  });
+
   test('keeps only current anime and removes duplicates across lists', async () => {
     client.request
       .mockResolvedValueOnce([

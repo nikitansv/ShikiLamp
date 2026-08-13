@@ -27,7 +27,6 @@ function UserLists(params) {
   this.status = this.params.status || 'planned';
   this.page = 1;
   this.loading = false;
-  this.ended = false;
   this.results = null;
   this.pendingFocus = null;
   this.lastCardFocus = null;
@@ -64,8 +63,6 @@ UserLists.prototype.renderTabs = function () {
 UserLists.prototype.changeStatus = function (status) {
   if (status === this.status) return;
   this.status = status;
-  this.page = 1;
-  this.ended = false;
   this.pendingFocus = null;
   this.renderTabs();
   this.load(false);
@@ -73,7 +70,7 @@ UserLists.prototype.changeStatus = function (status) {
 
 UserLists.prototype.load = function (append) {
   const self = this;
-  if (this.loading || this.ended) return;
+  if (this.loading) return;
   const user = auth.getCachedUser();
   if (!auth.getToken()) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Нужна авторизация: настройки → ShikiLamp Local → ввести access token.</div>';
@@ -87,9 +84,9 @@ UserLists.prototype.load = function (append) {
   }
 
   this.loading = true;
-  if (!append) this.results.innerHTML = '<div class="shikimori-local__loading">Загрузка...</div>';
+  this.results.innerHTML = '<div class="shikimori-local__loading">Загрузка списка...</div>';
 
-  userApi.listAnimeRates(user.id, this.status, this.page, 20).then(function (list) {
+  userApi.listAllAnimeRates(user.id, this.status).then(function (list) {
     self.loading = false;
     self.renderResults(list || [], append);
   }).catch(function (err) {
@@ -113,15 +110,6 @@ UserLists.prototype.renderResults = function (list, append) {
     this.refocus();
     return;
   }
-  if (append) {
-    const oldMore = this.results.querySelector('.shikimori-local__more');
-    if (oldMore) {
-      const moreRow = oldMore.closest ? oldMore.closest('.shikimori-local__row') : null;
-      if (moreRow && CAROUSEL_GROUPS[this.status]) moreRow.remove();
-      else oldMore.remove();
-    }
-  }
-
   const unique = this.uniqueAnimes(list);
   if (groups) {
     if (!append) this.createCarouselGroups(groups);
@@ -145,9 +133,6 @@ UserLists.prototype.renderResults = function (list, append) {
   }
 
   if (append && firstNew) this.pendingFocus = firstNew;
-  this.page += 1;
-  if (list.length < 20 || (append && unique.length === 0)) this.ended = true;
-  if (!this.ended) this.appendMore();
   this.refocus();
 };
 
@@ -216,27 +201,6 @@ UserLists.prototype.createCard = function (anime) {
   });
 };
 
-UserLists.prototype.appendMore = function () {
-  const self = this;
-  const parent = CAROUSEL_GROUPS[this.status] ? this.createMoreRow() : this.results;
-  const more = document.createElement('div');
-  more.className = 'shikimori-local__more selector';
-  more.__shikimoriMore = true;
-  more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.load(true); });
-  more.addEventListener('click', function () { self.load(true); });
-  parent.appendChild(more);
-};
-
-UserLists.prototype.createMoreRow = function () {
-  const row = document.createElement('div');
-  row.className = 'shikimori-local__row';
-  const items = document.createElement('div');
-  items.className = 'shikimori-local__row-items';
-  row.appendChild(items);
-  this.results.appendChild(row);
-  return items;
-};
 
 UserLists.prototype.openAnime = function (anime) {
   const self = this;
