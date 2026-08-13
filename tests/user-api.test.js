@@ -70,8 +70,9 @@ describe('user api normalization', () => {
     expect(list.map(anime => anime.shikimori_id)).toEqual([1]);
   });
 
-  test('matches Shikimori ongoing status even with zero aired episodes', () => {
-    expect(userApi.isCurrentlyAiring({ status: 'ongoing', episodes: 12, episodes_aired: 0 })).toBe(true);
-    expect(userApi.isCurrentlyAiring({ status: 'released', episodes: 12, episodes_aired: 11 })).toBe(false);
+  test('matches active seasons by aired episode count', () => {
+    expect(userApi.isCurrentlyAiring({ status: 'ongoing', episodes: 12, episodes_aired: 0 })).toBe(false);
+    expect(userApi.isCurrentlyAiring({ status: 'released', episodes: 12, episodes_aired: 11 })).toBe(true);
+    expect(userApi.isCurrentlyAiring({ status: 'ongoing', episodes: 12, episodes_aired: 12 })).toBe(false);
   });
 });
