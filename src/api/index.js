@@ -49,6 +49,11 @@ function getById(id) {
   return graphqlRequest(graphql.getAnimeById(id), 'anime').then(normalizer.normalizeAnimeResponse);
 }
 
+function getByIds(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return Promise.resolve([]);
+  return graphqlRequest(graphql.getAnimesByIds(ids), 'anime').then(normalizer.normalizeSearchResponse);
+}
+
 function popular(page) {
   return graphqlRequest(graphql.popularAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
 }
@@ -77,6 +82,7 @@ function testConnection() {
 module.exports = {
   search,
   getById,
+  getByIds,
   popular,
   ongoing,
   latest,

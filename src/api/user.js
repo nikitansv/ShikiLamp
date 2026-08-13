@@ -3,6 +3,7 @@
  */
 const client = require('./client');
 const normalizer = require('./normalizer');
+const api = require('./index');
 const config = require('../config');
 
 const RATE_STATUS_TITLES = {
@@ -51,7 +52,21 @@ function listAnimeRates(userId, status, page, limit) {
     authenticated: true,
     skipCache: true,
     timeout: 20000
-  }).then(normalizeRates);
+  }).then(normalizeRates).then(hydrateAnimeDetails);
+}
+
+function hydrateAnimeDetails(rates) {
+  const ids = rates.map(function (anime) { return anime.shikimori_id; }).filter(Boolean);
+  if (!ids.length) return rates;
+  return api.getByIds(ids).then(function (details) {
+    const byId = {};
+    details.forEach(function (anime) { byId[anime.shikimori_id] = anime; });
+    return rates.map(function (rate) {
+      return byId[rate.shikimori_id] ? Object.assign({}, rate, byId[rate.shikimori_id]) : rate;
+    });
+  }).catch(function () {
+    return rates;
+  });
 }
 
 function isCurrentlyAiring(anime) {
@@ -132,5 +147,6 @@ module.exports = {
   updateAnimeRate: updateAnimeRate,
   deleteAnimeRate: deleteAnimeRate,
   normalizeRate: normalizeRate,
-  normalizeRates: normalizeRates
+  normalizeRates: normalizeRates,
+  hydrateAnimeDetails: hydrateAnimeDetails
 };
