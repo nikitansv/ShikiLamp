@@ -187,7 +187,7 @@ Line.prototype.refocus = function () {
 Line.prototype.forceFocus = function (target) {
   const self = this;
   const apply = function () {
-    if (!target || !self.html || !document.body.contains(target)) return;
+    if (!target || !self.html || typeof document === 'undefined' || !document.body.contains(target)) return;
     self.html.querySelectorAll('.selector.focus').forEach(function (el) {
       if (el !== target) el.classList.remove('focus');
     });

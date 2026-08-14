@@ -19,7 +19,7 @@ function injectStyles() {
     .shikimori-local__row-title::before { content: '●'; margin-right: 0.45em; color: var(--shiki-group-ongoing); }
     .shikimori-local__row[data-group="released"] .shikimori-local__row-title::before { color: var(--shiki-group-released); }
     .shikimori-local__row[data-group="upcoming"] .shikimori-local__row-title::before { color: var(--shiki-group-anons); }
-    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 1.2em 0.8em; margin: -0.8em; }
+    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; padding: 2.2em 1.5em 2.8em; margin: -1.7em -1.5em -2.2em; }
     .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(375px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
@@ -27,7 +27,7 @@ function injectStyles() {
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(240px * var(--shiki-card-size)), 1fr)); gap: 1.2em; }
     .shikimori-local.userlists-page.grouped .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
-    .shikimori-local.userlists-page .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 1.2em 0.8em; margin: -0.8em; }
+    .shikimori-local.userlists-page .shikimori-local__row-items { padding: 2.2em 1.5em 2.8em; margin: -1.7em -1.5em -2.2em; }
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(320px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__result { position: relative; cursor: pointer; border-radius: var(--shiki-card-radius); transition: transform var(--shiki-motion), box-shadow var(--shiki-motion), opacity var(--shiki-motion); transform-origin: center center; }
@@ -84,14 +84,17 @@ function injectStyles() {
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local.filter-page { display: flex; gap: 0; min-height: 100vh; padding: 0; overflow: hidden; }
-    .shikimori-local__filter-main { flex: 1; min-width: 0; padding: 2em; background: rgba(20,16,15,0.72); }
-    .shikimori-local__filter-panel { width: min(660px, 44vw); flex: 0 0 min(660px, 44vw); height: 100vh; padding: 2.4em 2.8em 4em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; }
-    .shikimori-local__filter-title { font-size: 2.2em; font-weight: 400; margin-bottom: 1.8em; }
-    .shikimori-local__filter-start, .shikimori-local__filter-reset { padding: 0.55em 0; margin-bottom: 1.8em; font-size: 1.25em; border-radius: 0.25em; }
-    .shikimori-local__filter-fields { display: grid; gap: 1.65em; margin-bottom: 2em; }
-    .shikimori-local__filter-field { display: block; min-height: 0; width: 100%; padding: 0.25em 0; background: transparent; text-align: left; font-size: 1.12em; }
+    .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 1.5em 1.8em 4em; box-sizing: border-box; overflow-y: auto; }
+    .shikimori-local__filter-main .shikimori-local__results { grid-template-columns: repeat(auto-fill, minmax(calc(288px * var(--shiki-card-size)), 1fr)); padding: 0.8em; }
+    .shikimori-local__filter-panel { width: min(390px, 27vw); flex: 0 0 min(390px, 27vw); height: 100vh; padding: 1.5em 1.2em 3em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; animation: shiki-filter-in var(--shiki-motion) ease-out; }
+    @keyframes shiki-filter-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    .shikimori-local__filter-title { font-size: 2em; font-weight: 400; margin-bottom: 1.2em; }
+    .shikimori-local__filter-start, .shikimori-local__filter-reset { padding: 0.45em 0; margin-bottom: 1.2em; font-size: 1.15em; border-radius: 0.25em; }
+    .shikimori-local__filter-fields { display: grid; gap: 1.15em; margin-bottom: 1.5em; }
+    .shikimori-local__filter-field { display: block; min-height: 0; width: 100%; padding: 0.2em 0; background: transparent; text-align: left; font-size: 1.05em; }
     .shikimori-local__filter-value { display: block; color: rgba(255,255,255,0.62); margin: 0.45em 0 0; font-size: 0.9em; }
     .shikimori-local__filter-field.focus, .shikimori-local__filter-start.focus, .shikimori-local__filter-reset.focus { outline: 2px solid #fff; outline-offset: 0.3em; background: transparent; color: #fff; }
+    @media (max-width: 900px) { .shikimori-local__filter-panel { width: 38vw; flex-basis: 38vw; } .shikimori-local__filter-main .shikimori-local__results { grid-template-columns: repeat(auto-fill, minmax(calc(220px * var(--shiki-card-size)), 1fr)); } }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
     .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: var(--shiki-card-bg); border-radius: var(--shiki-card-radius); cursor: pointer; text-align: center; font-size: 1.2em; transition: transform var(--shiki-motion), background var(--shiki-motion); }
     .shikimori-local__more.focus { background: color-mix(in srgb, var(--shiki-accent) 32%, var(--shiki-card-bg)); outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; }
