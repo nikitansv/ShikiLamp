@@ -40,7 +40,7 @@ var ShikimoriLocalPlugin=(()=>{var __getOwnPropNames=Object.getOwnPropertyNames;
     .shikimori-local__result.focus, .shikimori-local__result:hover { transform: scale(var(--shiki-card-scale)); box-shadow: none; z-index: 2; }
     .shikimori-local__row-items .shikimori-local__result:first-child { transform-origin: left center; }
     .shikimori-local__row-items .shikimori-local__result:last-child { transform-origin: right center; }
-    .shikimori-local__result-title { display: -webkit-box; margin-top: 0.4em; overflow: hidden; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .shikimori-local__result-title { display: -webkit-box; margin-top: 0.22em; overflow: hidden; font-weight: 600; line-height: 1.08; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
     .shikimori-local__poster { width: 360px; aspect-ratio: 2 / 3; flex: 0 0 360px; border-radius: 16px; background: rgba(255,255,255,0.08); overflow: hidden; align-self: flex-start; margin-top: 0.12em; }
