@@ -15,6 +15,7 @@ const OPTIONS = {
 function Filter() {
   Line.call(this, { section: 'filter', filters: loadFilters() });
   this.activeField = '';
+  this.panelHidden = false;
 }
 
 Filter.prototype = Object.create(Line.prototype);
@@ -45,7 +46,13 @@ Filter.prototype.pause = function () {
 Filter.prototype.stop = Filter.prototype.pause;
 
 Filter.prototype.onMenuOpen = function () {
-  if (this.html) this.html.classList.add('menu-open');
+  if (!this.html) return;
+  const menu = document.querySelector('.menu__list') || document.querySelector('.menu');
+  const rect = menu && menu.getBoundingClientRect ? menu.getBoundingClientRect() : null;
+  const viewport = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const width = rect && rect.width > 0 && (!viewport || rect.width < viewport * 0.65) ? rect.width : 340;
+  this.html.style.setProperty('--shiki-menu-shift', Math.round(width) + 'px');
+  this.html.classList.add('menu-open');
 };
 
 Filter.prototype.onContentShow = function () {
@@ -119,14 +126,27 @@ Filter.prototype.closeOptions = function () {
 };
 
 Filter.prototype.onBack = function () {
-  if (!this.activeField) return false;
-  this.closeOptions();
-  return true;
+  if (this.activeField) {
+    this.closeOptions();
+    return true;
+  }
+  if (this.panelHidden) {
+    this.panelHidden = false;
+    this.html.classList.remove('panel-hidden');
+    this.pendingFocus = this.html.querySelector('[data-action="apply"]');
+    this.refocus();
+    return true;
+  }
+  return false;
 };
 
 Filter.prototype.action = function (action) {
   if (action === 'reset') this.filters = { order: 'ranked' };
   saveFilters(this.filters);
+  if (action === 'apply') {
+    this.panelHidden = true;
+    this.html.classList.add('panel-hidden');
+  }
   this.page = 1;
   this.ended = false;
   this.nextList = null;

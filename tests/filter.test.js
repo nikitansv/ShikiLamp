@@ -64,14 +64,32 @@ test('filter portal hides while another activity is open', () => {
 test('filter portal hides for Lampa menu and returns with content', () => {
   const filter = new Filter();
   filter.create();
+  const menu = document.createElement('div');
+  menu.className = 'menu__list';
+  menu.getBoundingClientRect = function () { return { width: 320 }; };
+  document.body.appendChild(menu);
 
   filter.onMenuOpen();
   expect(filter.html.style.display).toBe('');
   expect(filter.html.classList.contains('menu-open')).toBe(true);
+  expect(filter.html.style.getPropertyValue('--shiki-menu-shift')).toBe('320px');
 
   filter.onContentShow();
   expect(filter.html.style.display).toBe('');
   expect(filter.html.classList.contains('menu-open')).toBe(false);
+});
+
+test('start search hides filter panel and Back restores it', () => {
+  const filter = new Filter();
+  filter.create();
+  filter.refocus = jest.fn();
+
+  filter.action('apply');
+  expect(filter.html.classList.contains('panel-hidden')).toBe(true);
+  expect(filter.panelHidden).toBe(true);
+
+  expect(filter.onBack()).toBe(true);
+  expect(filter.html.classList.contains('panel-hidden')).toBe(false);
 });
 
 test('filter field opens options and Back returns to main panel', () => {
