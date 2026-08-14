@@ -43,6 +43,11 @@ Filter.prototype.pause = function () {
 };
 
 Filter.prototype.stop = Filter.prototype.pause;
+Filter.prototype.onMenuOpen = Filter.prototype.pause;
+
+Filter.prototype.onContentShow = function () {
+  if (this.html) this.html.style.display = '';
+};
 
 Filter.prototype.renderPanel = function () {
   const panel = this.html.querySelector('.shikimori-local__filter-panel');

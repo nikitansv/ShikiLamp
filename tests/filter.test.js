@@ -61,6 +61,17 @@ test('filter portal hides while another activity is open', () => {
   expect(filter.html.style.display).toBe('');
 });
 
+test('filter portal hides for Lampa menu and returns with content', () => {
+  const filter = new Filter();
+  filter.create();
+
+  filter.onMenuOpen();
+  expect(filter.html.style.display).toBe('none');
+
+  filter.onContentShow();
+  expect(filter.html.style.display).toBe('');
+});
+
 test('filter field opens options and Back returns to main panel', () => {
   const filter = new Filter();
   filter.create();

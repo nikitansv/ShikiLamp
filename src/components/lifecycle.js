@@ -44,6 +44,7 @@ function addContentController(instance) {
 
   Lampa.Controller.add('content', {
     toggle: function () {
+      if (typeof instance.onContentShow === 'function') instance.onContentShow();
       Lampa.Controller.collectionSet(instance.html);
       const focused = instance.html.querySelector('.selector.focus') || instance.html.querySelector('.selector');
       if (focused) Lampa.Controller.collectionFocus(focused, instance.html);
@@ -52,7 +53,10 @@ function addContentController(instance) {
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
       if (typeof instance.onLeftWall === 'function' && instance.onLeftWall(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('left')) Navigator.move('left');
-      else Lampa.Controller.toggle('menu');
+      else {
+        if (typeof instance.onMenuOpen === 'function') instance.onMenuOpen();
+        Lampa.Controller.toggle('menu');
+      }
       scrollFocusedIntoView();
     },
     right: function () {
