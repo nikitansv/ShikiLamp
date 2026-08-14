@@ -91,11 +91,11 @@ function injectStyles() {
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local.filter-page { display: flex; gap: 0; min-height: 100vh; padding: 0; overflow: hidden; }
-    .shikimori-filter-activity { position: fixed; z-index: 100000; inset: 0; pointer-events: none; }
+    .shikimori-filter-activity { position: fixed; z-index: 2147483000; inset: 0; pointer-events: none; }
     .shikimori-filter-activity .filter-page { pointer-events: auto; background: transparent; }
     .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 7em calc(min(390px, 27vw) + 1.8em) 4em 1.8em; box-sizing: border-box; overflow-y: auto; }
     .shikimori-local__filter-main .shikimori-local__results { grid-template-columns: repeat(auto-fill, minmax(calc(288px * var(--shiki-card-size)), 1fr)); padding: 0.8em; }
-    .shikimori-local__filter-panel { position: fixed; z-index: 100001; top: 0; right: 0; bottom: 0; width: min(390px, 27vw); height: 100vh; padding: 1.5em 1.2em 3em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; animation: shiki-filter-in var(--shiki-motion) ease-out; }
+    .shikimori-local__filter-panel { position: fixed; z-index: 2147483001; top: 0; right: 0; bottom: 0; width: min(390px, 27vw); height: 100vh; padding: 1.5em 1.2em 3em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; animation: shiki-filter-in var(--shiki-motion) ease-out; }
     @keyframes shiki-filter-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
     .shikimori-local__filter-title { font-size: 2em; font-weight: 400; margin-bottom: 1.2em; }
     .shikimori-local__filter-start, .shikimori-local__filter-reset { padding: 0.45em 0; margin-bottom: 1.2em; font-size: 1.15em; border-radius: 0.25em; }
@@ -103,6 +103,10 @@ function injectStyles() {
     .shikimori-local__filter-field { display: block; min-height: 0; width: 100%; padding: 0.2em 0; background: transparent; text-align: left; font-size: 1.05em; }
     .shikimori-local__filter-value { display: block; color: rgba(255,255,255,0.62); margin: 0.45em 0 0; font-size: 0.9em; }
     .shikimori-local__filter-field.focus, .shikimori-local__filter-start.focus, .shikimori-local__filter-reset.focus { outline: 2px solid #fff; outline-offset: 0.3em; background: transparent; color: #fff; }
+    .shikimori-local__filter-options { display: grid; gap: 0.5em; }
+    .shikimori-local__filter-option { padding: 0.75em 0.6em; border-radius: 0.35em; background: rgba(255,255,255,0.06); }
+    .shikimori-local__filter-option.active { background: rgba(255,255,255,0.16); }
+    .shikimori-local__filter-option.focus { background: rgba(255,255,255,0.9); color: #111; }
     @media (max-width: 900px) { .shikimori-local__filter-panel { width: 38vw; } .shikimori-local__filter-main { padding-right: calc(38vw + 1.8em); } .shikimori-local__filter-main .shikimori-local__results { grid-template-columns: repeat(auto-fill, minmax(calc(220px * var(--shiki-card-size)), 1fr)); } }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
     .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: var(--shiki-card-bg); border-radius: var(--shiki-card-radius); cursor: pointer; text-align: center; font-size: 1.2em; transition: transform var(--shiki-motion), background var(--shiki-motion); }

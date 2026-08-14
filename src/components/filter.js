@@ -14,31 +14,37 @@ const OPTIONS = {
 
 function Filter() {
   Line.call(this, { section: 'filter', filters: loadFilters() });
+  this.activeField = '';
 }
 
 Filter.prototype = Object.create(Line.prototype);
 Filter.prototype.constructor = Filter;
 
 Filter.prototype.create = function () {
-  const self = this;
   this.html = document.createElement('div');
   this.html.className = 'shikimori-local activity-page shikimori-filter-activity';
   this.html.innerHTML = '<div class="shikimori-local filter-page">' +
     '<div class="shikimori-local__filter-main"><div class="shikimori-local__head">Библиотека Shikimori</div><div class="shikimori-local__results"></div></div>' +
-    '<div class="shikimori-local__filter-panel"><div class="shikimori-local__filter-title">Фильтр</div>' +
-    '<div class="shikimori-local__filter-start selector" data-action="apply">Начать поиск</div>' +
-    '<div class="shikimori-local__filter-fields"></div>' +
-    '<div class="shikimori-local__filter-reset selector" data-action="reset">Сбросить фильтры</div></div>' +
+    '<div class="shikimori-local__filter-panel"></div>' +
   '</div>';
   this.results = this.html.querySelector('.shikimori-local__results');
+  this.renderPanel();
+  this.loadPage(false);
+};
+
+Filter.prototype.beforeStart = function () {
+  if (this.html && this.html.parentNode !== document.body) document.body.appendChild(this.html);
+};
+
+Filter.prototype.renderPanel = function () {
+  const panel = this.html.querySelector('.shikimori-local__filter-panel');
+  panel.innerHTML = '<div class="shikimori-local__filter-title">Фильтр</div>' +
+    '<div class="shikimori-local__filter-start selector" data-action="apply">Начать поиск</div>' +
+    '<div class="shikimori-local__filter-fields"></div>' +
+    '<div class="shikimori-local__filter-reset selector" data-action="reset">Сбросить фильтры</div>';
   this.renderFields();
   this.bindFieldEvents();
-  this.html.querySelectorAll('[data-action]').forEach(function (el) {
-    const run = function () { self.action(el.getAttribute('data-action')); };
-    el.addEventListener('hover:enter', run);
-    el.addEventListener('click', run);
-  });
-  this.loadPage(false);
+  this.bindActionEvents();
 };
 
 Filter.prototype.renderFields = function () {
@@ -57,14 +63,44 @@ Filter.prototype.bindFieldEvents = function () {
   });
 };
 
+Filter.prototype.bindActionEvents = function () {
+  const self = this;
+  this.html.querySelectorAll('[data-action]').forEach(function (el) {
+    const run = function () { self.action(el.getAttribute('data-action')); };
+    el.addEventListener('hover:enter', run);
+    el.addEventListener('click', run);
+  });
+};
+
 Filter.prototype.selectField = function (field) {
-  const options = OPTIONS[field];
-  const current = this.filters[field] || '';
-  const index = options.map(function (item) { return item[0]; }).indexOf(current);
-  this.filters[field] = options[(index + 1) % options.length][0];
-  this.renderFields();
-  this.bindFieldEvents();
+  const self = this;
+  this.activeField = field;
+  this.html.querySelector('.shikimori-local__filter-panel').innerHTML =
+    '<div class="shikimori-local__filter-title">' + fieldName(field) + '</div>' +
+    '<div class="shikimori-local__filter-options">' + OPTIONS[field].map(function (item) {
+      return '<div class="shikimori-local__filter-option selector' + (item[0] === (self.filters[field] || '') ? ' active' : '') + '" data-value="' + item[0] + '">' + item[1] + '</div>';
+    }).join('') + '</div>';
+  this.html.querySelectorAll('[data-value]').forEach(function (el) {
+    const choose = function () {
+      self.filters[field] = el.getAttribute('data-value');
+      self.closeOptions();
+    };
+    el.addEventListener('hover:enter', choose);
+    el.addEventListener('click', choose);
+  });
   this.refocus();
+};
+
+Filter.prototype.closeOptions = function () {
+  this.activeField = '';
+  this.renderPanel();
+  this.refocus();
+};
+
+Filter.prototype.onBack = function () {
+  if (!this.activeField) return false;
+  this.closeOptions();
+  return true;
 };
 
 Filter.prototype.action = function (action) {
@@ -74,9 +110,14 @@ Filter.prototype.action = function (action) {
   this.ended = false;
   this.nextList = null;
   this.removeMoreButton();
-  this.renderFields();
-  this.bindFieldEvents();
+  this.renderPanel();
   this.loadPage(false);
+};
+
+Filter.prototype.destroy = function () {
+  if (this.html && this.html.parentNode) this.html.parentNode.removeChild(this.html);
+  this.html = null;
+  this.results = null;
 };
 
 function loadFilters() { return typeof Lampa !== 'undefined' && Lampa.Storage ? (Lampa.Storage.get(config.STORAGE_KEYS.filter, { order: 'ranked' }) || { order: 'ranked' }) : { order: 'ranked' }; }

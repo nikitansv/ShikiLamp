@@ -36,3 +36,27 @@ test('filter opens with ranked catalog and compact panel', async () => {
   expect(filter.html.querySelector('.shikimori-local__filter-panel')).not.toBeNull();
   expect(filter.html.querySelector('.shikimori-local__result').__shikimoriAnime.title).toBe('Ranked anime');
 });
+
+test('filter portals to body above Lampa UI', () => {
+  const filter = new Filter();
+  filter.create();
+  const activity = document.createElement('div');
+  activity.appendChild(filter.html);
+
+  filter.beforeStart();
+
+  expect(filter.html.parentNode).toBe(document.body);
+  expect(filter.html.classList.contains('shikimori-filter-activity')).toBe(true);
+});
+
+test('filter field opens options and Back returns to main panel', () => {
+  const filter = new Filter();
+  filter.create();
+  filter.refocus = jest.fn();
+
+  filter.selectField('kind');
+  expect(filter.html.querySelectorAll('.shikimori-local__filter-option')).toHaveLength(6);
+  expect(filter.onBack()).toBe(true);
+  expect(filter.html.querySelector('.shikimori-local__filter-fields')).not.toBeNull();
+  expect(filter.onBack()).toBe(false);
+});

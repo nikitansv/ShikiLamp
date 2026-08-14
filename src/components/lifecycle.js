@@ -17,6 +17,8 @@ function addContentController(instance) {
   const Lampa = getLampa();
   if (!Lampa || !Lampa.Controller || !instance || !instance.html) return;
 
+  if (typeof instance.beforeStart === 'function') instance.beforeStart();
+
   const scrollFocusedIntoView = function () {
     const apply = function () {
       if (!instance.html) return;
@@ -86,6 +88,7 @@ function addContentController(instance) {
       }
     },
     back: function () {
+      if (typeof instance.onBack === 'function' && instance.onBack()) return;
       if (Lampa.Activity && Lampa.Activity.backward) Lampa.Activity.backward();
     },
     enter: function () {
