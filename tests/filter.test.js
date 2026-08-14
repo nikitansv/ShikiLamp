@@ -66,10 +66,12 @@ test('filter portal hides for Lampa menu and returns with content', () => {
   filter.create();
 
   filter.onMenuOpen();
-  expect(filter.html.style.display).toBe('none');
+  expect(filter.html.style.display).toBe('');
+  expect(filter.html.classList.contains('menu-open')).toBe(true);
 
   filter.onContentShow();
   expect(filter.html.style.display).toBe('');
+  expect(filter.html.classList.contains('menu-open')).toBe(false);
 });
 
 test('filter field opens options and Back returns to main panel', () => {

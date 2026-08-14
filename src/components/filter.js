@@ -43,10 +43,15 @@ Filter.prototype.pause = function () {
 };
 
 Filter.prototype.stop = Filter.prototype.pause;
-Filter.prototype.onMenuOpen = Filter.prototype.pause;
+
+Filter.prototype.onMenuOpen = function () {
+  if (this.html) this.html.classList.add('menu-open');
+};
 
 Filter.prototype.onContentShow = function () {
-  if (this.html) this.html.style.display = '';
+  if (!this.html) return;
+  this.html.style.display = '';
+  this.html.classList.remove('menu-open');
 };
 
 Filter.prototype.renderPanel = function () {
