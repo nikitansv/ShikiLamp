@@ -49,6 +49,18 @@ test('filter portals to body above Lampa UI', () => {
   expect(filter.html.classList.contains('shikimori-filter-activity')).toBe(true);
 });
 
+test('filter portal hides while another activity is open', () => {
+  const filter = new Filter();
+  filter.create();
+  filter.beforeStart();
+
+  filter.pause();
+  expect(filter.html.style.display).toBe('none');
+
+  filter.beforeStart();
+  expect(filter.html.style.display).toBe('');
+});
+
 test('filter field opens options and Back returns to main panel', () => {
   const filter = new Filter();
   filter.create();

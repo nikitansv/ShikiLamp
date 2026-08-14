@@ -33,8 +33,16 @@ Filter.prototype.create = function () {
 };
 
 Filter.prototype.beforeStart = function () {
-  if (this.html && this.html.parentNode !== document.body) document.body.appendChild(this.html);
+  if (!this.html) return;
+  if (this.html.parentNode !== document.body) document.body.appendChild(this.html);
+  this.html.style.display = '';
 };
+
+Filter.prototype.pause = function () {
+  if (this.html) this.html.style.display = 'none';
+};
+
+Filter.prototype.stop = Filter.prototype.pause;
 
 Filter.prototype.renderPanel = function () {
   const panel = this.html.querySelector('.shikimori-local__filter-panel');
