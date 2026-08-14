@@ -88,12 +88,15 @@ Filter.prototype.selectField = function (field) {
     el.addEventListener('hover:enter', choose);
     el.addEventListener('click', choose);
   });
+  this.pendingFocus = this.html.querySelector('.shikimori-local__filter-option.active') || this.html.querySelector('.shikimori-local__filter-option');
   this.refocus();
 };
 
 Filter.prototype.closeOptions = function () {
+  const field = this.activeField;
   this.activeField = '';
   this.renderPanel();
+  this.pendingFocus = this.html.querySelector('[data-field="' + field + '"]');
   this.refocus();
 };
 

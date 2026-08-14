@@ -56,7 +56,9 @@ test('filter field opens options and Back returns to main panel', () => {
 
   filter.selectField('kind');
   expect(filter.html.querySelectorAll('.shikimori-local__filter-option')).toHaveLength(6);
+  expect(filter.pendingFocus.classList.contains('shikimori-local__filter-option')).toBe(true);
   expect(filter.onBack()).toBe(true);
   expect(filter.html.querySelector('.shikimori-local__filter-fields')).not.toBeNull();
+  expect(filter.pendingFocus.getAttribute('data-field')).toBe('kind');
   expect(filter.onBack()).toBe(false);
 });
