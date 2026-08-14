@@ -12,7 +12,7 @@ var ShikimoriLocalPlugin=(()=>{var __getOwnPropNames=Object.getOwnPropertyNames;
     .shikimori-local__row-title::before { content: '\u25CF'; margin-right: 0.45em; color: var(--shiki-group-ongoing); }
     .shikimori-local__row[data-group="released"] .shikimori-local__row-title::before { color: var(--shiki-group-released); }
     .shikimori-local__row[data-group="upcoming"] .shikimori-local__row-title::before { color: var(--shiki-group-anons); }
-    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; padding: 2.2em 1.5em 2.8em; margin: -1.7em -1.5em -2.2em; }
+    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; padding: 2.2em 0 2.8em; margin: -1.7em 0 -2.2em; }
     .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(375px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
@@ -20,7 +20,7 @@ var ShikimoriLocalPlugin=(()=>{var __getOwnPropNames=Object.getOwnPropertyNames;
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(240px * var(--shiki-card-size)), 1fr)); gap: 1.2em; }
     .shikimori-local.userlists-page.grouped .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
-    .shikimori-local.userlists-page .shikimori-local__row-items { padding: 2.2em 1.5em 2.8em; margin: -1.7em -1.5em -2.2em; }
+    .shikimori-local.userlists-page .shikimori-local__row-items { padding: 2.2em 0 2.8em; margin: -1.7em 0 -2.2em; }
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(320px * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__result { position: relative; cursor: pointer; border-radius: var(--shiki-card-radius); transition: transform var(--shiki-motion), box-shadow var(--shiki-motion), opacity var(--shiki-motion); transform-origin: center center; }
@@ -36,7 +36,9 @@ var ShikimoriLocalPlugin=(()=>{var __getOwnPropNames=Object.getOwnPropertyNames;
     .shikimori-local__result-score.score-low { color: var(--shiki-rating-low); }
     .shikimori-local__result-score.score-mid { color: var(--shiki-rating-mid); }
     .shikimori-local__result-score.score-high { color: var(--shiki-rating-high); }
-    .shikimori-local__result.focus, .shikimori-local__result:hover { transform: scale(var(--shiki-card-scale)); outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 2; }
+    .shikimori-local__result.focus, .shikimori-local__result:hover { transform: scale(var(--shiki-card-scale)); box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 2; }
+    .shikimori-local__row-items .shikimori-local__result:first-child { transform-origin: left center; }
+    .shikimori-local__row-items .shikimori-local__result:last-child { transform-origin: right center; }
     .shikimori-local__result-title { display: -webkit-box; margin-top: 0.4em; overflow: hidden; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
