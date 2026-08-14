@@ -6,7 +6,7 @@ function injectStyles() {
   const style = document.createElement('style');
   style.id = 'shikimori-local-styles';
   style.textContent = `
-    :root { --shiki-card-scale: 1; --shiki-card-size: 1; --shiki-font-scale: 1; --shiki-heading-scale: 1; --shiki-motion: 180ms; --shiki-focus-color: #ffffff; --shiki-accent: #8ab4ff; --shiki-card-radius: 10px; --shiki-card-bg: rgba(255,255,255,0.08); --shiki-rating-bg: rgba(0,0,0,0.72); --shiki-rating-low: #ff6b6b; --shiki-rating-mid: #e5e7eb; --shiki-rating-high: #ffd54a; --shiki-type-tv: #5aa9ff; --shiki-type-ova: #bd8cff; --shiki-type-ona: #42c99a; --shiki-type-movie: #ff9b54; --shiki-type-special: #e5c255; --shiki-group-ongoing: #42c99a; --shiki-group-released: #8ab4ff; --shiki-group-anons: #bd8cff; --shiki-group-planned: #e5c255; --shiki-group-watching: #ff8aa1; }
+    :root { --shiki-card-scale: 1.1; --shiki-card-size: 1; --shiki-font-scale: 1; --shiki-heading-scale: 1; --shiki-motion: 180ms; --shiki-focus-color: #ffffff; --shiki-accent: #8ab4ff; --shiki-card-radius: 10px; --shiki-card-bg: rgba(255,255,255,0.08); --shiki-rating-bg: rgba(0,0,0,0.72); --shiki-rating-low: #ff6b6b; --shiki-rating-mid: #e5e7eb; --shiki-rating-high: #ffd54a; --shiki-type-tv: #5aa9ff; --shiki-type-ova: #bd8cff; --shiki-type-ona: #42c99a; --shiki-type-movie: #ff9b54; --shiki-type-special: #e5c255; --shiki-group-ongoing: #42c99a; --shiki-group-released: #8ab4ff; --shiki-group-anons: #bd8cff; --shiki-group-planned: #e5c255; --shiki-group-watching: #ff8aa1; }
     .shikimori-local { padding: 1.5em; color: #fff; max-height: 100vh; overflow-y: auto; box-sizing: border-box; font-size: calc(1em * var(--shiki-font-scale)); }
     .shikimori-local.home-page { padding-bottom: 6em; }
     .shikimori-local__tabs { display: flex; gap: 0.7em; flex-wrap: wrap; margin-bottom: 1.2em; }
@@ -25,14 +25,14 @@ function injectStyles() {
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
     .shikimori-local__section { padding: 1em; background: rgba(255,255,255,0.08); border-radius: 0.5em; cursor: pointer; transition: background 0.15s; }
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
-    .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(160px * var(--shiki-card-size)), 1fr)); gap: 1em; }
-    .shikimori-local.userlists-page .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
+    .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(240px * var(--shiki-card-size)), 1fr)); gap: 1.2em; }
+    .shikimori-local.userlists-page.grouped .shikimori-local__results { display: flex; flex-direction: column; gap: 1.6em; }
     .shikimori-local.userlists-page .shikimori-local__row-items { display: flex; flex-wrap: nowrap; gap: 1em; overflow-x: auto; overflow-y: visible; scroll-behavior: smooth; padding: 1.2em 0.8em; margin: -0.8em; }
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local.userlists-page .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(320px * var(--shiki-card-size)); min-width: 0; }
-    .shikimori-local__result { cursor: pointer; border-radius: var(--shiki-card-radius); transition: transform var(--shiki-motion), box-shadow var(--shiki-motion), opacity var(--shiki-motion); }
-    .shikimori-local__result-poster { position: relative; }
-    .shikimori-local__result-poster img { width: 100%; border-radius: var(--shiki-card-radius); display: block; }
+    .shikimori-local__result { position: relative; cursor: pointer; border-radius: var(--shiki-card-radius); transition: transform var(--shiki-motion), box-shadow var(--shiki-motion), opacity var(--shiki-motion); transform-origin: center center; }
+    .shikimori-local__result-poster { position: relative; aspect-ratio: 2 / 3; overflow: hidden; border-radius: var(--shiki-card-radius); background: var(--shiki-card-bg); }
+    .shikimori-local__result-poster img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--shiki-card-radius); display: block; }
     .shikimori-local__result-score { position: absolute; top: 0.4em; right: 0.4em; background: var(--shiki-rating-bg); font-weight: 700; font-size: 0.9em; padding: 0.15em 0.45em; border-radius: 0.3em; }
     .shikimori-local__result-type { position: absolute; top: 0.4em; left: 0.4em; padding: 0.15em 0.45em; border-radius: 0.3em; color: #fff; background: rgba(0,0,0,0.72); font-size: 0.78em; font-weight: 700; }
     .shikimori-local__result-type.type-tv { color: var(--shiki-type-tv); }
@@ -43,7 +43,7 @@ function injectStyles() {
     .shikimori-local__result-score.score-low { color: var(--shiki-rating-low); }
     .shikimori-local__result-score.score-mid { color: var(--shiki-rating-mid); }
     .shikimori-local__result-score.score-high { color: var(--shiki-rating-high); }
-    .shikimori-local__result.focus { outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 1; }
+    .shikimori-local__result.focus, .shikimori-local__result:hover { transform: scale(var(--shiki-card-scale)); outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; box-shadow: 0 10px 28px color-mix(in srgb, var(--shiki-focus-color) 30%, transparent); z-index: 2; }
     .shikimori-local__result-title { display: -webkit-box; margin-top: 0.4em; overflow: hidden; font-weight: 600; line-height: 1.2; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
@@ -83,12 +83,15 @@ function injectStyles() {
     @media (max-width: 1024px) { .shikimori-local__poster { width: 260px; flex-basis: 260px; } .shikimori-local__info h1 { font-size: 2.15em; } .shikimori-local.anime-detail { padding: 2em; gap: 2em; } }
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
-    .shikimori-local.filter-page { display: flex; gap: 1.5em; min-height: calc(100vh - 3em); }
-    .shikimori-local__filter-main { flex: 1; min-width: 0; }
-    .shikimori-local__filter-panel { width: min(360px, 32vw); flex: 0 0 min(360px, 32vw); align-self: flex-start; padding: 1em; box-sizing: border-box; border-radius: var(--shiki-card-radius); background: var(--shiki-card-bg); box-shadow: 0 12px 36px rgba(0,0,0,0.18); }
-    .shikimori-local__filter-fields { display: grid; gap: 0.75em; margin-bottom: 1.2em; }
-    .shikimori-local__filter-field { width: 100%; justify-content: space-between; text-align: left; }
-    .shikimori-local__filter-value { color: var(--shiki-accent); margin-left: 1em; }
+    .shikimori-local.filter-page { display: flex; gap: 0; min-height: 100vh; padding: 0; overflow: hidden; }
+    .shikimori-local__filter-main { flex: 1; min-width: 0; padding: 2em; background: rgba(20,16,15,0.72); }
+    .shikimori-local__filter-panel { width: min(660px, 44vw); flex: 0 0 min(660px, 44vw); height: 100vh; padding: 2.4em 2.8em 4em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; }
+    .shikimori-local__filter-title { font-size: 2.2em; font-weight: 400; margin-bottom: 1.8em; }
+    .shikimori-local__filter-start, .shikimori-local__filter-reset { padding: 0.55em 0; margin-bottom: 1.8em; font-size: 1.25em; border-radius: 0.25em; }
+    .shikimori-local__filter-fields { display: grid; gap: 1.65em; margin-bottom: 2em; }
+    .shikimori-local__filter-field { display: block; min-height: 0; width: 100%; padding: 0.25em 0; background: transparent; text-align: left; font-size: 1.12em; }
+    .shikimori-local__filter-value { display: block; color: rgba(255,255,255,0.62); margin: 0.45em 0 0; font-size: 0.9em; }
+    .shikimori-local__filter-field.focus, .shikimori-local__filter-start.focus, .shikimori-local__filter-reset.focus { outline: 2px solid #fff; outline-offset: 0.3em; background: transparent; color: #fff; }
     .shikimori-local__loading, .shikimori-local__empty, .shikimori-local__error, .shikimori-local__query { padding: 1em; opacity: 0.8; }
     .shikimori-local__more { display: flex; align-items: center; justify-content: center; align-self: start; aspect-ratio: 2 / 3; padding: 1em; box-sizing: border-box; background: var(--shiki-card-bg); border-radius: var(--shiki-card-radius); cursor: pointer; text-align: center; font-size: 1.2em; transition: transform var(--shiki-motion), background var(--shiki-motion); }
     .shikimori-local__more.focus { background: color-mix(in srgb, var(--shiki-accent) 32%, var(--shiki-card-bg)); outline: 2px solid var(--shiki-focus-color); outline-offset: 3px; }
@@ -118,7 +121,7 @@ function applyUiSettings(ui) {
   ui = ui || {};
   const root = document.documentElement;
   const values = {
-    '--shiki-card-scale': clamp(ui.cardScale, 100, 115, 100) / 100,
+    '--shiki-card-scale': clamp(ui.cardScale, 100, 115, 110) / 100,
     '--shiki-card-size': clamp(ui.cardSize, 60, 180, 100) / 100,
     '--shiki-font-scale': clamp(ui.fontScale, 70, 180, 100) / 100,
     '--shiki-heading-scale': clamp(ui.headingScale, 70, 180, 100) / 100,

@@ -15,11 +15,14 @@ function Line(params) {
   this.section = this.params.section || 'popular';
   this.studio = this.params.studio || '';
   this.filters = this.params.filters || null;
+  this.mylist = this.params.mylist || '';
+  this.listStatus = this.params.listStatus || '';
   this.page = 1;
   this.loading = false;
   this.ended = false;
   this.results = null;
   this.pendingFocus = null;
+  this.nextList = null;
 }
 
 Line.prototype.create = function () {
@@ -42,6 +45,7 @@ Line.prototype.loaderFor = function (section) {
     };
     case 'studio': return function (page) { return api.catalog({ studio: this.studio, order: 'ranked', page: page }); }.bind(this);
     case 'filter': return function (page) { return api.catalog(Object.assign({}, this.filters || {}, { page: page, order: (this.filters && this.filters.order) || 'ranked' })); }.bind(this);
+    case 'userlist': return function (page) { return userApi.listMyListAnimes(this.mylist, this.listStatus, page, 50); }.bind(this);
     case 'ongoing': return api.ongoing;
     case 'latest': return api.latest;
     case 'announced': return api.announced;
@@ -57,7 +61,8 @@ Line.prototype.titleFor = function (section) {
     announced: 'Анонсы',
     my_ongoing: 'Сейчас на экранах — мои списки',
     studio: 'Аниме студии',
-    filter: 'Каталог Shikimori'
+    filter: 'Каталог Shikimori',
+    userlist: userApi.RATE_STATUS_TITLES[this.mylist] || 'Мои списки Shikimori'
   };
   return titles[section] || 'Shikimori';
 };
@@ -65,6 +70,13 @@ Line.prototype.titleFor = function (section) {
 Line.prototype.loadPage = function (append) {
   const self = this;
   if (this.loading || (append && this.ended)) return;
+  if (append && this.nextList) {
+    const buffered = this.nextList;
+    this.nextList = null;
+    this.removeMoreButton();
+    this.renderResults(buffered, true);
+    return;
+  }
   this.loading = true;
   this.removeMoreButton();
   if (!append) this.results.innerHTML = '';
@@ -101,19 +113,40 @@ Line.prototype.renderResults = function (list, append) {
       renderedIds[card.__shikimoriAnime.shikimori_id] = true;
     }
   });
-  list.filter(function (anime) {
+  const unique = list.filter(function (anime) {
     if (!anime || !anime.shikimori_id || renderedIds[anime.shikimori_id]) return false;
     renderedIds[anime.shikimori_id] = true;
     return true;
-  }).forEach(function (anime) {
+  });
+  unique.forEach(function (anime) {
     const card = self.createCard(anime);
     if (!firstNew) firstNew = card;
     self.results.appendChild(card);
   });
   if (append && firstNew) this.pendingFocus = firstNew;
   this.page += 1;
-  this.addMoreButton();
   this.refocus();
+  this.probeNextPage();
+};
+
+Line.prototype.probeNextPage = function () {
+  const self = this;
+  const page = this.page;
+  this.loaderFor(this.section)(page).then(function (list) {
+    if (!self.results || page !== self.page) return;
+    const rendered = {};
+    self.results.querySelectorAll('.shikimori-local__result').forEach(function (card) {
+      if (card.__shikimoriAnime) rendered[card.__shikimoriAnime.shikimori_id] = true;
+    });
+    self.nextList = (list || []).filter(function (anime) {
+      return anime && anime.shikimori_id && !rendered[anime.shikimori_id];
+    });
+    self.ended = self.nextList.length === 0;
+    if (!self.ended) self.addMoreButton();
+    self.refocus();
+  }).catch(function (err) {
+    logger.warn('Line next page probe error', err.message);
+  });
 };
 
 Line.prototype.createCard = function (anime) {

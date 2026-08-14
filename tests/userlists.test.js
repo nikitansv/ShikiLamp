@@ -115,3 +115,23 @@ test('watching list renders current and released carousels', () => {
 
   expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(2);
 });
+
+test('carousel renders ten cards and More only when needed', () => {
+  const userlists = new UserLists({ status: 'watching' });
+  userlists.html = document.createElement('div');
+  userlists.results = document.createElement('div');
+  userlists.html.appendChild(userlists.results);
+  userlists.refocus = jest.fn();
+  const anime = Array.from({ length: 11 }, function (_, index) {
+    return { shikimori_id: index + 1, title: 'Anime ' + index, score: 8 };
+  });
+
+  userlists.renderResults([
+    { id: 'ongoing', list: anime },
+    { id: 'released', list: anime.slice(0, 10) }
+  ], false);
+
+  expect(userlists.results.querySelectorAll('[data-group="ongoing"] .shikimori-local__result')).toHaveLength(10);
+  expect(userlists.results.querySelector('[data-group="ongoing"] .shikimori-local__more')).not.toBeNull();
+  expect(userlists.results.querySelector('[data-group="released"] .shikimori-local__more')).toBeNull();
+});

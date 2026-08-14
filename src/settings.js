@@ -246,7 +246,7 @@ function registerDeveloperSettings() {
   addDeveloperTrigger('debug', 'Диагностические сообщения', config.DEFAULTS.debug);
   addDeveloperAction('authToken', 'Ручной access token', askToken);
   addDeveloperAction('clearMappings', 'Очистить mapping', function () { mappingStorage.clear(); Lampa.Noty.show('Mapping очищен'); });
-  addDeveloperAction('uiCardScale', 'UI: масштаб focus card', function () { askUiNumber('cardScale', 'Focus card 100–115%', 100, 115, 100); });
+  addDeveloperAction('uiCardScale', 'UI: масштаб focus card', function () { askUiNumber('cardScale', 'Focus card 100–115%', 100, 115, 110); });
   addDeveloperAction('uiCardSize', 'UI: размер карточек', function () { askUiNumber('cardSize', 'Карточки 60–180%', 60, 180, 100); });
   addDeveloperAction('uiFontScale', 'UI: размер шрифта', function () { askUiNumber('fontScale', 'Шрифт 70–180%', 70, 180, 100); });
   addDeveloperAction('uiHeadingScale', 'UI: размер заголовков', function () { askUiNumber('headingScale', 'Заголовки 70–180%', 70, 180, 100); });

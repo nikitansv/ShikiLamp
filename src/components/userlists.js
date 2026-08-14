@@ -8,6 +8,8 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 
+const CAROUSEL_LIMIT = 10;
+
 const STATUSES = ['planned', 'watching', 'completed', 'on_hold', 'dropped'];
 const CAROUSEL_GROUPS = {
   planned: [
@@ -120,15 +122,18 @@ UserLists.prototype.renderResults = function (list, append) {
     this.refocus();
     return;
   }
+  const page = this.html.querySelector('.userlists-page');
+  if (page) page.classList.toggle('grouped', !!groups);
   if (groups) {
     this.createCarouselGroups(groups);
     list.forEach(function (result) {
       const row = self.results.querySelector('[data-group="' + result.id + '"] .shikimori-local__row-items');
-      result.list.forEach(function (anime) {
+      result.list.slice(0, CAROUSEL_LIMIT).forEach(function (anime) {
         const card = self.createCard(anime);
         if (!firstNew) firstNew = card;
         row.appendChild(card);
       });
+      if (result.list.length > CAROUSEL_LIMIT) self.addGroupMore(row, result.id);
     });
   } else {
     const unique = this.uniqueAnimes(list);
@@ -141,6 +146,26 @@ UserLists.prototype.renderResults = function (list, append) {
 
   if (append && firstNew) this.pendingFocus = firstNew;
   this.refocus();
+};
+
+UserLists.prototype.addGroupMore = function (row, groupStatus) {
+  const self = this;
+  const more = document.createElement('div');
+  more.className = 'shikimori-local__more selector';
+  more.textContent = 'Ещё';
+  const open = function () {
+    Lampa.Activity.push({
+      url: '',
+      title: userApi.RATE_STATUS_TITLES[self.status] || 'Мои списки Shikimori',
+      component: 'shikimori_local_line',
+      section: 'userlist',
+      mylist: self.status,
+      listStatus: groupStatus
+    });
+  };
+  more.addEventListener('hover:enter', open);
+  more.addEventListener('click', open);
+  row.appendChild(more);
 };
 
 UserLists.prototype.uniqueAnimes = function (list) {

@@ -9,6 +9,8 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 
+const CAROUSEL_LIMIT = 10;
+
 const SECTIONS = [
   { id: 'ongoing', title: 'Сейчас на экранах', loader: api.ongoing }
 ];
@@ -114,9 +116,13 @@ Home.prototype.renderSectionItems = function (section, row, list) {
     row.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
     return;
   }
-  list.slice(0, 8).forEach(function (anime) {
+  list.slice(0, CAROUSEL_LIMIT).forEach(function (anime) {
     row.appendChild(self.createCard(anime));
   });
+  if (list.length <= CAROUSEL_LIMIT) {
+    this.refocus();
+    return;
+  }
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
   more.textContent = 'Ещё';
