@@ -9,7 +9,11 @@ function injectStyles() {
     :root { --shiki-card-scale: 1.1; --shiki-card-size: 1; --shiki-font-scale: 1; --shiki-heading-scale: 1; --shiki-motion: 180ms; --shiki-focus-color: #ffffff; --shiki-accent: #8ab4ff; --shiki-card-radius: 10px; --shiki-card-bg: rgba(255,255,255,0.08); --shiki-rating-bg: rgba(0,0,0,0.72); --shiki-rating-low: #ff6b6b; --shiki-rating-mid: #e5e7eb; --shiki-rating-high: #ffd54a; --shiki-type-tv: #5aa9ff; --shiki-type-ova: #bd8cff; --shiki-type-ona: #42c99a; --shiki-type-movie: #ff9b54; --shiki-type-special: #e5c255; --shiki-group-ongoing: #42c99a; --shiki-group-released: #8ab4ff; --shiki-group-anons: #bd8cff; --shiki-group-planned: #e5c255; --shiki-group-watching: #ff8aa1; }
     .shikimori-local.activity-page { padding: 0; max-height: none; overflow: visible; }
     .shikimori-local { padding: 1.5em; color: #fff; max-height: 100vh; overflow-y: auto; box-sizing: border-box; font-size: calc(1em * var(--shiki-font-scale)); }
+    .shikimori-local.home-page, .shikimori-local.userlists-page { padding-left: 0; padding-right: 0; }
     .shikimori-local.home-page { padding-bottom: 6em; }
+    .home-page > .shikimori-local__head, .home-page > .shikimori-local__tabs, .home-page > .shikimori-local__section,
+    .userlists-page > .shikimori-local__head, .userlists-page > .shikimori-local__tabs,
+    .home-page .shikimori-local__row-title, .userlists-page .shikimori-local__row-title { margin-left: 1.5em; margin-right: 1.5em; }
     .shikimori-local__tabs { display: flex; gap: 0.7em; flex-wrap: wrap; margin-bottom: 1.2em; }
     .shikimori-local__tab { padding: 0.75em 1em; border-radius: var(--shiki-card-radius); background: var(--shiki-card-bg); color: #fff; transition: background var(--shiki-motion), transform var(--shiki-motion), box-shadow var(--shiki-motion); }
     .shikimori-local__tab.active { border: 1px solid var(--shiki-accent); }
@@ -87,9 +91,11 @@ function injectStyles() {
     @media (max-width: 600px) { .shikimori-local.anime-detail { flex-direction: column; padding: 1em; } .shikimori-local__poster { width: 170px; flex-basis: auto; align-self: center; } .shikimori-local__action { width: 100%; } }
     .shikimori-local__input { width: 100%; padding: 0.8em; font-size: 1em; background: rgba(255,255,255,0.08); border: none; color: #fff; border-radius: 0.4em; margin-bottom: 1em; }
     .shikimori-local.filter-page { display: flex; gap: 0; min-height: 100vh; padding: 0; overflow: hidden; }
-    .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 1.5em calc(min(390px, 27vw) + 1.8em) 4em 1.8em; box-sizing: border-box; overflow-y: auto; }
+    .shikimori-filter-activity { position: fixed; z-index: 100000; inset: 0; pointer-events: none; }
+    .shikimori-filter-activity .filter-page { pointer-events: auto; background: transparent; }
+    .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 7em calc(min(390px, 27vw) + 1.8em) 4em 1.8em; box-sizing: border-box; overflow-y: auto; }
     .shikimori-local__filter-main .shikimori-local__results { grid-template-columns: repeat(auto-fill, minmax(calc(288px * var(--shiki-card-size)), 1fr)); padding: 0.8em; }
-    .shikimori-local__filter-panel { position: fixed; z-index: 9999; top: 0; right: 0; bottom: 0; width: min(390px, 27vw); height: 100vh; padding: 1.5em 1.2em 3em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; animation: shiki-filter-in var(--shiki-motion) ease-out; }
+    .shikimori-local__filter-panel { position: fixed; z-index: 100001; top: 0; right: 0; bottom: 0; width: min(390px, 27vw); height: 100vh; padding: 1.5em 1.2em 3em; box-sizing: border-box; border-radius: 0; background: #242627; overflow-y: auto; animation: shiki-filter-in var(--shiki-motion) ease-out; }
     @keyframes shiki-filter-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
     .shikimori-local__filter-title { font-size: 2em; font-weight: 400; margin-bottom: 1.2em; }
     .shikimori-local__filter-start, .shikimori-local__filter-reset { padding: 0.45em 0; margin-bottom: 1.2em; font-size: 1.15em; border-radius: 0.25em; }

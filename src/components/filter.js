@@ -22,7 +22,7 @@ Filter.prototype.constructor = Filter;
 Filter.prototype.create = function () {
   const self = this;
   this.html = document.createElement('div');
-  this.html.className = 'shikimori-local activity-page';
+  this.html.className = 'shikimori-local activity-page shikimori-filter-activity';
   this.html.innerHTML = '<div class="shikimori-local filter-page">' +
     '<div class="shikimori-local__filter-main"><div class="shikimori-local__head">Библиотека Shikimori</div><div class="shikimori-local__results"></div></div>' +
     '<div class="shikimori-local__filter-panel"><div class="shikimori-local__filter-title">Фильтр</div>' +
