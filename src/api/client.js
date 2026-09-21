@@ -14,6 +14,14 @@ let active = 0;
 let networkInstance = null;
 let abortControllers = {};
 
+function getAuth() {
+  try {
+    return require('../auth');
+  } catch (e) {
+    return null;
+  }
+}
+
 function getNetwork() {
   if (networkInstance) return networkInstance;
   if (typeof Lampa !== 'undefined' && Lampa.Network) {
@@ -94,6 +102,20 @@ function executeFetch(url, params, id, done, fail) {
 }
 
 function execute(job) {
+  if (job.authenticated && !job.authPrepared) {
+    const auth = getAuth();
+    job.authPrepared = true;
+    if (!auth || typeof auth.ensureValidToken !== 'function') {
+      return finish(job, new Error('Authentication helper unavailable'), null);
+    }
+    auth.ensureValidToken(false).then(function () {
+      execute(job);
+    }).catch(function (error) {
+      finish(job, error, null);
+    });
+    return;
+  }
+
   const network = getNetwork();
   const url = buildUrl(job.path);
   const cacheKey = { method: job.method || 'GET', path: job.path, body: job.body };
@@ -148,6 +170,20 @@ function execute(job) {
     const fail = function (xhr, exception) {
       if (aborted) return;
       const err = normalizeError(xhr, exception);
+      if (err.status === 401 && job.authenticated && !job.authRetried) {
+        const auth = getAuth();
+        job.authRetried = true;
+        if (!auth || typeof auth.ensureValidToken !== 'function') {
+          finish(job, err, null);
+          return;
+        }
+        auth.ensureValidToken(true).then(function () {
+          makeRequest(attemptsLeft);
+        }).catch(function (refreshError) {
+          finish(job, refreshError, null);
+        });
+        return;
+      }
       if (attemptsLeft > 0 && shouldRetry(err)) {
         const delay = Math.min(1000 * Math.pow(2, RETRIES - attemptsLeft), 8000);
         setTimeout(function () {

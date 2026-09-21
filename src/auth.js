@@ -3,6 +3,9 @@ const config = require('./config');
 const client = require('./api/client');
 
 const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
+const REFRESH_MARGIN_SECONDS = 5 * 60;
+
+let refreshPromise = null;
 
 function getStorage() {
   return typeof Lampa !== 'undefined' && Lampa.Storage ? Lampa.Storage : null;
@@ -29,6 +32,10 @@ function setToken(token) {
 
 function getRefreshToken() {
   return String(getValue(config.STORAGE_KEYS.refreshToken, '') || '').trim();
+}
+
+function getExpiresAt() {
+  return Number(getValue(config.STORAGE_KEYS.tokenExpiresAt, 0)) || 0;
 }
 
 function getClientId() {
@@ -134,9 +141,48 @@ function refresh(clientId, clientSecret) {
   return tokenRequest({ grant_type: 'refresh_token', client_id: id, client_secret: secret, refresh_token: refreshToken });
 }
 
+function isTerminalRefreshError(error) {
+  const status = error && (error.status || error.code);
+  const message = String(error && error.message || '').toLowerCase();
+  return status === 400 || status === 401 || status === 403 ||
+    message.indexOf('refresh отсутствуют') >= 0 ||
+    message.indexOf('invalid_grant') >= 0 ||
+    message.indexOf('invalid token') >= 0;
+}
+
+function ensureValidToken(force) {
+  const token = getToken();
+  if (!token) return Promise.reject(new Error('AUTH_REQUIRED'));
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = getExpiresAt();
+  if (!force && (!expiresAt || now < expiresAt - REFRESH_MARGIN_SECONDS)) {
+    return Promise.resolve(token);
+  }
+
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = refresh()
+    .then(function () {
+      const refreshedToken = getToken();
+      if (!refreshedToken) throw new Error('AUTH_REFRESH_EMPTY');
+      return refreshedToken;
+    })
+    .then(function (value) {
+      refreshPromise = null;
+      return value;
+    }, function (error) {
+      refreshPromise = null;
+      if (isTerminalRefreshError(error)) clearToken();
+      throw error;
+    });
+
+  return refreshPromise;
+}
+
 module.exports = {
   REDIRECT_URI, getToken, setToken, getRefreshToken, clearToken,
   getCachedUser, saveUser, statusText, check,
   getClientId, getClientSecret, setCredentials,
-  buildAuthorizationUrl, exchangeCode, refresh
+  buildAuthorizationUrl, exchangeCode, refresh, getExpiresAt, ensureValidToken
 };

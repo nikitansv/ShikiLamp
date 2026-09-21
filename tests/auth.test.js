@@ -63,6 +63,45 @@ test('refresh rotates both tokens', async () => {
   expect(storage.data[config.STORAGE_KEYS.refreshToken]).toBe('new-refresh');
 });
 
+test('refreshes before access token expiry', async () => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'old-access');
+  storage.set(config.STORAGE_KEYS.refreshToken, 'old-refresh');
+  storage.set(config.STORAGE_KEYS.tokenExpiresAt, 240);
+  const request = jest.fn().mockResolvedValue({
+    access_token: 'new-access', refresh_token: 'new-refresh', created_at: 200, expires_in: 86400
+  });
+  const auth = loadAuth(storage, request);
+  const now = Date.now;
+  Date.now = () => 200000;
+
+  await expect(auth.ensureValidToken(false)).resolves.toBe('new-access');
+  expect(request).toHaveBeenCalledTimes(1);
+
+  Date.now = now;
+});
+
+test('shares one refresh between concurrent requests', async () => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'old-access');
+  storage.set(config.STORAGE_KEYS.refreshToken, 'old-refresh');
+  storage.set(config.STORAGE_KEYS.tokenExpiresAt, 240);
+  let resolveRequest;
+  const request = jest.fn().mockImplementation(() => new Promise(resolve => { resolveRequest = resolve; }));
+  const auth = loadAuth(storage, request);
+  const now = Date.now;
+  Date.now = () => 200000;
+
+  const first = auth.ensureValidToken(false);
+  const second = auth.ensureValidToken(false);
+  expect(request).toHaveBeenCalledTimes(1);
+
+  resolveRequest({ access_token: 'new-access', refresh_token: 'new-refresh', created_at: 200, expires_in: 86400 });
+  await expect(Promise.all([first, second])).resolves.toEqual(['new-access', 'new-access']);
+
+  Date.now = now;
+});
+
 test('clearToken removes OAuth state but keeps unrelated storage', () => {
   const storage = makeStorage();
   storage.set(config.STORAGE_KEYS.refreshToken, 'refresh');
