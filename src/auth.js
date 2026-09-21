@@ -156,6 +156,9 @@ function ensureValidToken(force) {
 
   const now = Math.floor(Date.now() / 1000);
   const expiresAt = getExpiresAt();
+  // A manually entered access token has no expiry/refresh pair. Treat it as
+  // usable until Shikimori returns 401; force=true will still attempt refresh
+  // when a refresh token exists.
   if (!force && (!expiresAt || now < expiresAt - REFRESH_MARGIN_SECONDS)) {
     return Promise.resolve(token);
   }

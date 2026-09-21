@@ -32,7 +32,7 @@ test('filter opens with ranked catalog and compact panel', async () => {
   await Promise.resolve();
   await Promise.resolve();
 
-  expect(api.catalog).toHaveBeenCalledWith(expect.objectContaining({ order: 'ranked', page: 1 }));
+  expect(api.catalog).toHaveBeenCalledWith(expect.objectContaining({ order: 'ranked', page: 1 }), expect.objectContaining({ scope: expect.any(String) }));
   expect(filter.html.querySelector('.shikimori-local__filter-panel')).not.toBeNull();
   expect(filter.html.querySelector('.shikimori-local__result').__shikimoriAnime.title).toBe('Ranked anime');
 });

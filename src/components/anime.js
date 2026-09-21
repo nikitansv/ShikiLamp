@@ -6,11 +6,13 @@ const matcher = require('../mapping/matcher');
 const storage = require('../mapping/storage');
 const logger = require('../logger');
 const userApi = require('../api/user');
+const client = require('../api/client');
 
 function Anime(params) {
   this.params = params || {};
   this.html = null;
   this.anime = this.params.anime || {};
+  this.requestScope = client.createScope('anime');
 }
 
 Anime.prototype.create = function () {
@@ -20,6 +22,7 @@ Anime.prototype.create = function () {
   this.html.innerHTML = templates.animeTemplate(this.anime);
   this.bindEvents();
   matcher.applyBestPoster(this.anime).then(function () {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.refreshView();
   });
 };
@@ -133,11 +136,13 @@ Anime.prototype.selectScore = function (value) {
   }
   this.setSaving(true);
   const self = this;
-  userApi.updateAnimeRate(this.anime.rate_id, { score: score }).then(function (rate) {
+  userApi.updateAnimeRate(this.anime.rate_id, { score: score }, { scope: this.requestScope }).then(function (rate) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     self.saveRateResult(rate);
     if (Lampa.Noty) Lampa.Noty.show(score ? 'Оценка сохранена' : 'Оценка удалена');
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     logger.warn('score save error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить оценку' + formatErrorSuffix(err));
@@ -191,20 +196,22 @@ Anime.prototype.refreshView = function () {
 Anime.prototype.upsertRate = function (status) {
   const self = this;
   const done = function (rate) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     self.saveRateResult(rate, status);
     if (Lampa.Noty) Lampa.Noty.show('ShikiLamp: статус сохранён — ' + (userApi.RATE_STATUS_TITLES[status] || status));
   };
   const fail = function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     logger.warn('rate save error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить статус' + formatErrorSuffix(err));
   };
   this.setSaving(true);
   if (this.anime.rate_id) {
-    userApi.updateAnimeRate(this.anime.rate_id, { status: status }).then(done).catch(fail);
+    userApi.updateAnimeRate(this.anime.rate_id, { status: status }, { scope: this.requestScope }).then(done).catch(fail);
   } else {
-    userApi.createAnimeRate(this.anime.shikimori_id, status).then(done).catch(fail);
+    userApi.createAnimeRate(this.anime.shikimori_id, status, { scope: this.requestScope }).then(done).catch(fail);
   }
 };
 
@@ -229,10 +236,12 @@ Anime.prototype.askScore = function () {
       if (Lampa.Noty) Lampa.Noty.show('Оценка должна быть 0–10');
       return;
     }
-    userApi.updateAnimeRate(self.anime.rate_id, { score: score }).then(function (rate) {
+    userApi.updateAnimeRate(self.anime.rate_id, { score: score }, { scope: self.requestScope }).then(function (rate) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.saveRateResult(rate);
       if (Lampa.Noty) Lampa.Noty.show('Оценка сохранена');
     }).catch(function (err) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       if (Lampa.Noty) Lampa.Noty.show('Ошибка Shikimori: ' + err.message);
     });
   });
@@ -250,10 +259,12 @@ Anime.prototype.askEpisodes = function () {
       if (Lampa.Noty) Lampa.Noty.show('Эпизоды должны быть числом');
       return;
     }
-    userApi.updateAnimeRate(self.anime.rate_id, { episodes: episodes }).then(function (rate) {
+    userApi.updateAnimeRate(self.anime.rate_id, { episodes: episodes }, { scope: self.requestScope }).then(function (rate) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.saveRateResult(rate);
       if (Lampa.Noty) Lampa.Noty.show('Эпизоды сохранены');
     }).catch(function (err) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       if (Lampa.Noty) Lampa.Noty.show('Ошибка Shikimori: ' + err.message);
     });
   });
@@ -266,7 +277,8 @@ Anime.prototype.deleteRate = function () {
     return;
   }
   this.setSaving(true);
-  userApi.deleteAnimeRate(this.anime.rate_id).then(function () {
+  userApi.deleteAnimeRate(this.anime.rate_id, { scope: this.requestScope }).then(function () {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     self.anime.rate_id = 0;
     self.anime.user_rate_status = '';
@@ -275,6 +287,7 @@ Anime.prototype.deleteRate = function () {
     self.refreshView();
     if (Lampa.Noty) Lampa.Noty.show('Удалено из списка Shikimori');
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     logger.warn('delete rate error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Не удалось удалить из списка' + formatErrorSuffix(err));
@@ -318,6 +331,7 @@ Anime.prototype.findAndOpen = function () {
   const self = this;
   this.showLoading('Поиск соответствия в TMDB...');
   matcher.findBest(this.anime).then(function (out) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     if (out.result) {
       const ok = matcher.openLampaCard(self.anime, out.result);
       if (!ok) self.showError('Не удалось открыть карточку Lampa');
@@ -330,6 +344,7 @@ Anime.prototype.findAndOpen = function () {
       });
     }
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     logger.warn('findAndOpen error', err.message);
     self.showError('Ошибка: ' + err.message);
   });
@@ -413,11 +428,13 @@ Anime.prototype.bumpEpisodes = function (delta) {
 Anime.prototype.saveEpisodes = function (episodes) {
   const self = this;
   this.setSaving(true);
-  userApi.updateAnimeRate(this.anime.rate_id, { episodes: episodes }).then(function (rate) {
+  userApi.updateAnimeRate(this.anime.rate_id, { episodes: episodes }, { scope: this.requestScope }).then(function (rate) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     self.saveRateResult(rate);
     if (Lampa.Noty) Lampa.Noty.show('Эпизоды: ' + episodes);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.setSaving(false);
     logger.warn('episodes save error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Не удалось изменить эпизоды' + formatErrorSuffix(err));
@@ -437,6 +454,7 @@ Anime.prototype.render = function () {
 };
 
 Anime.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
 };
 

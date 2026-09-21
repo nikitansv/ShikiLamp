@@ -17,6 +17,7 @@ const Filter = require('./components/filter');
 const Mapping = require('./components/mapping');
 const Mappings = require('./components/mappings');
 const Diagnostics = require('./components/diagnostics');
+const Search = require('./components/search');
 const lifecycle = require('./components/lifecycle');
 
 const READY_FLAG = '__shikimori_local_ready';
@@ -59,7 +60,8 @@ function registerComponents() {
     shikimori_local_filter: lifecycle.attachLifecycle(Filter),
     shikimori_local_mapping: lifecycle.attachLifecycle(Mapping),
     shikimori_local_mappings: lifecycle.attachLifecycle(Mappings),
-    shikimori_local_diagnostics: lifecycle.attachLifecycle(Diagnostics)
+    shikimori_local_diagnostics: lifecycle.attachLifecycle(Diagnostics),
+    shikimori_local_search: lifecycle.attachLifecycle(Search)
   };
 
   Object.keys(components).forEach(function (name) {

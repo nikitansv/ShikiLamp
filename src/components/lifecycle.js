@@ -17,11 +17,13 @@ function addContentController(instance) {
   const Lampa = getLampa();
   if (!Lampa || !Lampa.Controller || !instance || !instance.html) return;
 
+  instance.__shikimoriDestroyed = false;
+
   if (typeof instance.beforeStart === 'function') instance.beforeStart();
 
   const scrollFocusedIntoView = function () {
     const apply = function () {
-      if (!instance.html) return;
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html.querySelector('.selector.focus');
       if (!focused) return;
 
@@ -44,12 +46,14 @@ function addContentController(instance) {
 
   Lampa.Controller.add('content', {
     toggle: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       if (typeof instance.onContentShow === 'function') instance.onContentShow();
       Lampa.Controller.collectionSet(instance.html);
       const focused = instance.html.querySelector('.selector.focus') || instance.html.querySelector('.selector');
       if (focused) Lampa.Controller.collectionFocus(focused, instance.html);
     },
     left: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
       if (typeof instance.onLeftWall === 'function' && instance.onLeftWall(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('left')) Navigator.move('left');
@@ -60,6 +64,7 @@ function addContentController(instance) {
       scrollFocusedIntoView();
     },
     right: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
       if (typeof instance.onRightEdge === 'function' && instance.onRightEdge(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('right')) {
@@ -70,6 +75,7 @@ function addContentController(instance) {
       }
     },
     up: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
       if (typeof instance.onUp === 'function' && instance.onUp(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('up')) {
@@ -82,6 +88,7 @@ function addContentController(instance) {
       }
     },
     down: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html ? instance.html.querySelector('.selector.focus') : null;
       if (typeof instance.onDown === 'function' && instance.onDown(focused)) return;
       if (typeof Navigator !== 'undefined' && Navigator.canmove && Navigator.canmove('down')) {
@@ -92,10 +99,12 @@ function addContentController(instance) {
       }
     },
     back: function () {
+      if (instance.__shikimoriDestroyed) return;
       if (typeof instance.onBack === 'function' && instance.onBack()) return;
       if (Lampa.Activity && Lampa.Activity.backward) Lampa.Activity.backward();
     },
     enter: function () {
+      if (instance.__shikimoriDestroyed || !instance.html) return;
       const focused = instance.html.querySelector('.selector.focus');
       if (focused) focused.dispatchEvent(new Event('hover:enter'));
     }
@@ -148,17 +157,19 @@ function unbindWheelScrolling(instance) {
 function attachLifecycle(Component) {
   if (!Component || !Component.prototype) return Component;
 
-  if (!Component.prototype.start) {
-    Component.prototype.start = function () {
-      addContentController(this);
-    };
-  }
+  const start = Component.prototype.start;
+  Component.prototype.start = function () {
+    this.__shikimoriDestroyed = false;
+    if (start) start.call(this);
+    else addContentController(this);
+  };
 
   if (!Component.prototype.pause) Component.prototype.pause = function () {};
   if (!Component.prototype.stop) Component.prototype.stop = function () {};
 
   const destroy = Component.prototype.destroy;
   Component.prototype.destroy = function () {
+    this.__shikimoriDestroyed = true;
     unbindWheelScrolling(this);
     if (destroy) destroy.call(this);
   };

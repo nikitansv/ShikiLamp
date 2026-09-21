@@ -16,9 +16,15 @@ function getPageSize() {
   return config.DEFAULTS.pageSize;
 }
 
-function graphqlRequest(queryObj, ttlKey) {
+function withRequestOptions(options, fixed) {
+  const result = Object.assign({}, options || {}, fixed);
+  if (fixed.headers) result.headers = Object.assign({}, (options && options.headers) || {}, fixed.headers);
+  return result;
+}
+
+function graphqlRequest(queryObj, ttlKey, options) {
   const ttl = config.CACHE_TTL_MS[ttlKey] || 0;
-  return client.request(graphql.graphqlPath(), {
+  return client.request(graphql.graphqlPath(), withRequestOptions(options, {
     method: 'POST',
     body: queryObj,
     cacheTtl: ttl,
@@ -26,7 +32,7 @@ function graphqlRequest(queryObj, ttlKey) {
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     }
-  }).then(function (response) {
+  })).then(function (response) {
     if (response && response.errors && response.errors.length) {
       const message = response.errors[0] && response.errors[0].message ? response.errors[0].message : 'GraphQL error';
       throw new Error(message);
@@ -35,42 +41,42 @@ function graphqlRequest(queryObj, ttlKey) {
   });
 }
 
-function search(query, page) {
+function search(query, page, options) {
   const limit = getPageSize();
   const q = String(query || '').trim();
   logger.debug('search', q, 'limit', limit);
   if (/^\d+$/.test(q)) {
-    return graphqlRequest(graphql.getAnimeById(q), 'anime').then(normalizer.normalizeAnimeResponse);
+    return graphqlRequest(graphql.getAnimeById(q), 'anime', options).then(normalizer.normalizeAnimeResponse);
   }
-  return graphqlRequest(graphql.searchAnimes(q, limit, page || 1), 'search').then(normalizer.normalizeSearchResponse);
+  return graphqlRequest(graphql.searchAnimes(q, limit, page || 1), 'search', options).then(normalizer.normalizeSearchResponse);
 }
 
-function getById(id) {
-  return graphqlRequest(graphql.getAnimeById(id), 'anime').then(normalizer.normalizeAnimeResponse);
+function getById(id, options) {
+  return graphqlRequest(graphql.getAnimeById(id), 'anime', options).then(normalizer.normalizeAnimeResponse);
 }
 
-function getByIds(ids) {
+function getByIds(ids, options) {
   if (!Array.isArray(ids) || ids.length === 0) return Promise.resolve([]);
-  return graphqlRequest(graphql.getAnimesByIds(ids), 'anime').then(normalizer.normalizeSearchResponse);
+  return graphqlRequest(graphql.getAnimesByIds(ids), 'anime', options).then(normalizer.normalizeSearchResponse);
 }
 
-function popular(page) {
-  return graphqlRequest(graphql.popularAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
+function popular(page, options) {
+  return graphqlRequest(graphql.popularAnimes(getPageSize(), page || 1), 'catalog', options).then(normalizer.normalizeSearchResponse);
 }
 
-function ongoing(page) {
-  return graphqlRequest(graphql.ongoingAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
+function ongoing(page, options) {
+  return graphqlRequest(graphql.ongoingAnimes(getPageSize(), page || 1), 'catalog', options).then(normalizer.normalizeSearchResponse);
 }
 
-function latest(page) {
-  return graphqlRequest(graphql.releasedAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
+function latest(page, options) {
+  return graphqlRequest(graphql.releasedAnimes(getPageSize(), page || 1), 'catalog', options).then(normalizer.normalizeSearchResponse);
 }
 
-function announced(page) {
-  return graphqlRequest(graphql.announcedAnimes(getPageSize(), page || 1), 'catalog').then(normalizer.normalizeSearchResponse);
+function announced(page, options) {
+  return graphqlRequest(graphql.announcedAnimes(getPageSize(), page || 1), 'catalog', options).then(normalizer.normalizeSearchResponse);
 }
 
-function catalog(filters) {
+function catalog(filters, options) {
   filters = filters || {};
   const params = [];
   Object.keys(filters).forEach(function (key) {
@@ -78,18 +84,18 @@ function catalog(filters) {
     if (value !== undefined && value !== null && value !== '') params.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(value)));
   });
   if (!filters.limit) params.push('limit=' + getPageSize());
-  return client.request('/api/animes?' + params.join('&'), {
+  return client.request('/api/animes?' + params.join('&'), withRequestOptions(options, {
     method: 'GET', skipCache: false, cacheTtl: config.CACHE_TTL_MS.catalog, timeout: 20000
-  }).then(normalizer.normalizeList);
+  })).then(normalizer.normalizeList);
 }
 
-function testConnection() {
-  return client.request(graphql.graphqlPath(), {
+function testConnection(options) {
+  return client.request(graphql.graphqlPath(), withRequestOptions(options, {
     method: 'POST',
     body: { query: '{ __schema { queryType { name } } }' },
     skipCache: true,
     timeout: 10000
-  });
+  }));
 }
 
 module.exports = {

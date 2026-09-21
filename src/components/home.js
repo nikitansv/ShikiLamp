@@ -8,11 +8,15 @@ const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
+const client = require('../api/client');
 
 const CAROUSEL_LIMIT = 10;
 
 const SECTIONS = [
-  { id: 'ongoing', title: 'Сейчас на экранах', loader: api.ongoing }
+  { id: 'ongoing', title: 'Сейчас на экранах', loader: api.ongoing },
+  { id: 'popular', title: 'Популярное', loader: api.popular },
+  { id: 'latest', title: 'Недавно вышедшее', loader: api.latest },
+  { id: 'announced', title: 'Анонсы', loader: api.announced }
 ];
 
 function Home() {
@@ -20,6 +24,7 @@ function Home() {
   this.pages = {};
   this.loading = {};
   this.lastCardFocus = null;
+  this.requestScope = client.createScope('home');
 }
 
 Home.prototype.create = function () {
@@ -31,6 +36,7 @@ Home.prototype.create = function () {
       '<div class="shikimori-local__tab selector active" data-tab="home">Сейчас на экранах</div>' +
       '<div class="shikimori-local__tab selector" data-tab="lists">Мои списки</div>' +
       '<div class="shikimori-local__tab selector" data-tab="filter">Фильтр</div>' +
+      '<div class="shikimori-local__tab selector" data-tab="search">Поиск</div>' +
     '</div>' +
     '<div class="shikimori-local__home-rows"></div>' +
     '<div class="shikimori-local__section selector" data-section="diagnostics">Диагностика</div>' +
@@ -66,7 +72,8 @@ Home.prototype.loadMyOngoing = function () {
   const row = wrap.querySelector('[data-row="my_ongoing"]');
   const items = row.querySelector('.shikimori-local__row-items');
   const self = this;
-  userApi.listCurrentAnimeRates(user.id, 1, 20).then(function (list) {
+  userApi.listCurrentAnimeRates(user.id, 1, 20, { scope: self.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     if (!list.length) {
       row.remove();
       return;
@@ -74,6 +81,7 @@ Home.prototype.loadMyOngoing = function () {
     items.innerHTML = '';
     self.renderSectionItems(section, items, list);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     logger.warn('Home my lists row error', err.message);
     row.remove();
   });
@@ -99,11 +107,13 @@ Home.prototype.loadSection = function (section) {
   this.loading[section.id] = true;
   row.innerHTML = '<div class="shikimori-local__loading">Загрузка...</div>';
 
-  section.loader(1).then(function (list) {
+  section.loader(1, { scope: self.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading[section.id] = false;
     row.innerHTML = '';
     self.renderSectionItems(section, row, list || []);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading[section.id] = false;
     logger.warn('Home row error', section.id, err.message);
     row.innerHTML = '<div class="shikimori-local__error">' + templates.escapeHtml(err.message) + '</div>';
@@ -159,12 +169,21 @@ Home.prototype.openTab = function (tab) {
       component: 'shikimori_local_filter'
     });
   }
+  if (tab === 'search') {
+    Lampa.Activity.push({
+      url: '',
+      title: 'Поиск Shikimori',
+      component: 'shikimori_local_search'
+    });
+  }
 };
 Home.prototype.openAnime = function (anime) {
   const self = this;
   matcher.openConfident(anime).then(function (ok) {
+    if (self.__shikimoriDestroyed) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed) return;
     logger.warn('openAnime error', err.message);
     self.openShikimoriCard(anime);
   });
@@ -207,6 +226,7 @@ Home.prototype.render = function () {
 };
 
 Home.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
 };
 

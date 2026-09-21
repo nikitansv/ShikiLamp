@@ -5,6 +5,7 @@ const client = require('./client');
 const normalizer = require('./normalizer');
 const api = require('./index');
 const config = require('../config');
+const logger = require('../logger');
 
 const RATE_STATUS_TITLES = {
   planned: 'В планах',
@@ -39,7 +40,11 @@ function normalizeRates(list) {
   return Array.isArray(list) ? list.map(normalizeRate).filter(Boolean) : [];
 }
 
-function fetchAnimeRatesPage(userId, status, page, limit) {
+function withRequestOptions(options, fixed) {
+  return Object.assign({}, options || {}, fixed);
+}
+
+function fetchAnimeRatesPage(userId, status, page, limit, options) {
   if (!userId) return Promise.reject(new Error('User ID пустой'));
   const query = buildQuery({
     status: status,
@@ -47,38 +52,50 @@ function fetchAnimeRatesPage(userId, status, page, limit) {
     limit: limit || 20,
     order: status === 'planned' || status === 'watching' ? 'aired_on' : 'updated_at'
   });
-  return client.request('/api/users/' + encodeURIComponent(String(userId)) + '/anime_rates?' + query, {
+  return client.request('/api/users/' + encodeURIComponent(String(userId)) + '/anime_rates?' + query, withRequestOptions(options, {
     method: 'GET',
     authenticated: true,
     skipCache: true,
     timeout: 20000
-  }).then(normalizeRates);
+  })).then(normalizeRates);
 }
 
-function listAnimeRates(userId, status, page, limit) {
-  return fetchAnimeRatesPage(userId, status, page, limit).then(hydrateAnimeDetails);
+function listAnimeRates(userId, status, page, limit, options) {
+  return fetchAnimeRatesPage(userId, status, page, limit, options).then(function (rates) {
+    return hydrateAnimeDetails(rates, options);
+  });
 }
 
-function listAllAnimeRates(userId, status) {
+function listAllAnimeRates(userId, status, options) {
   const pageSize = 100;
-  const maxPages = 5;
+  const maxPages = 100;
   const all = [];
 
   function load(page) {
-    return fetchAnimeRatesPage(userId, status, page, pageSize).then(function (list) {
+    return fetchAnimeRatesPage(userId, status, page, pageSize, options).then(function (list) {
       all.push.apply(all, list);
       if (list.length === pageSize && page < maxPages) return load(page + 1);
-      return hydrateAnimeDetails(all);
+      if (list.length === pageSize && page >= maxPages) {
+        // Keep a safety bound against a broken API, but make the truncation visible.
+        logger.warn('Anime rates pagination limit reached', status, maxPages * pageSize);
+      }
+      return hydrateAnimeDetails(all, options);
     });
   }
 
   return load(1);
 }
 
-function hydrateAnimeDetails(rates) {
+function hydrateAnimeDetails(rates, options) {
   const ids = rates.map(function (anime) { return anime.shikimori_id; }).filter(Boolean);
   if (!ids.length) return rates;
-  return api.getByIds(ids).then(function (details) {
+  const batches = [];
+  for (let i = 0; i < ids.length; i += 100) batches.push(ids.slice(i, i + 100));
+  return batches.reduce(function (promise, batch) {
+    return promise.then(function (details) {
+      return api.getByIds(batch, options).then(function (next) { return details.concat(next || []); });
+    });
+  }, Promise.resolve([])).then(function (details) {
     const byId = {};
     details.forEach(function (anime) { byId[anime.shikimori_id] = anime; });
     return rates.map(function (rate) {
@@ -95,20 +112,20 @@ function isCurrentlyAiring(anime) {
   return aired > 0 && (!total || aired < total);
 }
 
-function listCurrentAnimeRates(userId, page, limit) {
-  return listMyListAnimes('planned,watching', 'ongoing', page, limit);
+function listCurrentAnimeRates(userId, page, limit, options) {
+  return listMyListAnimes('planned,watching', 'ongoing', page, limit, options);
 }
 
-function listMyListAnimes(mylist, status, page, limit) {
+function listMyListAnimes(mylist, status, page, limit, options) {
   const query = buildQuery({
     status: status || '',
     mylist: mylist,
     page: page || 1,
     limit: limit || 50
   });
-  return client.request('/api/animes?' + query, {
+  return client.request('/api/animes?' + query, withRequestOptions(options, {
     method: 'GET', authenticated: true, skipCache: true, timeout: 20000
-  }).then(normalizer.normalizeList);
+  })).then(normalizer.normalizeList);
 }
 
 function getCachedUserId() {
@@ -117,11 +134,11 @@ function getCachedUserId() {
   return user && user.id ? user.id : null;
 }
 
-function createAnimeRate(animeId, status) {
+function createAnimeRate(animeId, status, options) {
   if (!animeId) return Promise.reject(new Error('Anime ID пустой'));
   const userId = getCachedUserId();
   if (!userId) return Promise.reject(new Error('User ID пустой: проверьте вход Shikimori'));
-  return client.request('/api/v2/user_rates', {
+  return client.request('/api/v2/user_rates', withRequestOptions(options, {
     method: 'POST',
     authenticated: true,
     skipCache: true,
@@ -134,28 +151,28 @@ function createAnimeRate(animeId, status) {
         status: status || 'planned'
       }
     }
-  }).then(normalizeRate);
+  })).then(normalizeRate);
 }
 
-function updateAnimeRate(rateId, patch) {
+function updateAnimeRate(rateId, patch, options) {
   if (!rateId) return Promise.reject(new Error('Rate ID пустой'));
-  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), {
+  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), withRequestOptions(options, {
     method: 'PATCH',
     authenticated: true,
     skipCache: true,
     timeout: 20000,
     body: { user_rate: patch || {} }
-  }).then(normalizeRate);
+  })).then(normalizeRate);
 }
 
-function deleteAnimeRate(rateId) {
+function deleteAnimeRate(rateId, options) {
   if (!rateId) return Promise.reject(new Error('Rate ID пустой'));
-  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), {
+  return client.request('/api/v2/user_rates/' + encodeURIComponent(String(rateId)), withRequestOptions(options, {
     method: 'DELETE',
     authenticated: true,
     skipCache: true,
     timeout: 20000
-  });
+  }));
 }
 
 module.exports = {

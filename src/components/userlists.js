@@ -7,6 +7,7 @@ const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
+const client = require('../api/client');
 
 const CAROUSEL_LIMIT = 10;
 
@@ -33,6 +34,7 @@ function UserLists(params) {
   this.pendingFocus = null;
   this.lastCardFocus = null;
   this.selectedAnime = null;
+  this.requestScope = client.createScope('userlists');
 }
 
 UserLists.prototype.create = function () {
@@ -88,10 +90,12 @@ UserLists.prototype.load = function (append) {
   this.loading = true;
   this.results.innerHTML = '<div class="shikimori-local__loading">Загрузка списка...</div>';
 
-  this.loadListData(user.id).then(function (list) {
+  this.loadListData(user.id, { scope: this.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     self.renderResults(list || [], append);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     if (typeof document !== 'undefined') {
       logger.warn('User list error', err.message);
@@ -102,11 +106,11 @@ UserLists.prototype.load = function (append) {
   });
 };
 
-UserLists.prototype.loadListData = function (userId) {
+UserLists.prototype.loadListData = function (userId, options) {
   const groups = CAROUSEL_GROUPS[this.status];
-  if (!groups) return userApi.listAllAnimeRates(userId, this.status);
+  if (!groups) return userApi.listAllAnimeRates(userId, this.status, options);
   return Promise.all(groups.map(function (group) {
-    return userApi.listMyListAnimes(this.status, group.status || group.id, 1, 50).then(function (list) {
+    return userApi.listMyListAnimes(this.status, group.status || group.id, 1, 50, options).then(function (list) {
       return { id: group.id, list: list };
     });
   }, this));
@@ -208,8 +212,10 @@ UserLists.prototype.createCard = function (anime) {
 UserLists.prototype.openAnime = function (anime) {
   const self = this;
   matcher.openBestOrFirst(anime).then(function (ok) {
+    if (self.__shikimoriDestroyed) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed) return;
     logger.warn('open user list anime error', err.message);
     self.openShikimoriCard(anime);
   });
@@ -240,6 +246,7 @@ UserLists.prototype.render = function () {
 };
 
 UserLists.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
   this.results = null;
 };

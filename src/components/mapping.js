@@ -31,6 +31,7 @@ Mapping.prototype.loadCandidates = function () {
     original_title: this.searchQuery
   });
   matcher.searchTmdb(queryAnime).then(function (candidates) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.candidates = candidates;
     self.html.innerHTML = templates.mappingTemplate(self.anime, candidates);
     self.bindEvents();
@@ -38,6 +39,7 @@ Mapping.prototype.loadCandidates = function () {
     const first = self.html.querySelector('.shikimori-local__candidate');
     if (first) Lampa.Controller.collectionFocus(first, self.html);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     logger.warn('Mapping load error', err.message);
     self.html.innerHTML = templates.mappingTemplate(self.anime, []);
     self.bindEvents();

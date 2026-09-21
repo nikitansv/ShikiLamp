@@ -97,8 +97,31 @@ function importJson(text) {
     if (!parsed || parsed.v !== FORMAT_VERSION || typeof parsed.mappings !== 'object') {
       return { success: false, error: 'Invalid format' };
     }
-    save({ v: FORMAT_VERSION, mappings: parsed.mappings || {} });
-    return { success: true, count: Object.keys(parsed.mappings || {}).length };
+    const mappings = {};
+    Object.keys(parsed.mappings || {}).forEach(function (key) {
+      const source = parsed.mappings[key];
+      if (!source || typeof source !== 'object') return;
+      const shikimoriId = parseInt(source.shikimori_id || key, 10);
+      const tmdbId = parseInt(source.tmdb_id, 10);
+      const tmdbType = source.tmdb_type === 'tv' || source.tmdb_type === 'movie' ? source.tmdb_type : '';
+      if (!shikimoriId || shikimoriId < 1 || !tmdbId || tmdbId < 1 || !tmdbType) return;
+      const poster = typeof source.poster === 'string' && /^https?:\/\//i.test(source.poster) ? source.poster.slice(0, 2000) : '';
+      mappings[String(shikimoriId)] = {
+        shikimori_id: shikimoriId,
+        mal_id: parseInt(source.mal_id, 10) || 0,
+        tmdb_id: tmdbId,
+        tmdb_type: tmdbType,
+        tmdb_season: Math.max(1, parseInt(source.tmdb_season, 10) || 1),
+        episode_offset: parseInt(source.episode_offset, 10) || 0,
+        poster: poster,
+        confidence: Math.min(1, Math.max(0, Number(source.confidence) || 0)),
+        mapping_source: source.mapping_source === 'manual' ? 'manual' : 'import',
+        verified: source.verified === true,
+        updated_at: Number(source.updated_at) || Date.now()
+      };
+    });
+    save({ v: FORMAT_VERSION, mappings: mappings });
+    return { success: true, count: Object.keys(mappings).length };
   } catch (e) {
     return { success: false, error: e.message };
   }

@@ -58,6 +58,8 @@ function createMenuItem() {
 }
 
 function bindItemEvents(item) {
+  if (!item || item.__shikimoriMenuEventsBound) return;
+  item.__shikimoriMenuEventsBound = true;
   item.addEventListener('hover:enter', openHome);
 }
 

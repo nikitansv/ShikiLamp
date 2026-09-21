@@ -8,6 +8,7 @@ const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
+const client = require('../api/client');
 
 function Line(params) {
   this.params = params || {};
@@ -23,6 +24,7 @@ function Line(params) {
   this.results = null;
   this.pendingFocus = null;
   this.nextList = null;
+  this.requestScope = client.createScope('line');
 }
 
 Line.prototype.create = function () {
@@ -38,14 +40,14 @@ Line.prototype.create = function () {
 
 Line.prototype.loaderFor = function (section) {
   switch (section) {
-    case 'my_ongoing': return function (page) {
+    case 'my_ongoing': return function (page, options) {
       const user = auth.getCachedUser();
       if (!auth.getToken() || !user || !user.id) return Promise.reject(new Error('Нужна авторизация Shikimori'));
-      return userApi.listCurrentAnimeRates(user.id, page, 20);
+      return userApi.listCurrentAnimeRates(user.id, page, 20, options);
     };
-    case 'studio': return function (page) { return api.catalog({ studio: this.studio, order: 'ranked', page: page }); }.bind(this);
-    case 'filter': return function (page) { return api.catalog(Object.assign({}, this.filters || {}, { page: page, order: (this.filters && this.filters.order) || 'ranked' })); }.bind(this);
-    case 'userlist': return function (page) { return userApi.listMyListAnimes(this.mylist, this.listStatus, page, 50); }.bind(this);
+    case 'studio': return function (page, options) { return api.catalog({ studio: this.studio, order: 'ranked', page: page }, options); }.bind(this);
+    case 'filter': return function (page, options) { return api.catalog(Object.assign({}, this.filters || {}, { page: page, order: (this.filters && this.filters.order) || 'ranked' }), options); }.bind(this);
+    case 'userlist': return function (page, options) { return userApi.listMyListAnimes(this.mylist, this.listStatus, page, 50, options); }.bind(this);
     case 'ongoing': return api.ongoing;
     case 'latest': return api.latest;
     case 'announced': return api.announced;
@@ -82,11 +84,13 @@ Line.prototype.loadPage = function (append) {
   if (!append) this.results.innerHTML = '';
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
 
-  this.loaderFor(this.section)(this.page).then(function (list) {
+  this.loaderFor(this.section)(this.page, { scope: this.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.renderResults(list || [], append);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     if (typeof document !== 'undefined') {
       logger.warn('Line error', err.message);
@@ -132,8 +136,8 @@ Line.prototype.renderResults = function (list, append) {
 Line.prototype.probeNextPage = function () {
   const self = this;
   const page = this.page;
-  this.loaderFor(this.section)(page).then(function (list) {
-    if (!self.results || page !== self.page) return;
+  this.loaderFor(this.section)(page, { scope: this.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.results || page !== self.page) return;
     const rendered = {};
     self.results.querySelectorAll('.shikimori-local__result').forEach(function (card) {
       if (card.__shikimoriAnime) rendered[card.__shikimoriAnime.shikimori_id] = true;
@@ -145,6 +149,7 @@ Line.prototype.probeNextPage = function () {
     if (!self.ended) self.addMoreButton();
     self.refocus();
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     logger.warn('Line next page probe error', err.message);
   });
 };
@@ -210,8 +215,10 @@ Line.prototype.forceFocus = function (target) {
 Line.prototype.openAnime = function (anime) {
   const self = this;
   matcher.openConfident(anime).then(function (ok) {
+    if (self.__shikimoriDestroyed) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed) return;
     logger.warn('openAnime error', err.message);
     self.openShikimoriCard(anime);
   });
@@ -231,6 +238,7 @@ Line.prototype.render = function () {
 };
 
 Line.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
   this.results = null;
 };

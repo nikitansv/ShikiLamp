@@ -29,9 +29,9 @@ Mappings.prototype.render = function () {
   list.forEach(function (m) {
     const el = document.createElement('div');
     el.className = 'shikimori-local__mapping selector';
-    el.innerHTML = '<div class="shikimori-local__mapping-title">Shikimori ID ' + m.shikimori_id + '</div>' +
-      '<div class="shikimori-local__mapping-meta">TMDB ' + m.tmdb_type + ' ' + m.tmdb_id + ' · season ' + m.tmdb_season + ' · offset ' + m.episode_offset + ' · ' + (m.verified ? 'verified' : 'auto') + '</div>' +
-      '<div class="shikimori-local__action selector" data-id="' + m.shikimori_id + '">Удалить</div>';
+    el.innerHTML = '<div class="shikimori-local__mapping-title">Shikimori ID ' + templates.escapeHtml(m.shikimori_id) + '</div>' +
+      '<div class="shikimori-local__mapping-meta">TMDB ' + templates.escapeHtml(m.tmdb_type) + ' ' + templates.escapeHtml(m.tmdb_id) + ' · season ' + templates.escapeHtml(m.tmdb_season) + ' · offset ' + templates.escapeHtml(m.episode_offset) + ' · ' + (m.verified ? 'verified' : 'auto') + '</div>' +
+      '<div class="shikimori-local__action selector" data-id="' + templates.escapeHtml(m.shikimori_id) + '">Удалить</div>';
     el.querySelector('[data-id]').addEventListener('hover:enter', function () {
       storage.remove(m.shikimori_id);
       self.render();

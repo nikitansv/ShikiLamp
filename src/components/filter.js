@@ -1,10 +1,27 @@
 const config = require('../config');
 const Line = require('./line');
 
+function seasonOptions() {
+  const year = new Date().getFullYear();
+  const result = [['', 'Любой сезон']];
+  const seasons = [
+    ['winter', 'Зима'], ['spring', 'Весна'], ['summer', 'Лето'], ['fall', 'Осень']
+  ];
+  [year + 1, year, year - 1].forEach(function (itemYear) {
+    seasons.forEach(function (season) {
+      result.push([season[0] + '_' + itemYear, season[1] + ' ' + itemYear]);
+    });
+  });
+  [year + 1, year, year - 1].forEach(function (itemYear) {
+    result.push([String(itemYear), String(itemYear)]);
+  });
+  return result;
+}
+
 const OPTIONS = {
   status: [['', 'Любой статус'], ['ongoing', 'Онгоинг'], ['released', 'Вышло'], ['anons', 'Анонсы'], ['latest', 'Новинки']],
   kind: [['', 'Любой тип'], ['tv', 'TV'], ['movie', 'Movie'], ['ova', 'OVA'], ['ona', 'ONA'], ['special', 'Special']],
-  season: [['', 'Любой сезон'], ['summer_2026', 'Лето 2026'], ['fall_2026', 'Осень 2026'], ['winter_2026', 'Зима 2026'], ['spring_2026', 'Весна 2026'], ['2026', '2026'], ['2025', '2025']],
+  season: seasonOptions(),
   score: [['', 'Любой рейтинг'], ['9', 'от 9'], ['8', 'от 8'], ['7', 'от 7'], ['6', 'от 6']],
   rating: [['', 'Любой возраст'], ['g', 'G'], ['pg', 'PG'], ['pg_13', 'PG-13'], ['r', 'R'], ['r_plus', 'R+']],
   duration: [['', 'Любая длительность'], ['S', 'до 10 мин'], ['D', '10–30 мин'], ['F', 'от 30 мин']],

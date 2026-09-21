@@ -6,6 +6,7 @@ const templates = require('../ui/templates');
 const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
+const client = require('../api/client');
 
 function Search(params) {
   this.params = params || {};
@@ -15,6 +16,7 @@ function Search(params) {
   this.page = 1;
   this.loading = false;
   this.ended = false;
+  this.requestScope = client.createScope('search');
 }
 
 Search.prototype.create = function () {
@@ -67,11 +69,13 @@ Search.prototype.doSearch = function (query, append) {
   this.removeMoreButton();
   this.updateQueryLabel();
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
-  api.search(q, this.page).then(function (list) {
+  api.search(q, this.page, { scope: this.requestScope }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.renderResults(list || [], append);
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.loading = false;
     logger.warn('Search error', err.message);
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
@@ -136,11 +140,13 @@ Search.prototype.refocus = function () {
 Search.prototype.openAnime = function (anime) {
   if (Lampa.Noty) Lampa.Noty.show('Поиск TMDB...');
   matcher.openBestOrFirst(anime).then(function (ok) {
+    if (this && this.__shikimoriDestroyed) return;
     if (!ok && Lampa.Noty) Lampa.Noty.show('TMDB версия не найдена');
-  }).catch(function (err) {
+  }.bind(this)).catch(function (err) {
+    if (this && this.__shikimoriDestroyed) return;
     logger.warn('openAnime error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Ошибка TMDB: ' + err.message);
-  });
+  }.bind(this));
 };
 
 Search.prototype.render = function () {
@@ -148,6 +154,7 @@ Search.prototype.render = function () {
 };
 
 Search.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
   this.results = null;
 };

@@ -13,6 +13,8 @@ let queue = [];
 let active = 0;
 let networkInstance = null;
 let abortControllers = {};
+let jobs = {};
+let scopeSequence = 0;
 
 function getAuth() {
   try {
@@ -61,6 +63,7 @@ function runNext() {
   if (active >= MAX_CONCURRENT || queue.length === 0) return;
   const job = queue.shift();
   active++;
+  job.started = true;
   execute(job);
 }
 
@@ -102,6 +105,8 @@ function executeFetch(url, params, id, done, fail) {
 }
 
 function execute(job) {
+  if (job.cancelled || job.settled) return;
+
   if (job.authenticated && !job.authPrepared) {
     const auth = getAuth();
     job.authPrepared = true;
@@ -120,7 +125,7 @@ function execute(job) {
   const url = buildUrl(job.path);
   const cacheKey = { method: job.method || 'GET', path: job.path, body: job.body };
 
-  const cached = cache.get('api', cacheKey, job.ttl || 0);
+  const cached = cache.get('api', cacheKey, job.cacheTtl || job.ttl || 0);
   if (cached.hit && !job.skipCache) {
     logger.debug('Cache hit', url);
     return finish(job, null, cached.data);
@@ -144,16 +149,24 @@ function execute(job) {
     params.post_data = typeof job.body === 'string' ? job.body : JSON.stringify(job.body || {});
   }
 
-  const token = getExperimentalToken();
-  if (token && job.authenticated) {
-    params.headers['Authorization'] = 'Bearer ' + token;
-  }
-
   const id = job.id;
   let aborted = false;
 
+  job.abort = function () {
+    job.cancelled = true;
+    aborted = true;
+    if (job.retryTimer) {
+      clearTimeout(job.retryTimer);
+      job.retryTimer = null;
+    }
+    if (abortControllers[id]) {
+      try { abortControllers[id].abort(); } catch (e) {}
+      delete abortControllers[id];
+    }
+  };
+
   const done = function (data, fromCache) {
-    if (aborted) return;
+    if (aborted || job.cancelled || job.settled) return;
     if (!fromCache && job.cacheTtl > 0) {
       cache.set('api', cacheKey, data);
     }
@@ -165,10 +178,19 @@ function execute(job) {
   };
 
   function makeRequest(attemptsLeft) {
-    if (aborted) return;
+    if (aborted || job.cancelled || job.settled) return;
+
+    const requestParams = Object.assign({}, params, {
+      headers: Object.assign({}, params.headers)
+    });
+    if (job.authenticated) {
+      const token = getExperimentalToken();
+      if (token) requestParams.headers['Authorization'] = 'Bearer ' + token;
+      else delete requestParams.headers['Authorization'];
+    }
 
     const fail = function (xhr, exception) {
-      if (aborted) return;
+      if (aborted || job.cancelled || job.settled) return;
       const err = normalizeError(xhr, exception);
       if (err.status === 401 && job.authenticated && !job.authRetried) {
         const auth = getAuth();
@@ -186,7 +208,8 @@ function execute(job) {
       }
       if (attemptsLeft > 0 && shouldRetry(err)) {
         const delay = Math.min(1000 * Math.pow(2, RETRIES - attemptsLeft), 8000);
-        setTimeout(function () {
+        job.retryTimer = setTimeout(function () {
+          job.retryTimer = null;
           makeRequest(attemptsLeft - 1);
         }, delay);
         return;
@@ -196,19 +219,19 @@ function execute(job) {
 
     const preferFetch = typeof fetch === 'function' && job.authenticated && params.type && params.type !== 'GET';
     if (preferFetch) {
-      executeFetch(url, params, id, done, fail);
+      executeFetch(url, requestParams, id, done, fail);
       return;
     }
 
     if (network && network.quiet) {
-      network.quiet(url, done, fail, params.post_data, params);
+      network.quiet(url, done, fail, requestParams.post_data, requestParams);
     } else if (typeof fetch === 'function') {
       const controller = new AbortController();
       abortControllers[id] = controller;
       fetch(url, {
-        method: params.type || 'GET',
-        headers: params.headers,
-        body: params.post_data,
+        method: requestParams.type || 'GET',
+        headers: requestParams.headers,
+        body: requestParams.post_data,
         signal: controller.signal,
         mode: 'cors'
       }).then(function (response) {
@@ -224,7 +247,7 @@ function execute(job) {
         });
       }).catch(function (e) {
         delete abortControllers[id];
-        if (e.name === 'AbortError') return;
+        if (e.name === 'AbortError' && (aborted || job.cancelled)) return;
         fail({ status: 0, decode_error: e.message }, e);
       });
       return;
@@ -237,65 +260,102 @@ function execute(job) {
 
   makeRequest(RETRIES);
 
-  job.abort = function () {
-    aborted = true;
-    if (abortControllers[id]) {
-      try { abortControllers[id].abort(); } catch (e) {}
-      delete abortControllers[id];
-    }
-  };
 }
 
 function finish(job, err, data) {
-  active--;
-  if (err) {
-    if (job.onError) job.onError(err);
-  } else {
-    if (job.onSuccess) job.onSuccess(data);
+  if (!job || job.settled) return;
+  job.settled = true;
+  delete jobs[job.id];
+  if (job.retryTimer) {
+    clearTimeout(job.retryTimer);
+    job.retryTimer = null;
   }
-  if (job.onFinally) job.onFinally(err, data);
-  runNext();
+  if (job.started) active = Math.max(0, active - 1);
+  try {
+    if (err) {
+      if (job.onError) job.onError(err);
+    } else if (job.onSuccess) {
+      job.onSuccess(data);
+    }
+    if (job.onFinally) job.onFinally(err, data);
+  } finally {
+    if (job.started) runNext();
+  }
 }
 
 function request(path, options) {
-  return new Promise(function (resolve, reject) {
-    const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const job = {
-      id: id,
-      path: path,
-      method: options.method || 'GET',
-      body: options.body || null,
-      headers: options.headers || {},
-      timeout: options.timeout,
-      ttl: options.ttl || 0,
-      skipCache: options.skipCache,
-      cacheTtl: options.cacheTtl || 0,
-      authenticated: options.authenticated,
-      onSuccess: resolve,
-      onError: reject,
-      onFinally: options.onFinally
-    };
-    queue.push(job);
-    runNext();
+  options = options || {};
+  let resolveRequest;
+  let rejectRequest;
+  const promise = new Promise(function (resolve, reject) {
+    resolveRequest = resolve;
+    rejectRequest = reject;
   });
+  const id = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+  const job = {
+    id: id,
+    path: path,
+    method: options.method || 'GET',
+    body: options.body || null,
+    headers: options.headers || {},
+    timeout: options.timeout,
+    ttl: options.ttl || 0,
+    skipCache: options.skipCache,
+    cacheTtl: options.cacheTtl || 0,
+    authenticated: options.authenticated,
+    scope: options.scope,
+    onSuccess: resolveRequest,
+    onError: rejectRequest,
+    onFinally: options.onFinally,
+    started: false,
+    settled: false,
+    cancelled: false
+  };
+  jobs[id] = job;
+  promise.requestId = id;
+  promise.cancel = function () { return cancel(id); };
+  queue.push(job);
+  runNext();
+  return promise;
+}
+
+function cancellationError() {
+  const error = new Error('REQUEST_CANCELLED');
+  error.code = 'REQUEST_CANCELLED';
+  return error;
+}
+
+function cancelJob(job) {
+  if (!job || job.settled) return false;
+  job.cancelled = true;
+  if (typeof job.abort === 'function') job.abort();
+  finish(job, cancellationError(), null);
+  return true;
 }
 
 function cancel(id) {
-  for (let i = queue.length - 1; i >= 0; i--) {
-    if (queue[i].id === id) {
-      queue.splice(i, 1);
-      return true;
-    }
-  }
-  return false;
+  return cancelJob(jobs[id]);
 }
 
 function cancelAll() {
+  const pending = Object.keys(jobs).map(function (id) { return jobs[id]; });
   queue = [];
-  Object.keys(abortControllers).forEach(function (id) {
-    try { abortControllers[id].abort(); } catch (e) {}
-  });
+  pending.forEach(cancelJob);
   abortControllers = {};
+}
+
+function createScope(prefix) {
+  scopeSequence += 1;
+  return String(prefix || 'request') + '_' + scopeSequence + '_' + Date.now();
+}
+
+function cancelScope(scope) {
+  if (!scope) return 0;
+  const pending = Object.keys(jobs).map(function (id) { return jobs[id]; }).filter(function (job) {
+    return job.scope === scope;
+  });
+  pending.forEach(cancelJob);
+  return pending.length;
 }
 
 function getExperimentalToken() {
@@ -310,6 +370,8 @@ module.exports = {
   request,
   cancel,
   cancelAll,
+  createScope,
+  cancelScope,
   setDebug,
   getApiBaseUrl,
   getExperimentalToken

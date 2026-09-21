@@ -16,6 +16,7 @@ function Diagnostics() {
   this.html = null;
   this.logEntries = [];
   this.listCheck = null;
+  this.requestScope = client.createScope('diagnostics');
 }
 
 Diagnostics.prototype.create = function () {
@@ -65,26 +66,32 @@ Diagnostics.prototype.collectData = function () {
 Diagnostics.prototype.handleAction = function (action) {
   const self = this;
   if (action === 'test-api') {
-    api.testConnection().then(function () {
+    api.testConnection({ scope: this.requestScope }).then(function () {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('API OK');
       self.renderBody();
     }).catch(function (err) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('API FAIL: ' + err.message);
       self.renderBody();
     });
   } else if (action === 'test-graphql') {
-    api.testConnection().then(function (data) {
+    api.testConnection({ scope: this.requestScope }).then(function (data) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('GraphQL OK: ' + (data && data.data && data.data.__schema ? 'schema available' : 'unknown'));
       self.renderBody();
     }).catch(function (err) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('GraphQL FAIL: ' + err.message);
       self.renderBody();
     });
   } else if (action === 'test-search') {
-    api.search('Frieren').then(function (list) {
+    api.search('Frieren', 1, { scope: this.requestScope }).then(function (list) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('Search OK: ' + list.length + ' results');
       self.renderBody();
     }).catch(function (err) {
+      if (self.__shikimoriDestroyed || !self.html) return;
       self.log('Search FAIL: ' + err.message);
       self.renderBody();
     });
@@ -113,14 +120,16 @@ Diagnostics.prototype.checkSiteFilter = function () {
   this.log('Фильтр сайта: проверяю OAuth-доступ...');
   this.renderBody();
   client.request('/api/animes?status=ongoing&mylist=planned%2Cwatching&limit=50', {
-    method: 'GET', authenticated: true, skipCache: true, timeout: 20000
+    method: 'GET', authenticated: true, skipCache: true, timeout: 20000, scope: this.requestScope
   }).then(function (list) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     const ids = (Array.isArray(list) ? list : []).map(function (anime) { return anime.id; });
     self.listCheck = self.listCheck || {};
     self.listCheck.site_filter = { count: ids.length, ids: ids };
     self.log('Фильтр сайта через OAuth: ' + ids.length + ' тайтлов');
     self.renderBody();
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.log('Фильтр сайта FAIL: ' + err.message);
     self.renderBody();
   });
@@ -138,9 +147,10 @@ Diagnostics.prototype.checkUserLists = function () {
   this.log('Мои списки: загружаю полный список...');
   this.renderBody();
   Promise.all([
-    userApi.listAllAnimeRates(user.id, 'planned'),
-    userApi.listAllAnimeRates(user.id, 'watching')
+    userApi.listAllAnimeRates(user.id, 'planned', { scope: this.requestScope }),
+    userApi.listAllAnimeRates(user.id, 'watching', { scope: this.requestScope })
   ]).then(function (lists) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.listCheck = {
       user: { id: user.id, nickname: user.nickname || user.name || '' },
       planned: summarizeList(lists[0]),
@@ -150,6 +160,7 @@ Diagnostics.prototype.checkUserLists = function () {
     self.log('Смотрю: ' + self.listCheck.watching.total + ', status=ongoing: ' + self.listCheck.watching.status_ongoing_count + ', по сериям: ' + self.listCheck.watching.episode_airing_count);
     self.renderBody();
   }).catch(function (err) {
+    if (self.__shikimoriDestroyed || !self.html) return;
     self.log('Мои списки FAIL: ' + err.message);
     self.renderBody();
   });
@@ -227,6 +238,7 @@ Diagnostics.prototype.render = function () {
 };
 
 Diagnostics.prototype.destroy = function () {
+  client.cancelScope(this.requestScope);
   this.html = null;
 };
 

@@ -1,7 +1,10 @@
 const { JSDOM } = require('jsdom');
 
 jest.mock('../src/api', () => ({
-  ongoing: jest.fn(() => Promise.resolve([]))
+  ongoing: jest.fn(() => Promise.resolve([])),
+  popular: jest.fn(() => Promise.resolve([])),
+  latest: jest.fn(() => Promise.resolve([])),
+  announced: jest.fn(() => Promise.resolve([]))
 }));
 
 const Home = require('../src/components/home');
@@ -23,7 +26,7 @@ test('home renders tabs without side panel', () => {
   const home = new Home();
   home.create();
 
-  expect(home.html.querySelectorAll('[data-tab]')).toHaveLength(3);
+  expect(home.html.querySelectorAll('[data-tab]')).toHaveLength(4);
   expect(home.html.querySelector('.shikimori-local__side-panel')).toBeNull();
 });
 
@@ -36,4 +39,7 @@ test('tabs open their destination components', () => {
 
   home.openTab('filter');
   expect(global.Lampa.Activity.push).toHaveBeenLastCalledWith(expect.objectContaining({ component: 'shikimori_local_filter' }));
+
+  home.openTab('search');
+  expect(global.Lampa.Activity.push).toHaveBeenLastCalledWith(expect.objectContaining({ component: 'shikimori_local_search' }));
 });
