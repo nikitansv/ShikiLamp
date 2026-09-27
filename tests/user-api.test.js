@@ -63,6 +63,26 @@ describe('user api normalization', () => {
     expect(list.map(anime => anime.shikimori_id)).toEqual([1]);
     expect(client.request.mock.calls[0][0]).toContain('status=ongoing');
     expect(client.request.mock.calls[0][0]).toContain('mylist=planned%2Cwatching');
+    expect(client.request.mock.calls[0][0]).toContain('order=aired_on');
+  });
+
+  test.each(['ongoing', 'released', 'anons'])('planned %s keeps release-date ordering on every page', async status => {
+    await userApi.listMyListAnimes('planned', status, 1, 50);
+    await userApi.listMyListAnimes('planned', status, 2, 50);
+    const urls = client.request.mock.calls.map(call => call[0]);
+    expect(urls[0]).toContain('page=1');
+    expect(urls[1]).toContain('page=2');
+    urls.forEach(url => {
+      expect(url).toContain('mylist=planned');
+      expect(url).toContain('order=aired_on');
+      expect(url).toContain('status=' + status);
+    });
+  });
+
+  test('ongoing catalog requests newest releases on later pages too', () => {
+    const query = require('../src/api/graphql').ongoingAnimes(20, 2);
+    expect(query.query).toContain('order: aired_on');
+    expect(query.variables.page).toBe(2);
   });
 
   test('matches active seasons by aired episode count', () => {

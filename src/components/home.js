@@ -13,10 +13,7 @@ const client = require('../api/client');
 const CAROUSEL_LIMIT = 10;
 
 const SECTIONS = [
-  { id: 'ongoing', title: 'Сейчас на экранах', loader: api.ongoing },
-  { id: 'popular', title: 'Популярное', loader: api.popular },
-  { id: 'latest', title: 'Недавно вышедшее', loader: api.latest },
-  { id: 'announced', title: 'Анонсы', loader: api.announced }
+  { id: 'ongoing', title: 'Сейчас на экране', loader: api.ongoing }
 ];
 
 function Home() {
@@ -33,7 +30,7 @@ Home.prototype.create = function () {
   this.html.innerHTML = '<div class="shikimori-local home-page">' +
     '<div class="shikimori-local__head">ShikiLamp</div>' +
     '<div class="shikimori-local__tabs">' +
-      '<div class="shikimori-local__tab selector active" data-tab="home">Сейчас на экранах</div>' +
+      '<div class="shikimori-local__tab selector active" data-tab="home">Сейчас на экране</div>' +
       '<div class="shikimori-local__tab selector" data-tab="lists">Мои списки</div>' +
       '<div class="shikimori-local__tab selector" data-tab="filter">Фильтр</div>' +
       '<div class="shikimori-local__tab selector" data-tab="search">Поиск</div>' +

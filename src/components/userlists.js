@@ -137,7 +137,10 @@ UserLists.prototype.renderResults = function (list, append) {
         if (!firstNew) firstNew = card;
         row.appendChild(card);
       });
-      if (result.list.length > CAROUSEL_LIMIT) self.addGroupMore(row, result.id);
+      if (result.list.length > CAROUSEL_LIMIT) {
+        const group = groups.filter(function (item) { return item.id === result.id; })[0];
+        self.addGroupMore(row, group.status || group.id);
+      }
     });
   } else {
     const unique = this.uniqueAnimes(list);

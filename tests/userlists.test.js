@@ -116,6 +116,21 @@ test('watching list renders current and released carousels', () => {
   expect(userlists.results.querySelectorAll('[data-group]')).toHaveLength(2);
 });
 
+test('More in planned announcements opens the same API status', () => {
+  const screen = new UserLists({ status: 'planned' });
+  screen.html = document.createElement('div');
+  screen.results = document.createElement('div');
+  screen.html.appendChild(screen.results);
+  screen.refocus = jest.fn();
+  screen.renderResults([{ id: 'upcoming', list: Array.from({ length: 11 }, (_, i) => ({
+    shikimori_id: i + 1, title: 'Announcement ' + i
+  })) }], false);
+  screen.results.querySelector('.shikimori-local__more').dispatchEvent(new Event('hover:enter'));
+  expect(Lampa.Activity.push).toHaveBeenLastCalledWith(expect.objectContaining({
+    mylist: 'planned', listStatus: 'anons'
+  }));
+});
+
 test('carousel renders ten cards and More only when needed', () => {
   const userlists = new UserLists({ status: 'watching' });
   userlists.html = document.createElement('div');

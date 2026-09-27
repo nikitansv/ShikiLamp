@@ -120,6 +120,7 @@ function listMyListAnimes(mylist, status, page, limit, options) {
   const query = buildQuery({
     status: status || '',
     mylist: mylist,
+    order: 'aired_on',
     page: page || 1,
     limit: limit || 50
   });

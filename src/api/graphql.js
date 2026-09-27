@@ -85,7 +85,7 @@ function popularAnimes(limit, page) {
 function ongoingAnimes(limit, page) {
   return buildRequest(`
     query OngoingAnimes($limit: PositiveInt, $page: PositiveInt) {
-      animes(status: "ongoing", order: popularity, limit: $limit, page: $page) {
+      animes(status: "ongoing", order: aired_on, limit: $limit, page: $page) {
         ${ANIME_CARD_FIELDS}
       }
     }

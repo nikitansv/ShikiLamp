@@ -28,6 +28,8 @@ test('home renders tabs without side panel', () => {
 
   expect(home.html.querySelectorAll('[data-tab]')).toHaveLength(4);
   expect(home.html.querySelector('.shikimori-local__side-panel')).toBeNull();
+  expect(Array.from(home.html.querySelectorAll('[data-row]')).map(row => row.dataset.row)).toEqual(['ongoing']);
+  expect(home.html.querySelector('.shikimori-local__row-title').textContent).toBe('Сейчас на экране');
 });
 
 test('tabs open their destination components', () => {
