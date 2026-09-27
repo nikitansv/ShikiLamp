@@ -1,6 +1,8 @@
 /**
  * Title similarity and mapping confidence scoring.
  */
+const titles = require('./titles');
+
 function normalize(str) {
   return String(str || '').toLowerCase().replace(/[^a-z0-9\u0400-\u04ff]+/g, ' ').trim();
 }
@@ -50,9 +52,12 @@ function similarity(a, b) {
 }
 
 function bestTitleScore(anime, candidate) {
-  const names = [anime.title, anime.original_title, anime.english_title, anime.russian_title, anime.japanese_title]
+  let names = [anime.title, anime.original_title, anime.english_title, anime.russian_title, anime.japanese_title]
     .concat(anime.aliases || [])
     .filter(Boolean);
+  if ((candidate.media_type || candidate.type) === 'tv') {
+    names = names.concat(names.map(function (name) { return titles.baseTitle(name, anime.kind); }));
+  }
   const candNames = [candidate.name, candidate.original_name, candidate.title, candidate.russian_title]
     .concat(candidate.aliases || [])
     .filter(Boolean);

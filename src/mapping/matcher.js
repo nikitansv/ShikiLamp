@@ -6,6 +6,7 @@ const scoring = require('./scoring');
 const storage = require('./storage');
 const logger = require('../logger');
 const cache = require('../cache');
+const titles = require('./titles');
 
 function getThreshold() {
   if (typeof Lampa !== 'undefined' && Lampa.Storage) {
@@ -54,10 +55,12 @@ function searchTmdb(anime) {
     if (!tmdbApi || !tmdbApi.search) {
       return reject(new Error('TMDB API not available'));
     }
-    const query = anime.original_title || anime.title || anime.russian_title;
+    const queries = titles.queries(anime);
     const candidates = [];
-    let pending = 2;
-    function checkDone(err) {
+    const seen = Object.create(null);
+    let pending = queries.length;
+    if (!pending) return resolve([]);
+    function checkDone() {
       pending--;
       if (pending > 0) return;
       candidates.sort(function (a, b) { return b.score - a.score; });
@@ -69,28 +72,30 @@ function searchTmdb(anime) {
         const normalized = normalizeTmdbItem(item, type);
         if (!normalized) return;
         const s = scoring.score(anime, normalized);
-        if (s >= 0.35) {
+        const key = type + ':' + normalized.id;
+        if (s >= 0.35 && !seen[key]) {
+          seen[key] = true;
           candidates.push({ item: normalized, score: s, type: type });
         }
       });
     }
-    tmdbApi.search({ query: query }, function (result) {
+    queries.forEach(function (query) {
+      let finished = false;
+      function done() {
+        if (finished) return;
+        finished = true;
+        checkDone();
+      }
       try {
-        if (result && result.movie) add(result.movie.results, 'movie');
-        if (result && result.tv) add(result.tv.results, 'tv');
-      } catch (e) { logger.warn('TMDB search error', e.message); }
-      checkDone();
-    }, function () {
-      checkDone();
-    });
-    tmdbApi.search({ query: anime.russian_title || anime.title }, function (result) {
-      try {
-        if (result && result.movie) add(result.movie.results, 'movie');
-        if (result && result.tv) add(result.tv.results, 'tv');
-      } catch (e) { logger.warn('TMDB search error', e.message); }
-      checkDone();
-    }, function () {
-      checkDone();
+        tmdbApi.search({ query: query }, function (result) {
+          if (finished) return;
+          try {
+            if (result && result.movie) add(result.movie.results, 'movie');
+            if (result && result.tv) add(result.tv.results, 'tv');
+          } catch (e) { logger.warn('TMDB search error', e.message); }
+          done();
+        }, done);
+      } catch (e) { done(); }
     });
   });
 }
@@ -186,7 +191,7 @@ function findBest(anime) {
     return Promise.resolve({ result: null, candidates: [], source: 'no_tmdb' });
   }
 
-  const cacheKey = 'mapping_search:' + anime.shikimori_id;
+  const cacheKey = 'mapping_search:v2:' + anime.shikimori_id;
   const cached = cache.get('mapping', cacheKey, config.CACHE_TTL_MS.mappingFail);
   if (cached.hit) return Promise.resolve(cached.data);
 

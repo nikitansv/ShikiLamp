@@ -28,7 +28,10 @@ Mapping.prototype.loadCandidates = function () {
   const queryAnime = Object.assign({}, this.anime, {
     title: this.searchQuery,
     russian_title: this.searchQuery,
-    original_title: this.searchQuery
+    original_title: this.searchQuery,
+    english_title: '',
+    japanese_title: '',
+    aliases: []
   });
   matcher.searchTmdb(queryAnime).then(function (candidates) {
     if (self.__shikimoriDestroyed || !self.html) return;

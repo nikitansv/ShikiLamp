@@ -3,6 +3,7 @@
  */
 const templates = require('../ui/templates');
 const matcher = require('../mapping/matcher');
+const titles = require('../mapping/titles');
 const storage = require('../mapping/storage');
 const logger = require('../logger');
 const userApi = require('../api/user');
@@ -296,7 +297,7 @@ Anime.prototype.deleteRate = function () {
 
 Anime.prototype.openLampaSearch = function () {
   const self = this;
-  const query = this.anime.title || this.anime.original_title || this.anime.russian_title || '';
+  const query = titles.baseTitle(this.anime.title || this.anime.original_title || this.anime.russian_title || '', this.anime.kind);
   if (typeof Lampa === 'undefined' || !Lampa.Search || !Lampa.Api || !Lampa.Api.availableDiscovery) {
     if (Lampa.Noty) Lampa.Noty.show('Поиск Lampa недоступен');
     return;
