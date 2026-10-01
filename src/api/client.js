@@ -56,7 +56,12 @@ function normalizeError(xhr, exception) {
   const status = xhr && xhr.status ? xhr.status : 0;
   const code = xhr && xhr.decode_code ? xhr.decode_code : status;
   const message = (xhr && xhr.decode_error) || (exception && exception.message) || 'Network error';
-  return { status, code, message, xhr, exception };
+  let payload = xhr && xhr.responseJSON;
+  if (!payload) {
+    try { payload = JSON.parse(xhr && xhr.responseText || message); } catch (e) {}
+  }
+  const oauthError = payload && typeof payload.error === 'string' ? payload.error : '';
+  return { status, code, message, oauthError, xhr, exception };
 }
 
 function runNext() {
@@ -225,6 +230,8 @@ function execute(job) {
 
     if (network && network.quiet) {
       network.quiet(url, done, fail, requestParams.post_data, requestParams);
+    } else if (typeof fetch === 'function' && job.path === '/oauth/token') {
+      executeFetch(url, requestParams, id, done, fail);
     } else if (typeof fetch === 'function') {
       const controller = new AbortController();
       abortControllers[id] = controller;
@@ -314,8 +321,12 @@ function request(path, options) {
   jobs[id] = job;
   promise.requestId = id;
   promise.cancel = function () { return cancel(id); };
-  queue.push(job);
-  runNext();
+  // OAuth refresh must run while authenticated jobs occupy all queue slots.
+  if (options.bypassQueue && path === '/oauth/token') execute(job);
+  else {
+    queue.push(job);
+    runNext();
+  }
   return promise;
 }
 

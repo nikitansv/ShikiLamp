@@ -6,6 +6,7 @@ const REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob';
 const REFRESH_MARGIN_SECONDS = 5 * 60;
 
 let refreshPromise = null;
+let sessionRevision = 0;
 
 function getStorage() {
   return typeof Lampa !== 'undefined' && Lampa.Storage ? Lampa.Storage : null;
@@ -27,7 +28,10 @@ function getToken() {
 }
 
 function setToken(token) {
-  setValue(config.STORAGE_KEYS.experimentalToken, String(token || '').trim());
+  const value = String(token || '').trim();
+  if (value === getToken()) return;
+  clearToken();
+  setValue(config.STORAGE_KEYS.experimentalToken, value);
 }
 
 function getRefreshToken() {
@@ -52,7 +56,9 @@ function setCredentials(clientId, clientSecret) {
 }
 
 function clearToken() {
-  setToken('');
+  sessionRevision++;
+  refreshPromise = null;
+  setValue(config.STORAGE_KEYS.experimentalToken, '');
   setValue(config.STORAGE_KEYS.refreshToken, '');
   setValue(config.STORAGE_KEYS.tokenExpiresAt, 0);
   setValue(config.STORAGE_KEYS.authUser, null);
@@ -95,20 +101,25 @@ function saveTokenBundle(bundle) {
   if (!bundle || !bundle.access_token || !bundle.refresh_token) throw new Error('Некорректный token response Shikimori');
   const createdAt = Number(bundle.created_at) || Math.floor(Date.now() / 1000);
   const expiresIn = Number(bundle.expires_in) || 86400;
-  setToken(bundle.access_token);
+  setValue(config.STORAGE_KEYS.experimentalToken, String(bundle.access_token).trim());
   setValue(config.STORAGE_KEYS.refreshToken, bundle.refresh_token);
   setValue(config.STORAGE_KEYS.tokenExpiresAt, createdAt + expiresIn);
   return bundle;
 }
 
 function tokenRequest(values) {
+  const revision = sessionRevision;
   return client.request('/oauth/token', {
     method: 'POST',
     body: formBody(values),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
     skipCache: true,
+    bypassQueue: true,
     timeout: 15000
-  }).then(saveTokenBundle);
+  }).then(function (bundle) {
+    if (revision !== sessionRevision) throw new Error('AUTH_SESSION_CHANGED');
+    return saveTokenBundle(bundle);
+  });
 }
 
 function check() {
@@ -142,12 +153,7 @@ function refresh(clientId, clientSecret) {
 }
 
 function isTerminalRefreshError(error) {
-  const status = error && (error.status || error.code);
-  const message = String(error && error.message || '').toLowerCase();
-  return status === 400 || status === 401 || status === 403 ||
-    message.indexOf('refresh отсутствуют') >= 0 ||
-    message.indexOf('invalid_grant') >= 0 ||
-    message.indexOf('invalid token') >= 0;
+  return error && error.oauthError === 'invalid_grant';
 }
 
 function ensureValidToken(force) {
@@ -165,22 +171,24 @@ function ensureValidToken(force) {
 
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = refresh()
+  const revision = sessionRevision;
+  const operation = refresh()
     .then(function () {
       const refreshedToken = getToken();
       if (!refreshedToken) throw new Error('AUTH_REFRESH_EMPTY');
       return refreshedToken;
     })
     .then(function (value) {
-      refreshPromise = null;
+      if (refreshPromise === operation) refreshPromise = null;
       return value;
     }, function (error) {
-      refreshPromise = null;
-      if (isTerminalRefreshError(error)) clearToken();
+      if (refreshPromise === operation) refreshPromise = null;
+      if (revision === sessionRevision && isTerminalRefreshError(error)) clearToken();
       throw error;
     });
 
-  return refreshPromise;
+  refreshPromise = operation;
+  return operation;
 }
 
 module.exports = {
