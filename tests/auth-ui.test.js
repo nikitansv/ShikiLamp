@@ -39,3 +39,23 @@ test('Escape closes overlay', () => {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
   expect(document.querySelector('.shikilamp-auth')).toBeNull();
 });
+
+test('Back closes only the overlay and does not reach the underlying page handler', () => {
+  const ui = AuthUi.open({ url: 'https://example.com' });
+  const underlyingBack = jest.fn();
+  document.addEventListener('keydown', underlyingBack);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  expect(underlyingBack).not.toHaveBeenCalled();
+  document.removeEventListener('keydown', underlyingBack);
+  ui.close();
+});
+
+test('opening a second overlay closes the first and removes its keyboard handler', () => {
+  const first = AuthUi.open({ url: 'https://example.com/first' });
+  const second = AuthUi.open({ url: 'https://example.com/second' });
+  expect(first.element.isConnected).toBe(false);
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+  expect(second.element.isConnected).toBe(false);
+  first.close();
+  second.close();
+});

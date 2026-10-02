@@ -11,6 +11,7 @@ const api = require('../api');
 const auth = require('../auth');
 const userApi = require('../api/user');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 function Diagnostics() {
   this.html = null;
@@ -26,22 +27,16 @@ Diagnostics.prototype.create = function () {
 };
 
 Diagnostics.prototype.renderBody = function () {
+  lifecycle.rememberFocus(this);
   const self = this;
   const data = this.collectData();
   this.html.innerHTML = templates.diagnosticsTemplate(data);
   this.html.querySelectorAll('.shikimori-local__action').forEach(function (el) {
-    el.addEventListener('hover:enter', function () {
-      self.handleAction(el.getAttribute('data-action'));
-    });
-    el.addEventListener('click', function () {
+    lifecycle.bindAction(el, function () {
       self.handleAction(el.getAttribute('data-action'));
     });
   });
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionSet(this.html);
-    const first = this.html.querySelector('.shikimori-local__action');
-    if (first) Lampa.Controller.collectionFocus(first, this.html);
-  }
+  lifecycle.refocus(this);
 };
 
 Diagnostics.prototype.collectData = function () {

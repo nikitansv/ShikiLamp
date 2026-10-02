@@ -5,6 +5,7 @@ const templates = require('../ui/templates');
 const matcher = require('../mapping/matcher');
 const storage = require('../mapping/storage');
 const logger = require('../logger');
+const lifecycle = require('./lifecycle');
 
 function Mapping(params) {
   this.params = params || {};
@@ -38,9 +39,7 @@ Mapping.prototype.loadCandidates = function () {
     self.candidates = candidates;
     self.html.innerHTML = templates.mappingTemplate(self.anime, candidates);
     self.bindEvents();
-    Lampa.Controller.collectionSet(self.html);
-    const first = self.html.querySelector('.shikimori-local__candidate');
-    if (first) Lampa.Controller.collectionFocus(first, self.html);
+    lifecycle.refocus(self);
   }).catch(function (err) {
     if (self.__shikimoriDestroyed || !self.html) return;
     logger.warn('Mapping load error', err.message);
@@ -52,7 +51,7 @@ Mapping.prototype.loadCandidates = function () {
 Mapping.prototype.bindEvents = function () {
   const self = this;
   this.html.querySelectorAll('.shikimori-local__candidate').forEach(function (el) {
-    el.addEventListener('hover:enter', function () {
+    lifecycle.bindAction(el, function () {
       const index = parseInt(el.getAttribute('data-index'), 10);
       const candidate = self.candidates[index];
       const id = parseInt(el.getAttribute('data-id'), 10);
@@ -64,12 +63,11 @@ Mapping.prototype.bindEvents = function () {
   });
   const queryBtn = this.html.querySelector('[data-action="change-query"]');
   if (queryBtn) {
-    queryBtn.addEventListener('hover:enter', function () { self.changeQuery(); });
-    queryBtn.addEventListener('click', function () { self.changeQuery(); });
+    lifecycle.bindAction(queryBtn, function () { self.changeQuery(); });
   }
   const saveBtn = this.html.querySelector('[data-action="manual-save"]');
   if (saveBtn) {
-    saveBtn.addEventListener('hover:enter', function () {
+    lifecycle.bindAction(saveBtn, function () {
       const idInput = self.html.querySelector('.shikimori-local__manual-id');
       const typeInput = self.html.querySelector('.shikimori-local__manual-type');
       const seasonInput = self.html.querySelector('.shikimori-local__manual-season');
@@ -99,9 +97,7 @@ Mapping.prototype.save = function (tmdbId, type, season, offset, candidate) {
   const poster = candidate && candidate.item && candidate.item.poster_path ? matcher.tmdbPosterUrl(candidate.item.poster_path) : '';
   const mapping = matcher.saveManual(this.anime, tmdbId, type, season, offset, { poster: poster });
   if (Lampa.Noty) Lampa.Noty.show('Mapping сохранён');
-  if (matcher.openLampaCard(this.anime, mapping)) {
-    Lampa.Activity.backward();
-  }
+  matcher.openLampaCard(this.anime, mapping);
 };
 
 Mapping.prototype.render = function () {

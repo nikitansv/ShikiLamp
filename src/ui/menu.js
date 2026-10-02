@@ -3,6 +3,7 @@
  */
 const settings = require('../settings');
 const logger = require('../logger');
+const lifecycle = require('../components/lifecycle');
 
 const MENU_CLASS = 'shikimori-local-menu-item';
 const MENU_ACTION = 'shikimori_local';
@@ -48,19 +49,14 @@ function createMenuItem() {
   div.className = MENU_CLASS + ' menu__item selector';
   div.innerHTML = '<div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="menu__text">Shikimori</div>';
   div.setAttribute('data-action', MENU_ACTION);
-  div.addEventListener('hover:enter', function () {
-    openHome();
-  });
-  div.addEventListener('click', function () {
-    openHome();
-  });
+  bindItemEvents(div);
   return div;
 }
 
 function bindItemEvents(item) {
   if (!item || item.__shikimoriMenuEventsBound) return;
   item.__shikimoriMenuEventsBound = true;
-  item.addEventListener('hover:enter', openHome);
+  lifecycle.bindAction(item, openHome);
 }
 
 function openHome() {

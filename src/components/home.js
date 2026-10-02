@@ -9,6 +9,7 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 const CAROUSEL_LIMIT = 10;
 
@@ -87,13 +88,11 @@ Home.prototype.loadMyOngoing = function () {
 Home.prototype.bindStaticEvents = function () {
   const self = this;
   this.html.querySelectorAll('[data-section="diagnostics"]').forEach(function (el) {
-    el.addEventListener('hover:enter', function () { self.openSection(el.getAttribute('data-section')); });
-    el.addEventListener('click', function () { self.openSection(el.getAttribute('data-section')); });
+    lifecycle.bindAction(el, function () { self.openSection(el.getAttribute('data-section')); });
   });
   this.html.querySelectorAll('[data-tab]').forEach(function (el) {
     const run = function () { self.openTab(el.getAttribute('data-tab')); };
-    el.addEventListener('hover:enter', run);
-    el.addEventListener('click', run);
+    lifecycle.bindAction(el, run);
   });
 };
 
@@ -133,8 +132,7 @@ Home.prototype.renderSectionItems = function (section, row, list) {
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
   more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.openCatalog(section); });
-  more.addEventListener('click', function () { self.openCatalog(section); });
+  lifecycle.bindAction(more, function () { self.openCatalog(section); });
   row.appendChild(more);
   this.refocus();
 };
@@ -176,11 +174,15 @@ Home.prototype.openTab = function (tab) {
 };
 Home.prototype.openAnime = function (anime) {
   const self = this;
-  matcher.openConfident(anime).then(function (ok) {
-    if (self.__shikimoriDestroyed) return;
+  if (this.__shikimoriOpening) return;
+  this.__shikimoriOpening = true;
+  matcher.openConfident(anime, function () { return lifecycle.canFocus(self); }).then(function (ok) {
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed) return;
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     logger.warn('openAnime error', err.message);
     self.openShikimoriCard(anime);
   });
@@ -211,11 +213,7 @@ Home.prototype.openSection = function (section) {
 };
 
 Home.prototype.refocus = function () {
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionSet(this.html);
-    const focused = this.html.querySelector('.selector.focus') || this.html.querySelector('.selector');
-    if (focused) Lampa.Controller.collectionFocus(focused, this.html);
-  }
+  lifecycle.refocus(this);
 };
 
 Home.prototype.render = function () {

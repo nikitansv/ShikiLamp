@@ -3,6 +3,7 @@
  */
 const templates = require('./templates');
 const matcher = require('../mapping/matcher');
+const lifecycle = require('../components/lifecycle');
 
 function createDomCard(anime, options) {
   options = options || {};
@@ -26,8 +27,7 @@ function createDomCard(anime, options) {
     '</div>';
 
   if (typeof options.onEnter === 'function') {
-    el.addEventListener('hover:enter', options.onEnter);
-    el.addEventListener('click', options.onEnter);
+    lifecycle.bindAction(el, options.onEnter);
   }
   if (typeof options.onLongPress === 'function') {
     el.addEventListener('hover:long', function (event) {
@@ -36,7 +36,7 @@ function createDomCard(anime, options) {
     });
     el.addEventListener('contextmenu', function (event) {
       event.preventDefault();
-      options.onLongPress();
+      if (!el.bind_events) options.onLongPress();
     });
   }
 

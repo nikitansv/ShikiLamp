@@ -260,12 +260,13 @@ function openLampaCard(anime, mapping) {
   return true;
 }
 
-function openConfident(anime) {
-  return openBestOrFirst(anime);
+function openConfident(anime, canOpen) {
+  return openBestOrFirst(anime, canOpen);
 }
 
-function openBestOrFirst(anime) {
+function openBestOrFirst(anime, canOpen) {
   return findBest(anime).then(function (out) {
+    if (canOpen && !canOpen()) return false;
     if (out.result) return openLampaCard(anime, out.result);
     const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
     if (!best) return false;

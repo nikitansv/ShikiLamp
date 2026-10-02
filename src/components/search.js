@@ -7,6 +7,7 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 function Search(params) {
   this.params = params || {};
@@ -36,8 +37,7 @@ Search.prototype.create = function () {
 Search.prototype.bindEvents = function () {
   const self = this;
   const btn = this.html.querySelector('[data-action="search"]');
-  btn.addEventListener('hover:enter', function () { self.askSearch(); });
-  btn.addEventListener('click', function () { self.askSearch(); });
+  lifecycle.bindAction(btn, function () { self.askSearch(); });
 };
 
 Search.prototype.askSearch = function () {
@@ -90,6 +90,7 @@ Search.prototype.updateQueryLabel = function () {
 
 Search.prototype.renderResults = function (list, append) {
   const self = this;
+  let firstNew = null;
   if (!append && (!list || list.length === 0)) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Ничего не найдено</div>';
     return;
@@ -99,8 +100,11 @@ Search.prototype.renderResults = function (list, append) {
     return;
   }
   list.forEach(function (anime) {
-    self.results.appendChild(self.createCard(anime));
+    const card = self.createCard(anime);
+    if (!firstNew) firstNew = card;
+    self.results.appendChild(card);
   });
+  if (append) this.pendingFocus = firstNew;
   this.page += 1;
   this.addMoreButton();
   this.refocus();
@@ -119,8 +123,7 @@ Search.prototype.addMoreButton = function () {
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
   more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.doSearch(self.currentQuery, true); });
-  more.addEventListener('click', function () { self.doSearch(self.currentQuery, true); });
+  lifecycle.bindAction(more, function () { self.doSearch(self.currentQuery, true); });
   this.results.appendChild(more);
 };
 
@@ -130,20 +133,21 @@ Search.prototype.removeMoreButton = function () {
 };
 
 Search.prototype.refocus = function () {
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionSet(this.html);
-    const focused = this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result') || this.html.querySelector('[data-action="search"]');
-    if (focused) Lampa.Controller.collectionFocus(focused, this.html);
-  }
+  lifecycle.refocus(this);
 };
 
 Search.prototype.openAnime = function (anime) {
+  if (this.__shikimoriOpening) return;
+  this.__shikimoriOpening = true;
+  const self = this;
   if (Lampa.Noty) Lampa.Noty.show('Поиск TMDB...');
-  matcher.openBestOrFirst(anime).then(function (ok) {
-    if (this && this.__shikimoriDestroyed) return;
+  matcher.openBestOrFirst(anime, function () { return lifecycle.canFocus(self); }).then(function (ok) {
+    this.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(this)) return;
     if (!ok && Lampa.Noty) Lampa.Noty.show('TMDB версия не найдена');
   }.bind(this)).catch(function (err) {
-    if (this && this.__shikimoriDestroyed) return;
+    this.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(this)) return;
     logger.warn('openAnime error', err.message);
     if (Lampa.Noty) Lampa.Noty.show('Ошибка TMDB: ' + err.message);
   }.bind(this));

@@ -1,5 +1,6 @@
 const config = require('../config');
 const Line = require('./line');
+const lifecycle = require('./lifecycle');
 
 function seasonOptions() {
   const year = new Date().getFullYear();
@@ -76,6 +77,17 @@ Filter.prototype.onContentShow = function () {
   if (!this.html) return;
   this.html.style.display = '';
   this.html.classList.remove('menu-open');
+  this.html.classList.remove('host-open');
+};
+
+Filter.prototype.onControllerGone = function (name) {
+  if (name === 'head' && this.html) this.html.classList.add('host-open');
+};
+
+Filter.prototype.getFocusRoot = function () {
+  if (this.panelHidden) return this.html.querySelector('.shikimori-local__filter-main');
+  if (this.activeField) return this.html.querySelector('.shikimori-local__filter-panel');
+  return this.html;
 };
 
 Filter.prototype.renderPanel = function () {
@@ -100,8 +112,7 @@ Filter.prototype.bindFieldEvents = function () {
   const self = this;
   this.html.querySelectorAll('[data-field]').forEach(function (el) {
     const select = function () { self.selectField(el.getAttribute('data-field')); };
-    el.addEventListener('hover:enter', select);
-    el.addEventListener('click', select);
+    lifecycle.bindAction(el, select);
   });
 };
 
@@ -109,8 +120,7 @@ Filter.prototype.bindActionEvents = function () {
   const self = this;
   this.html.querySelectorAll('[data-action]').forEach(function (el) {
     const run = function () { self.action(el.getAttribute('data-action')); };
-    el.addEventListener('hover:enter', run);
-    el.addEventListener('click', run);
+    lifecycle.bindAction(el, run);
   });
 };
 
@@ -127,8 +137,7 @@ Filter.prototype.selectField = function (field) {
       self.filters[field] = el.getAttribute('data-value');
       self.closeOptions();
     };
-    el.addEventListener('hover:enter', choose);
-    el.addEventListener('click', choose);
+    lifecycle.bindAction(el, choose);
   });
   this.pendingFocus = this.html.querySelector('.shikimori-local__filter-option.active') || this.html.querySelector('.shikimori-local__filter-option');
   this.refocus();
@@ -174,8 +183,7 @@ Filter.prototype.action = function (action) {
 
 Filter.prototype.destroy = function () {
   if (this.html && this.html.parentNode) this.html.parentNode.removeChild(this.html);
-  this.html = null;
-  this.results = null;
+  Line.prototype.destroy.call(this);
 };
 
 function loadFilters() { return typeof Lampa !== 'undefined' && Lampa.Storage ? (Lampa.Storage.get(config.STORAGE_KEYS.filter, { order: 'ranked' }) || { order: 'ranked' }) : { order: 'ranked' }; }

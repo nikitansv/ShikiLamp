@@ -8,6 +8,7 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 const CAROUSEL_LIMIT = 10;
 
@@ -58,8 +59,7 @@ UserLists.prototype.renderTabs = function () {
     const tab = document.createElement('div');
     tab.className = 'shikimori-local__tab selector' + (status === self.status ? ' active' : '');
     tab.textContent = userApi.RATE_STATUS_TITLES[status] || status;
-    tab.addEventListener('hover:enter', function () { self.changeStatus(status); });
-    tab.addEventListener('click', function () { self.changeStatus(status); });
+    lifecycle.bindAction(tab, function () { self.changeStatus(status); });
     tabs.appendChild(tab);
   });
 };
@@ -170,8 +170,7 @@ UserLists.prototype.addGroupMore = function (row, groupStatus) {
       listStatus: groupStatus
     });
   };
-  more.addEventListener('hover:enter', open);
-  more.addEventListener('click', open);
+  lifecycle.bindAction(more, open);
   row.appendChild(more);
 };
 
@@ -214,11 +213,15 @@ UserLists.prototype.createCard = function (anime) {
 
 UserLists.prototype.openAnime = function (anime) {
   const self = this;
-  matcher.openBestOrFirst(anime).then(function (ok) {
-    if (self.__shikimoriDestroyed) return;
+  if (this.__shikimoriOpening) return;
+  this.__shikimoriOpening = true;
+  matcher.openBestOrFirst(anime, function () { return lifecycle.canFocus(self); }).then(function (ok) {
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed) return;
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     logger.warn('open user list anime error', err.message);
     self.openShikimoriCard(anime);
   });
@@ -234,14 +237,7 @@ UserLists.prototype.openShikimoriCard = function (anime) {
 };
 
 UserLists.prototype.refocus = function () {
-  if (typeof Lampa === 'undefined' || !Lampa.Controller) return;
-  Lampa.Controller.collectionSet(this.html);
-  const focused = this.pendingFocus || this.html.querySelector('.selector.focus') || this.html.querySelector('.selector');
-  this.pendingFocus = null;
-  if (focused) {
-    Lampa.Controller.collectionFocus(focused, this.html);
-    if (focused.scrollIntoView) focused.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }
+  lifecycle.refocus(this);
 };
 
 UserLists.prototype.render = function () {

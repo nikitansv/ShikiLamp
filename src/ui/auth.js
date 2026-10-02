@@ -1,4 +1,5 @@
 const qrcode = require('qrcode-generator');
+const lifecycle = require('../components/lifecycle');
 
 function qrDataUrl(value) {
   const qr = qrcode(0, 'M');
@@ -13,7 +14,8 @@ function open(options) {
   if (!url) throw new Error('OAuth URL пустой');
 
   const previous = document.querySelector('.shikilamp-auth');
-  if (previous) previous.remove();
+  if (previous && previous.__shikimoriClose) previous.__shikimoriClose();
+  else if (previous) previous.remove();
 
   const root = document.createElement('div');
   root.className = 'shikilamp-auth';
@@ -32,11 +34,13 @@ function open(options) {
   document.body.appendChild(root);
 
   let closed = false;
+  let focusTimer;
   let lastAction = 0;
   const previousController = typeof Lampa !== 'undefined' && Lampa.Controller && Lampa.Controller.enabled ? Lampa.Controller.enabled().name : '';
   const controllerName = 'shikilamp_auth';
 
   function activate(action) {
+    if (closed) return;
     const now = Date.now();
     if (now - lastAction < 100) return;
     lastAction = now;
@@ -46,17 +50,19 @@ function open(options) {
   function close() {
     if (closed) return;
     closed = true;
+    clearTimeout(focusTimer);
     document.removeEventListener('keydown', onKey, true);
+    root.remove();
     if (typeof Lampa !== 'undefined' && Lampa.Controller && previousController) {
       Lampa.Controller.toggle(previousController);
     }
-    root.remove();
   }
   function onKey(event) {
     const key = event.key || event.code;
     const code = event.keyCode || event.which;
     if (key === 'Escape' || key === 'Backspace' || key === 'BrowserBack' || code === 8 || code === 27 || code === 461 || code === 10009) {
       event.preventDefault();
+      event.stopImmediatePropagation();
       close();
     }
   }
@@ -70,10 +76,8 @@ function open(options) {
     });
   };
   const cancelAction = function () { activate(close); };
-  codeButton.addEventListener('hover:enter', codeAction);
-  codeButton.addEventListener('click', codeAction);
-  cancelButton.addEventListener('hover:enter', cancelAction);
-  cancelButton.addEventListener('click', cancelAction);
+  lifecycle.bindAction(codeButton, codeAction);
+  lifecycle.bindAction(cancelButton, cancelAction);
   document.addEventListener('keydown', onKey, true);
 
   if (typeof Lampa !== 'undefined' && Lampa.Controller) {
@@ -95,10 +99,12 @@ function open(options) {
     Lampa.Controller.toggle(controllerName);
   }
 
-  setTimeout(function () {
+  focusTimer = setTimeout(function () {
+    if (closed) return;
     const button = root.querySelector('[data-action="code"]');
-    if (button && button.focus) button.focus();
+    if (button && button.focus) button.focus({ preventScroll: true });
   }, 0);
+  root.__shikimoriClose = close;
   return { close: close, element: root };
 }
 

@@ -8,6 +8,7 @@ const storage = require('../mapping/storage');
 const logger = require('../logger');
 const userApi = require('../api/user');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 function Anime(params) {
   this.params = params || {};
@@ -31,11 +32,7 @@ Anime.prototype.create = function () {
 Anime.prototype.bindEvents = function () {
   const self = this;
   this.html.querySelectorAll('[data-action]').forEach(function (el) {
-    el.addEventListener('hover:enter', function () {
-      const action = el.getAttribute('data-action');
-      self.handleAction(action);
-    });
-    el.addEventListener('click', function () {
+    lifecycle.bindAction(el, function () {
       const action = el.getAttribute('data-action');
       self.handleAction(action);
     });
@@ -86,25 +83,30 @@ Anime.prototype.handleAction = function (action) {
 };
 
 Anime.prototype.toggleMenu = function (name) {
-  this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) {
-    if (menu.getAttribute('data-menu') !== name) menu.classList.remove('open');
-  });
   const menu = this.html.querySelector('[data-menu="' + name + '"]');
   const button = this.html.querySelector('[data-action="toggle-' + name + '"]');
   if (!menu) return;
   const willOpen = !menu.classList.contains('open');
+  this.closeMenus();
   menu.classList.toggle('open', willOpen);
   if (button) button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-  if (willOpen && typeof Lampa !== 'undefined' && Lampa.Controller) {
-    const first = menu.querySelector('.selector.active') || menu.querySelector('.selector');
-    if (first) Lampa.Controller.collectionFocus(first, this.html);
-  }
+  lifecycle.refocus(this, willOpen ? menu.querySelector('.selector.active') || menu.querySelector('.selector') : button);
 };
 
-Anime.prototype.closeMenus = function () {
+Anime.prototype.closeMenus = function (preferred) {
   if (!this.html) return;
+  const open = this.html.querySelector('.shikimori-local__dropdown.open');
+  const name = open && open.getAttribute('data-menu');
+  const focused = this.html.querySelector('.selector.focus');
   this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) { menu.classList.remove('open'); });
   this.html.querySelectorAll('[aria-expanded="true"]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); });
+  if (open) lifecycle.refocus(this, preferred || (open.contains(focused) ? this.html.querySelector('[data-action="toggle-' + name + '"]') : focused));
+};
+
+Anime.prototype.onBack = function () {
+  if (!this.html || !this.html.querySelector('.shikimori-local__dropdown.open')) return false;
+  this.closeMenus();
+  return true;
 };
 
 Anime.prototype.toggleDescription = function () {
@@ -182,16 +184,18 @@ Anime.prototype.saveRateResult = function (rate, fallbackStatus) {
 Anime.prototype.refreshView = function () {
   this.saving = false;
   if (!this.html) return;
-  const focusedAction = this.html.querySelector('.shikimori-local__action.focus');
-  const action = focusedAction ? focusedAction.getAttribute('data-action') : '';
+  lifecycle.rememberFocus(this);
+  const open = this.html.querySelector('.shikimori-local__dropdown.open');
+  const menu = open && open.getAttribute('data-menu');
+  const expanded = !!this.html.querySelector('.shikimori-local__description.expanded');
   this.html.innerHTML = templates.animeTemplate(this.anime);
   this.bindEvents();
-  if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-    Lampa.Controller.collectionSet(this.html);
-    const target = action ? this.html.querySelector('[data-action="' + action + '"]') : null;
-    const focused = target || this.html.querySelector('.selector');
-    if (focused) Lampa.Controller.collectionFocus(focused, this.html);
+  if (expanded) this.toggleDescription();
+  if (menu) {
+    this.html.querySelector('[data-menu="' + menu + '"]').classList.add('open');
+    this.html.querySelector('[data-action="toggle-' + menu + '"]').setAttribute('aria-expanded', 'true');
   }
+  lifecycle.refocus(this);
 };
 
 Anime.prototype.upsertRate = function (status) {
@@ -330,9 +334,12 @@ Anime.prototype.openLampaSearch = function () {
 
 Anime.prototype.findAndOpen = function () {
   const self = this;
+  if (this.__shikimoriOpening) return;
+  this.__shikimoriOpening = true;
   this.showLoading('Поиск соответствия в TMDB...');
   matcher.findBest(this.anime).then(function (out) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     if (out.result) {
       const ok = matcher.openLampaCard(self.anime, out.result);
       if (!ok) self.showError('Не удалось открыть карточку Lampa');
@@ -345,7 +352,8 @@ Anime.prototype.findAndOpen = function () {
       });
     }
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     logger.warn('findAndOpen error', err.message);
     self.showError('Ошибка: ' + err.message);
   });
@@ -355,33 +363,15 @@ Anime.prototype.onFocusChange = function (focused) {
   if (!focused) return;
   const openMenu = this.html && this.html.querySelector('.shikimori-local__dropdown.open');
   if (openMenu && !openMenu.contains(focused) && !isDropdownButtonFor(focused, openMenu)) {
-    this.closeMenus();
+    this.closeMenus(focused);
   }
 };
 
 Anime.prototype.onUp = function (focused) {
-  const action = focused && focused.getAttribute('data-action');
-  if (action === 'set-episodes') {
-    this.bumpEpisodes(1);
-    return true;
-  }
-  if (action === 'toggle-score-menu') {
-    this.bumpScore(1);
-    return true;
-  }
   return false;
 };
 
 Anime.prototype.onDown = function (focused) {
-  const action = focused && focused.getAttribute('data-action');
-  if (action === 'set-episodes') {
-    this.bumpEpisodes(-1);
-    return true;
-  }
-  if (action === 'toggle-score-menu') {
-    this.bumpScore(-1);
-    return true;
-  }
   return false;
 };
 

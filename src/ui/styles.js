@@ -10,6 +10,9 @@ function injectStyles() {
     .shikimori-local.activity-page { padding: 0; max-height: none; overflow: visible; font-size: inherit; }
     .shikimori-local { --shiki-gutter: 1.5em; --shiki-gap: 1.5em; --shiki-panel-width: 22em; padding: 1.5em var(--shiki-gutter) 3em; color: inherit; max-height: 100vh; overflow-y: auto; box-sizing: border-box; font-size: calc(1em * var(--shiki-font-scale)); line-height: 1.4; }
     .shikimori-local *, .shikilamp-auth * { box-sizing: border-box; }
+    .shiki-page-enter { animation: shiki-page-in var(--shiki-motion) ease-out; }
+    @keyframes shiki-page-in { from { opacity: 0; } to { opacity: 1; } }
+    .shikimori-local__action, .shikimori-local__dropdown-item, .shikimori-local__filter-field, .shikimori-local__filter-option, .shikimori-local__filter-start, .shikimori-local__filter-reset, .shikilamp-auth button { transition: background-color var(--shiki-motion) ease-out, color var(--shiki-motion) ease-out; }
     .shikimori-local.home-page, .shikimori-local.userlists-page { padding-left: var(--shiki-gutter); padding-right: var(--shiki-gutter); }
 
     .home-page > .shikimori-local__head, .home-page > .shikimori-local__tabs, .home-page > .shikimori-local__section,
@@ -29,7 +32,7 @@ function injectStyles() {
     .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(12.75em * var(--shiki-card-size)); min-width: 0; }
     .shikimori-local__sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1em; }
-    .shikimori-local__section { padding: 1em; background: rgba(255,255,255,0.08); border-radius: 0.5em; cursor: pointer; transition: background 0.15s; }
+    .shikimori-local__section { padding: 1em; background: rgba(255,255,255,0.08); border-radius: 0.5em; cursor: pointer; transition: background var(--shiki-motion); }
     .shikimori-local__section.focus, .shikimori-local__section:hover { background: rgba(255,255,255,0.18); }
     .shikimori-local__results { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(12.75em * var(--shiki-card-size))), 1fr)); gap: var(--shiki-gap); padding: 0.75em 0; }
     .shikimori-local.userlists-page.grouped .shikimori-local__results { display: flex; flex-direction: column; gap: var(--shiki-gap); padding: 0; }
@@ -96,6 +99,8 @@ function injectStyles() {
     .shikimori-filter-activity .filter-page { pointer-events: auto; background: transparent; }
     .shikimori-filter-activity.menu-open { z-index: 1; }
     .shikimori-filter-activity.menu-open .filter-page { pointer-events: none; }
+    .shikimori-filter-activity.host-open { z-index: 1; }
+    .shikimori-filter-activity.host-open .filter-page { pointer-events: none; }
     .shikimori-filter-activity .shikimori-local__filter-main { transition: transform var(--shiki-motion) ease-out, padding-right var(--shiki-motion) ease-out; }
     .shikimori-filter-activity.menu-open .shikimori-local__filter-main { transform: translateX(var(--shiki-menu-shift, 340px)); }
     .shikimori-filter-activity.menu-open .shikimori-local__filter-panel { transform: translateX(100%); }
@@ -145,6 +150,10 @@ function injectStyles() {
     .shikilamp-auth button { min-height: 2.8em; padding: 0.5em 1.2em; border: 0; border-radius: 1em; font: inherit; background: rgba(255,255,255,0.1); color: #fff; }
     .shikilamp-auth button.focus { background: #fff; color: #111; }
     .shikilamp-auth button:focus, .shikilamp-auth button.focus { outline: 3px solid #fff; outline-offset: 3px; }
+    [data-shiki-motion="off"] .shikimori-local__row-items { scroll-behavior: auto; }
+    @media (prefers-reduced-motion: reduce) {
+      .shikimori-local, .shikimori-local *, .shikilamp-auth, .shikilamp-auth * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
   `;
   document.head.appendChild(style);
 }
@@ -153,6 +162,7 @@ function applyUiSettings(ui) {
   if (typeof document === 'undefined') return;
   ui = ui || {};
   const root = document.documentElement;
+  root.setAttribute('data-shiki-motion', ui.motion || 'normal');
   const values = {
     '--shiki-card-scale': clamp(ui.cardScale, 100, 115, 100) / 100,
     '--shiki-card-size': clamp(ui.cardSize, 60, 180, 100) / 100,

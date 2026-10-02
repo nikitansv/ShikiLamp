@@ -9,6 +9,7 @@ const logger = require('../logger');
 const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
+const lifecycle = require('./lifecycle');
 
 function Line(params) {
   this.params = params || {};
@@ -168,8 +169,7 @@ Line.prototype.addMoreButton = function () {
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
   more.textContent = 'Ещё';
-  more.addEventListener('hover:enter', function () { self.loadPage(true); });
-  more.addEventListener('click', function () { self.loadPage(true); });
+  lifecycle.bindAction(more, function () { self.loadPage(true); });
   this.results.appendChild(more);
 };
 
@@ -179,46 +179,24 @@ Line.prototype.removeMoreButton = function () {
 };
 
 Line.prototype.refocus = function () {
-  if (typeof Lampa === 'undefined' || !Lampa.Controller) return;
-
-  const target = this.pendingFocus || this.html.querySelector('.selector.focus') || this.html.querySelector('.shikimori-local__result');
-  this.pendingFocus = null;
-  if (!target) return;
-
-  Lampa.Controller.collectionSet(this.html);
-  this.forceFocus(target);
+  lifecycle.refocus(this);
 };
 
 Line.prototype.forceFocus = function (target) {
-  const self = this;
-  const apply = function () {
-    if (!target || !self.html || typeof document === 'undefined' || !document.body.contains(target)) return;
-    self.html.querySelectorAll('.selector.focus').forEach(function (el) {
-      if (el !== target) el.classList.remove('focus');
-    });
-    target.classList.add('focus');
-    if (typeof Lampa !== 'undefined' && Lampa.Controller) {
-      Lampa.Controller.collectionFocus(target, self.html);
-    }
-    if (target.scrollIntoView) target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  };
-
-  apply();
-  if (typeof requestAnimationFrame === 'function') {
-    requestAnimationFrame(apply);
-    requestAnimationFrame(function () { requestAnimationFrame(apply); });
-  }
-  setTimeout(apply, 50);
-  setTimeout(apply, 150);
+  lifecycle.refocus(this, target);
 };
 
 Line.prototype.openAnime = function (anime) {
   const self = this;
-  matcher.openConfident(anime).then(function (ok) {
-    if (self.__shikimoriDestroyed) return;
+  if (this.__shikimoriOpening) return;
+  this.__shikimoriOpening = true;
+  matcher.openConfident(anime, function () { return lifecycle.canFocus(self); }).then(function (ok) {
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     if (!ok) self.openShikimoriCard(anime);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed) return;
+    self.__shikimoriOpening = false;
+    if (!lifecycle.canFocus(self)) return;
     logger.warn('openAnime error', err.message);
     self.openShikimoriCard(anime);
   });
