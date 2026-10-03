@@ -3,9 +3,26 @@ jest.mock('../src/api/client', () => ({ request: jest.fn(() => Promise.resolve([
 const client = require('../src/api/client');
 const userApi = require('../src/api/user');
 
-beforeEach(() => client.request.mockClear());
+beforeEach(() => client.request.mockReset().mockResolvedValue([]));
 
 describe('user api normalization', () => {
+  test('home and filtered personal lists replace REST placeholders with canonical GraphQL posters', async () => {
+    const options = { scope: 'personal-posters' };
+    client.request.mockResolvedValueOnce([
+      { id: 58749, name: 'Arknights', image: { preview: '/assets/globals/missing_preview.jpg' } },
+      { id: 53881, name: 'Older', image: { preview: '/system/animes/preview/53881.jpg' } }
+    ]).mockResolvedValueOnce({ data: { animes: [
+      { id: 53881, name: 'Older', poster: { mainUrl: 'https://shikimori.io/uploads/older.webp' } },
+      { id: 58749, name: 'Arknights', poster: { mainUrl: 'https://shikimori.io/uploads/arknights.webp', mainAltUrl: 'https://shikimori.io/uploads/arknights.jpeg' } }
+    ] } });
+    const result = await userApi.listCurrentAnimeRates(1, 1, 20, options);
+    expect(result.map(anime => anime.shikimori_id)).toEqual([58749, 53881]);
+    expect(result[0].poster).toBe('https://shikimori.io/uploads/arknights.webp');
+    expect(result[0].poster_fallbacks).toContain('https://shikimori.io/uploads/arknights.jpeg');
+    expect(client.request.mock.calls[1][1]).toMatchObject(options);
+    expect(client.request.mock.calls[1][1].body.variables.ids).toBe('58749,53881');
+  });
+
   test('mutation responses use target_id as anime ID, keeping watched episodes separate', () => {
     expect(userApi.normalizeRate({ id: 42, target_id: 1, target_type: 'Anime', episodes: 3, score: 8 })).toMatchObject({
       shikimori_id: 1, rate_id: 42, episodes: 0, score: 0, user_episodes: 3, user_score: 8

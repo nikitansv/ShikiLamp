@@ -89,21 +89,9 @@ function listAllAnimeRates(userId, status, options) {
 
 function hydrateAnimeDetails(rates, options) {
   const revision = auth.getSessionRevision();
-  const ids = rates.map(function (anime) { return anime.shikimori_id; }).filter(Boolean);
-  if (!ids.length) return rates;
-  const batches = [];
-  for (let i = 0; i < ids.length; i += 100) batches.push(ids.slice(i, i + 100));
-  return batches.reduce(function (promise, batch) {
-    return promise.then(function (details) {
-      return api.getByIds(batch, options).then(function (next) { return details.concat(next || []); });
-    });
-  }, Promise.resolve([])).then(function (details) {
+  return api.hydrateAnimeDetails(rates, options).then(function (details) {
     if (revision !== auth.getSessionRevision()) throw new Error('AUTH_SESSION_CHANGED');
-    const byId = {};
-    details.forEach(function (anime) { byId[anime.shikimori_id] = anime; });
-    return rates.map(function (rate) {
-      return byId[rate.shikimori_id] ? Object.assign({}, rate, byId[rate.shikimori_id]) : rate;
-    });
+    return details;
   }).catch(function (error) {
     if (revision !== auth.getSessionRevision()) throw new Error('AUTH_SESSION_CHANGED');
     if (error && (error.code === 'REQUEST_CANCELLED' || error.message === 'AUTH_SESSION_CHANGED')) throw error;
@@ -131,7 +119,9 @@ function listMyListAnimes(mylist, status, page, limit, options) {
   });
   return client.request('/api/animes?' + query, withRequestOptions(options, {
     method: 'GET', authenticated: true, skipCache: true, timeout: 20000
-  })).then(normalizer.normalizeList);
+  })).then(normalizer.normalizeList).then(function (list) {
+    return hydrateAnimeDetails(list, options);
+  });
 }
 
 function getCachedUserId() {

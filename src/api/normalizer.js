@@ -9,7 +9,9 @@ function getPosters(item) {
   const image = item.image || {};
   return [typeof poster === 'string' ? poster : poster.mainUrl, poster.mainAltUrl, poster.originalUrl,
     typeof image === 'string' ? image : image.preview, image.original, image.x96, image.x48]
-    .filter(function (url) { return typeof url === 'string' && url.trim(); })
+    .filter(function (url) {
+      return typeof url === 'string' && url.trim() && !/\/assets\/globals\/missing[^/]*(?:\?|$)/i.test(url);
+    })
     .map(function (url) {
       url = url.trim();
       if (url.indexOf('//') === 0) return 'https:' + url;

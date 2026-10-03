@@ -1,6 +1,16 @@
 const normalizer = require('../src/api/normalizer');
 
 describe('api/normalizer', () => {
+  test('Shikimori successful missing-image assets are not usable posters', () => {
+    const anime = normalizer.normalizeAnime({ id: 58749, image: {
+      preview: '/assets/globals/missing_preview.jpg',
+      original: 'https://shikimori.io/assets/globals/missing_original.jpg?1',
+      x96: '//shikimori.io/assets/globals/missing_x96.jpg'
+    } });
+    expect(anime.poster).toBe('');
+    expect(anime.poster_fallbacks).toEqual([]);
+  });
+
   test('keeps alternate poster URLs and normalizes relative or protocol-relative images', () => {
     const anime = normalizer.normalizeAnime({ id: 1, poster: { mainUrl: '/main.webp', mainAltUrl: '//cdn.example/alternate.jpg', originalUrl: '/original.webp' }, image: { original: '/legacy.jpg' } });
     expect(anime.poster).toBe('https://shikimori.io/main.webp');

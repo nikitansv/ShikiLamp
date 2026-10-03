@@ -83,6 +83,66 @@ async function main() {
     assert.ok(fallback.failed.some(url => url.endsWith('/missing-poster.jpg')));
     checks.push('broken saved TMDB poster falls back to a real Shikimori image');
 
+    // Exercise authenticated UI paths without using or transmitting a real user's token.
+    // Only the private list response is substituted with public REST anime records;
+    // the host, plugin, GraphQL enrichment and image requests remain real.
+    const personalFixture = await Promise.all([61607, 60692, 58749].map(async id => {
+      const response = await fetch('https://shikimori.io/api/animes/' + id);
+      assert.ok(response.ok, 'Public REST anime must be reachable');
+      return response.json();
+    }));
+    assert.ok(personalFixture.some(anime => anime.image.preview.includes('/missing_')), 'Fixture must reproduce a successful 404 image asset');
+    const missingImage = await fetch('https://shikimori.io' + personalFixture[0].image.preview);
+    assert.equal(missingImage.status, 200);
+    checks.push('real REST missing poster is a successful HTTP 200 image, not an image error');
+    await page.setRequestInterception(true);
+    const listRequests = [];
+    const personalRequests = request => {
+      const target = new URL(request.url());
+      if (target.hostname === 'shikimori.io' && target.pathname === '/api/animes' && target.searchParams.has('mylist')) {
+        if (request.method() === 'GET') listRequests.push(target.searchParams.get('mylist'));
+        return request.respond({ status: 200, contentType: 'application/json', headers: {
+          'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type'
+        }, body: request.method() === 'OPTIONS' ? '' : JSON.stringify(target.searchParams.get('page') === '2' ? [] : personalFixture) });
+      }
+      if (request.headers().authorization === 'Bearer isolated-list-test') return request.abort();
+      return request.continue();
+    };
+    page.on('request', personalRequests);
+    await page.evaluate(() => {
+      Lampa.Storage.set('shikimori_local_experimental_token', 'isolated-list-test');
+      Lampa.Storage.set('shikimori_local_auth_user', { id: 1, nickname: 'Isolated test' });
+    });
+    async function assertCanonicalPosters(selector) {
+      await page.waitForFunction(selector => {
+        const images = Array.from(document.querySelectorAll('.activity--active ' + selector + ' img'));
+        return images.length === 3 && images.every(image => image.complete && image.naturalWidth > 0);
+      }, { timeout: 45000 }, selector);
+      const sources = await page.$$eval('.activity--active ' + selector + ' img', images => images.map(image => image.src));
+      sources.forEach(source => assert.match(source, /\/uploads\/poster\/animes\//));
+      assert.deepEqual(await page.$$eval('.activity--active ' + selector + ' .shikimori-local__result', cards => cards.map(card => card.__shikimoriAnime.shikimori_id)), personalFixture.map(anime => anime.id));
+    }
+    await push('shikimori_local_home');
+    await assertCanonicalPosters('[data-row="my_ongoing"]');
+    await page.evaluate(() => Lampa.Controller.collectionFocus(document.querySelector('.activity--active [data-row="my_ongoing"] .selector')));
+    await screenshot('home-personal-posters');
+    checks.push('authenticated home row uses live canonical posters for the screenshot titles, preserving REST order');
+    await push('shikimori_local_userlists', { status: 'planned' });
+    await assertCanonicalPosters('[data-group="ongoing"]');
+    await screenshot('personal-list-posters');
+    checks.push('planned-list carousel hydrates real GraphQL posters instead of decoded 404 assets');
+    await push('shikimori_local_line', { section: 'userlist', mylist: 'planned', listStatus: 'ongoing' });
+    await assertCanonicalPosters('.line-page');
+    checks.push('expanded personal list uses canonical posters as well');
+    assert.ok(listRequests.includes('planned,watching') && listRequests.includes('planned'));
+    await page.evaluate(() => {
+      Lampa.Storage.set('shikimori_local_experimental_token', '');
+      Lampa.Storage.set('shikimori_local_auth_user', null);
+    });
+    await push('shikimori_local_home');
+    page.off('request', personalRequests);
+    await page.setRequestInterception(false);
+
     await push('shikimori_local_line', { section: 'popular' });
     await waitImages('.line-page');
     checks.push('catalog posters load');

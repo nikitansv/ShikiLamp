@@ -60,6 +60,28 @@ function getByIds(ids, options) {
   return graphqlRequest(graphql.getAnimesByIds(ids), 'anime', options).then(normalizer.normalizeSearchResponse);
 }
 
+function hydrateAnimeDetails(list, options) {
+  const ids = list.map(function (anime) { return anime.shikimori_id; }).filter(Boolean);
+  if (!ids.length) return Promise.resolve(list);
+  const batches = [];
+  for (let i = 0; i < ids.length; i += 100) batches.push(ids.slice(i, i + 100));
+  return batches.reduce(function (promise, batch) {
+    return promise.then(function (details) {
+      return getByIds(batch, options).then(function (next) { return details.concat(next || []); });
+    });
+  }, Promise.resolve([])).then(function (details) {
+    const byId = {};
+    details.forEach(function (anime) { byId[anime.shikimori_id] = anime; });
+    return list.map(function (anime) {
+      return byId[anime.shikimori_id] ? Object.assign({}, anime, byId[anime.shikimori_id]) : anime;
+    });
+  }).catch(function (error) {
+    if (error && (error.code === 'REQUEST_CANCELLED' || error.message === 'AUTH_SESSION_CHANGED')) throw error;
+    logger.warn('Anime details hydration failed', error && error.message);
+    return list;
+  });
+}
+
 function popular(page, options) {
   return graphqlRequest(graphql.popularAnimes(getPageSize(), page || 1), 'catalog', options).then(normalizer.normalizeSearchResponse);
 }
@@ -86,7 +108,10 @@ function catalog(filters, options) {
   if (!filters.limit) params.push('limit=' + getPageSize());
   return client.request('/api/animes?' + params.join('&'), withRequestOptions(options, {
     method: 'GET', skipCache: false, cacheTtl: config.CACHE_TTL_MS.catalog, timeout: 20000
-  })).then(normalizer.normalizeList);
+  })).then(normalizer.normalizeList).then(function (list) {
+    // REST still returns legacy/missing image assets; canonical posters live in GraphQL.
+    return hydrateAnimeDetails(list, options);
+  });
 }
 
 function testConnection(options) {
@@ -102,6 +127,7 @@ module.exports = {
   search,
   getById,
   getByIds,
+  hydrateAnimeDetails,
   popular,
   ongoing,
   latest,
