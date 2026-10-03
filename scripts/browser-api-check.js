@@ -1,63 +1,27 @@
-const puppeteer = require('puppeteer');
+// Optional live public API/CORS probe. No account data or tokens are used.
+const assert = require('node:assert/strict');
+const launchBrowser = require('./browser');
+const graphql = require('../src/api/graphql');
 
 (async () => {
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  const page = await browser.newPage();
-  const responses = [];
-  page.on('response', async res => {
-    if (res.url().includes('shikimori.io/api/graphql')) {
+  const browser = await launchBrowser();
+  try {
+    const page = await browser.newPage();
+    await page.setContent('<!doctype html><title>ShikiLamp public API probe</title>');
+    const result = await page.evaluate(async body => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
       try {
-        const text = await res.text();
-        responses.push({ status: res.status(), body: text.slice(0, 200) });
-      } catch (e) {}
-    }
-  });
-  page.on('console', msg => console.log('CONSOLE:', msg.text()));
-
-  await page.goto('http://127.0.0.1:8080/test.html');
-  await new Promise(r => setTimeout(r, 3000));
-
-  // Click menu to open home
-  await page.evaluate(() => {
-    const item = document.querySelector('.shikimori-local-menu-item');
-    if (item) item.click();
-  });
-  await new Promise(r => setTimeout(r, 500));
-
-  // Click "Поиск" section
-  await page.evaluate(() => {
-    const sections = document.querySelectorAll('.shikimori-local__section');
-    for (const s of sections) {
-      if (s.textContent.includes('Поиск')) { s.click(); return; }
-    }
-  });
-  await new Promise(r => setTimeout(r, 500));
-
-  // Type search query and submit
-  await page.evaluate(() => {
-    const input = document.querySelector('.shikimori-local__input');
-    if (input) { input.value = 'Frieren'; input.dispatchEvent(new Event('change')); }
-    const btn = document.querySelector('.shikimori-local__action');
-    if (btn) btn.click();
-  });
-  await new Promise(r => setTimeout(r, 5000));
-
-  const logs = await page.evaluate(() => {
-    return {
-      ready: !!window.__shikimori_local_ready,
-      menuItem: !!document.querySelector('.shikimori-local-menu-item'),
-      results: document.querySelectorAll('.shikimori-local__result').length,
-      errors: document.querySelectorAll('.shikimori-local__error').length
-    };
-  });
-  console.log('Browser check:', JSON.stringify(logs));
-  console.log('GraphQL responses:', JSON.stringify(responses));
-  await browser.close();
-})().catch(err => {
-  console.error('Puppeteer failed:', err.message);
-  process.exit(1);
-});
+        const response = await fetch('https://shikimori.io/api/graphql', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body), signal: controller.signal
+        });
+        const json = await response.json();
+        if (!response.ok || json.errors) throw new Error('HTTP ' + response.status + ': ' + JSON.stringify(json.errors || []));
+        return { status: response.status, count: json.data && json.data.animes && json.data.animes.length };
+      } finally { clearTimeout(timeout); }
+    }, graphql.searchAnimes('Frieren', 2, 1));
+    assert.ok(result.count > 0, 'Public GraphQL search must return anime');
+    console.log('Live public API probe:', JSON.stringify(result));
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error.message); process.exitCode = 1; });

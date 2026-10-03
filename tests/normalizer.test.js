@@ -1,6 +1,15 @@
 const normalizer = require('../src/api/normalizer');
 
 describe('api/normalizer', () => {
+  test('REST English title arrays produce a text title, including empty arrays', () => {
+    expect(normalizer.normalizeAnime({ id: 1, name: 'Name', english: ['English'] }).title).toBe('English');
+    expect(normalizer.normalizeAnime({ id: 1, name: 'Name', english: [] }).title).toBe('Name');
+  });
+
+  test('REST images preserve absolute URLs and missing images stay empty', () => {
+    expect(normalizer.normalizeAnime({ id: 1, image: { original: 'https://cdn.example/poster.jpg' } }).poster).toBe('https://cdn.example/poster.jpg');
+    expect(normalizer.normalizeAnime({ id: 1, image: {} }).poster).toBe('');
+  });
   test('normalizes anime', () => {
     const item = {
       id: 1,

@@ -7,6 +7,48 @@ const storage = require('./storage');
 const logger = require('../logger');
 const cache = require('../cache');
 const titles = require('./titles');
+const queryRequests = Object.create(null);
+const searches = Object.create(null);
+const requestQueue = [];
+let activeRequests = 0;
+const REQUEST_TIMEOUT = 12000;
+
+function enqueueRequest(run) {
+  return new Promise(function (resolve) {
+    requestQueue.push(function () {
+      activeRequests++;
+      let finished = false;
+      const timer = setTimeout(function () { done(null); }, REQUEST_TIMEOUT);
+      function done(value) {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        activeRequests--;
+        resolve(value);
+        drainRequests();
+      }
+      try { run(done); } catch (error) { done(null); }
+    });
+    drainRequests();
+  });
+}
+
+function drainRequests() {
+  while (activeRequests < 3 && requestQueue.length) requestQueue.shift()();
+}
+
+function searchQuery(api, query) {
+  const key = query.toLowerCase();
+  if (queryRequests[key]) return queryRequests[key];
+  const request = enqueueRequest(function (done) {
+    api.search({ query: query }, done, function () { done(null); });
+  }).then(function (result) {
+    delete queryRequests[key];
+    return result;
+  });
+  queryRequests[key] = request;
+  return request;
+}
 
 function getThreshold() {
   if (typeof Lampa !== 'undefined' && Lampa.Storage) {
@@ -50,22 +92,14 @@ function matchLocal(anime) {
 }
 
 function searchTmdb(anime) {
-  return new Promise(function (resolve, reject) {
     const tmdbApi = getTmdbApi();
     if (!tmdbApi || !tmdbApi.search) {
-      return reject(new Error('TMDB API not available'));
+      return Promise.reject(new Error('TMDB API not available'));
     }
     const queries = titles.queries(anime);
     const candidates = [];
     const seen = Object.create(null);
-    let pending = queries.length;
-    if (!pending) return resolve([]);
-    function checkDone() {
-      pending--;
-      if (pending > 0) return;
-      candidates.sort(function (a, b) { return b.score - a.score; });
-      resolve(candidates);
-    }
+    if (!queries.length) return Promise.resolve([]);
     function add(results, type) {
       if (!Array.isArray(results)) return;
       results.forEach(function (item) {
@@ -79,25 +113,17 @@ function searchTmdb(anime) {
         }
       });
     }
-    queries.forEach(function (query) {
-      let finished = false;
-      function done() {
-        if (finished) return;
-        finished = true;
-        checkDone();
-      }
-      try {
-        tmdbApi.search({ query: query }, function (result) {
-          if (finished) return;
-          try {
-            if (result && result.movie) add(result.movie.results, 'movie');
-            if (result && result.tv) add(result.tv.results, 'tv');
-          } catch (e) { logger.warn('TMDB search error', e.message); }
-          done();
-        }, done);
-      } catch (e) { done(); }
+    return Promise.all(queries.map(function (query) { return searchQuery(tmdbApi, query); })).then(function (responses) {
+      let succeeded = false;
+      responses.forEach(function (result) {
+        if (result && (result.movie || result.tv)) succeeded = true;
+        if (result && result.movie) add(result.movie.results, 'movie');
+        if (result && result.tv) add(result.tv.results, 'tv');
+      });
+      if (!succeeded) throw new Error('TMDB search unavailable');
+      candidates.sort(function (a, b) { return b.score - a.score; });
+      return candidates;
     });
-  });
 }
 
 function getTmdbApi() {
@@ -106,7 +132,7 @@ function getTmdbApi() {
 }
 
 function normalizeTmdbItem(item, type) {
-  if (!item) return null;
+  if (!item || !Number.isSafeInteger(Number(item.id)) || Number(item.id) < 1) return null;
   const year = parseInt((item.release_date || item.first_air_date || '0000').slice(0, 4), 10) || 0;
   return {
     id: item.id,
@@ -136,9 +162,10 @@ function fetchTmdbPoster(mapping) {
   if (!mapping || !mapping.tmdb_id || typeof Lampa === 'undefined' || !Lampa.TMDB || !Lampa.TMDB.api) {
     return Promise.resolve('');
   }
-  return new Promise(function (resolve) {
-    const network = (Lampa.Network || (Lampa.Reguest ? new Lampa.Reguest() : null));
+  return enqueueRequest(function (resolve) {
+    const network = Lampa.Reguest ? new Lampa.Reguest() : Lampa.Network;
     if (!network || !network.quiet) return resolve('');
+    if (network.timeout && Lampa.Reguest) network.timeout(REQUEST_TIMEOUT);
     const method = mapping.tmdb_type === 'movie' ? 'movie' : 'tv';
     const key = Lampa.TMDB.key ? Lampa.TMDB.key() : '';
     const url = Lampa.TMDB.api(method + '/' + mapping.tmdb_id + '?language=ru' + (key ? '&api_key=' + key : ''));
@@ -160,8 +187,10 @@ function applyBestPoster(anime) {
   if (local && !local.poster) {
     return fetchTmdbPoster(local).then(function (poster) {
       if (poster) {
-        local.poster = poster;
-        storage.set(local);
+        const current = storage.get(anime.shikimori_id);
+        if (!current || current.tmdb_id !== local.tmdb_id || current.tmdb_type !== local.tmdb_type) return anime;
+        current.poster = poster;
+        storage.set(current);
         anime.tmdb_poster = poster;
         anime.poster = poster;
         anime.image = poster;
@@ -171,7 +200,7 @@ function applyBestPoster(anime) {
   }
   return findBest(anime).then(function (out) {
     const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
-    const poster = best && best.item ? tmdbPosterUrl(best.item.poster_path) : '';
+    const poster = out.result && best && best.item ? tmdbPosterUrl(best.item.poster_path) : '';
     if (poster) {
       anime.tmdb_poster = poster;
       anime.poster = poster;
@@ -191,11 +220,27 @@ function findBest(anime) {
     return Promise.resolve({ result: null, candidates: [], source: 'no_tmdb' });
   }
 
-  const cacheKey = 'mapping_search:v2:' + anime.shikimori_id;
+  const cacheKey = 'mapping_search:v3:' + JSON.stringify([anime.shikimori_id, titles.queries(anime), anime.kind, anime.year, anime.episodes]);
   const cached = cache.get('mapping', cacheKey, config.CACHE_TTL_MS.mappingFail);
-  if (cached.hit) return Promise.resolve(cached.data);
-
-  return searchTmdb(anime).then(function (candidates) {
+  let request;
+  if (cached.hit && Array.isArray(cached.data)) request = Promise.resolve(cached.data);
+  else {
+    request = searches[cacheKey];
+    if (!request) {
+      request = searchTmdb(anime).then(function (candidates) {
+        cache.set('mapping', cacheKey, candidates);
+        delete searches[cacheKey];
+        return candidates;
+      }, function (error) {
+        delete searches[cacheKey];
+        throw error;
+      });
+      searches[cacheKey] = request;
+    }
+  }
+  return request.then(function (candidates) {
+    const saved = matchLocal(anime);
+    if (saved) return { result: saved, candidates: [], source: 'local' };
     const threshold = getThreshold();
     const best = candidates.length > 0 ? candidates[0] : null;
     let result = null;
@@ -209,9 +254,11 @@ function findBest(anime) {
         episode_offset: 0
       }, 'auto', best.score);
     }
-    const out = { result: result, candidates: candidates, source: 'auto' };
-    cache.set('mapping', cacheKey, out);
-    return out;
+    return { result: result, candidates: candidates, source: 'auto' };
+  }, function (error) {
+    const saved = matchLocal(anime);
+    if (saved) return { result: saved, candidates: [], source: 'local' };
+    throw error;
   });
 }
 
@@ -228,7 +275,7 @@ function saveManual(anime, tmdbId, tmdbType, season, episodeOffset, extra) {
     mapping_source: 'manual',
     verified: true
   };
-  storage.set(mapping);
+  if (!storage.set(mapping)) throw new Error('MAPPING_SAVE_FAILED');
   if (mapping.poster) {
     anime.tmdb_poster = mapping.poster;
     anime.poster = mapping.poster;

@@ -8,6 +8,10 @@ const REFRESH_MARGIN_SECONDS = 5 * 60;
 let refreshPromise = null;
 let sessionRevision = 0;
 
+function getSessionRevision() {
+  return sessionRevision;
+}
+
 function getStorage() {
   return typeof Lampa !== 'undefined' && Lampa.Storage ? Lampa.Storage : null;
 }
@@ -97,12 +101,16 @@ function formBody(values) {
   }).join('&');
 }
 
-function saveTokenBundle(bundle) {
-  if (!bundle || !bundle.access_token || !bundle.refresh_token) throw new Error('Некорректный token response Shikimori');
+function saveTokenBundle(bundle, replaceSession) {
+  if (!bundle || typeof bundle.access_token !== 'string' || !bundle.access_token.trim() ||
+      typeof bundle.refresh_token !== 'string' || !bundle.refresh_token.trim()) {
+    throw new Error('Некорректный token response Shikimori');
+  }
   const createdAt = Number(bundle.created_at) || Math.floor(Date.now() / 1000);
   const expiresIn = Number(bundle.expires_in) || 86400;
+  if (replaceSession) clearToken();
   setValue(config.STORAGE_KEYS.experimentalToken, String(bundle.access_token).trim());
-  setValue(config.STORAGE_KEYS.refreshToken, bundle.refresh_token);
+  setValue(config.STORAGE_KEYS.refreshToken, bundle.refresh_token.trim());
   setValue(config.STORAGE_KEYS.tokenExpiresAt, createdAt + expiresIn);
   return bundle;
 }
@@ -118,15 +126,17 @@ function tokenRequest(values) {
     timeout: 15000
   }).then(function (bundle) {
     if (revision !== sessionRevision) throw new Error('AUTH_SESSION_CHANGED');
-    return saveTokenBundle(bundle);
+    return saveTokenBundle(bundle, values.grant_type === 'authorization_code');
   });
 }
 
 function check() {
   if (!getToken()) return Promise.reject(new Error('Access token пустой'));
+  const revision = sessionRevision;
   return client.request('/api/users/whoami', {
     method: 'GET', authenticated: true, skipCache: true, timeout: 15000
   }).then(function (user) {
+    if (revision !== sessionRevision) throw new Error('AUTH_SESSION_CHANGED');
     if (!user || !user.id) throw new Error('Некорректный ответ Shikimori');
     saveUser(user);
     return user;
@@ -138,6 +148,8 @@ function exchangeCode(code, clientId, clientSecret) {
   const secret = String(clientSecret || getClientSecret()).trim();
   const cleanCode = String(code || '').trim();
   if (!id || !secret || !cleanCode) return Promise.reject(new Error('OAuth Client ID, Client Secret и code обязательны'));
+  sessionRevision++;
+  refreshPromise = null;
   return tokenRequest({
     grant_type: 'authorization_code', client_id: id, client_secret: secret,
     code: cleanCode, redirect_uri: REDIRECT_URI
@@ -192,7 +204,7 @@ function ensureValidToken(force) {
 }
 
 module.exports = {
-  REDIRECT_URI, getToken, setToken, getRefreshToken, clearToken,
+  REDIRECT_URI, getToken, setToken, getRefreshToken, clearToken, getSessionRevision,
   getCachedUser, saveUser, statusText, check,
   getClientId, getClientSecret, setCredentials,
   buildAuthorizationUrl, exchangeCode, refresh, getExpiresAt, ensureValidToken

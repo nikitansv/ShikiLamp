@@ -11,7 +11,8 @@ const outFile = path.join(outDir, 'plugin.js');
 const docsFile = path.join(docsDir, 'ShikiLamp.js');
 
 (async () => {
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
+  fs.mkdirSync(docsDir, { recursive: true });
 
   const result = await esbuild.build({
     entryPoints: [entry],
@@ -20,10 +21,7 @@ const docsFile = path.join(docsDir, 'ShikiLamp.js');
     write: false,
     globalName: 'ShikimoriLocalPlugin',
     platform: 'browser',
-    target: 'es2018',
-    footer: {
-      js: 'window.__shikimori_local_footer_init=true;if(typeof window!=="undefined"&&window.ShikimoriLocalPlugin&&window.ShikimoriLocalPlugin.init&&window.Lampa){try{window.ShikimoriLocalPlugin.init();}catch(e){console.error("[shikimori_local] init failed",e);}}'
-    }
+    target: 'es2018'
   });
 
   let code = result.outputFiles[0].text;
@@ -32,12 +30,11 @@ const docsFile = path.join(docsDir, 'ShikiLamp.js');
     mangle: false,
     output: { comments: /^!/ }
   });
-  code = minified.code || code;
+  if (minified.error) throw minified.error;
+  code = minified.code;
 
   fs.writeFileSync(outFile, code, 'utf8');
-  if (fs.existsSync(docsDir)) {
-    fs.writeFileSync(docsFile, code, 'utf8');
-  }
+  fs.writeFileSync(docsFile, code, 'utf8');
   console.log(`Built ${outFile} (${Buffer.byteLength(code)} bytes)`);
 })().catch((err) => {
   console.error('Build failed:', err);

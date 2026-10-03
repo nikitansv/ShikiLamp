@@ -113,3 +113,81 @@ test('clearToken removes OAuth state but keeps unrelated storage', () => {
   expect(storage.data[config.STORAGE_KEYS.refreshToken]).toBe('');
   expect(storage.data[config.STORAGE_KEYS.mappings]).toBe('keep');
 });
+
+test('whoami rejects a response from a session cleared during the request', async () => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'access');
+  let complete;
+  const auth = loadAuth(storage, () => new Promise(resolve => { complete = resolve; }));
+  const pending = auth.check();
+  auth.clearToken();
+  complete({ id: 7 });
+  await expect(pending).rejects.toThrow('AUTH_SESSION_CHANGED');
+  expect(auth.getCachedUser()).toBeNull();
+});
+
+test('invalid token bundles cannot overwrite a working token pair', async () => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'access');
+  storage.set(config.STORAGE_KEYS.refreshToken, 'refresh');
+  const auth = loadAuth(storage, jest.fn().mockResolvedValue({ access_token: '  ', refresh_token: 'new' }));
+  await expect(auth.refresh('id', 'secret')).rejects.toThrow('Некорректный token response Shikimori');
+  expect(auth.getToken()).toBe('access');
+  expect(auth.getRefreshToken()).toBe('refresh');
+});
+
+test('a superseded code exchange cannot overwrite the newest login', async () => {
+  const storage = makeStorage();
+  const complete = [];
+  const request = jest.fn((path) => path === '/oauth/token'
+    ? new Promise(resolve => complete.push(resolve)) : Promise.resolve({ id: 8 }));
+  const auth = loadAuth(storage, request);
+  const first = auth.exchangeCode('first', 'id', 'secret');
+  const rejected = expect(first).rejects.toThrow('AUTH_SESSION_CHANGED');
+  const second = auth.exchangeCode('second', 'id', 'secret');
+  complete[1]({ access_token: 'second', refresh_token: 'second-refresh' });
+  await expect(second).resolves.toEqual({ id: 8 });
+  complete[0]({ access_token: 'first', refresh_token: 'first-refresh' });
+  await rejected;
+  expect(auth.getToken()).toBe('second');
+  expect(auth.getCachedUser()).toEqual({ id: 8 });
+});
+
+test.each(['invalid code', 'network failure', 'malformed bundle'])('failed replacement login preserves the existing session: %s', async failure => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'existing-access');
+  storage.set(config.STORAGE_KEYS.refreshToken, 'existing-refresh');
+  storage.set(config.STORAGE_KEYS.tokenExpiresAt, 12345);
+  storage.set(config.STORAGE_KEYS.authUser, { id: 7 });
+  storage.set(config.STORAGE_KEYS.authCheckedAt, 6789);
+  const before = { ...storage.data };
+  const request = jest.fn();
+  if (failure === 'malformed bundle') request.mockResolvedValue({ access_token: ' ', refresh_token: 'new' });
+  else request.mockRejectedValue(new Error(failure));
+  const auth = loadAuth(storage, request);
+  await expect(auth.exchangeCode('replacement-code', 'id', 'secret')).rejects.toThrow();
+  expect(storage.data).toEqual(before);
+});
+
+test('successful replacement clears old user only after validation and rejects old checks', async () => {
+  const storage = makeStorage();
+  storage.set(config.STORAGE_KEYS.experimentalToken, 'existing-access');
+  storage.set(config.STORAGE_KEYS.authUser, { id: 7 });
+  const pending = [];
+  const request = jest.fn(() => new Promise(resolve => pending.push(resolve)));
+  const auth = loadAuth(storage, request);
+  const exchange = auth.exchangeCode('code', 'id', 'secret');
+  expect(auth.getToken()).toBe('existing-access');
+  expect(auth.getCachedUser()).toEqual({ id: 7 });
+  const oldCheck = auth.check();
+  const rejected = expect(oldCheck).rejects.toThrow('AUTH_SESSION_CHANGED');
+  pending[0]({ access_token: 'new-access', refresh_token: 'new-refresh' });
+  await Promise.resolve();
+  expect(auth.getToken()).toBe('new-access');
+  expect(auth.getCachedUser()).toBeNull();
+  pending[1]({ id: 7 });
+  await rejected;
+  pending[2]({ id: 8 });
+  await expect(exchange).resolves.toEqual({ id: 8 });
+  expect(auth.getCachedUser()).toEqual({ id: 8 });
+});

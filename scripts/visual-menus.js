@@ -1,6 +1,6 @@
 // Offline preview of real components with deterministic API fixtures.
 const esbuild = require('esbuild');
-const puppeteer = require('puppeteer');
+const launchBrowser = require('./browser');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -30,10 +30,7 @@ async function main() {
     `, resolveDir: path.resolve(__dirname, '..') },
     bundle: true, write: false, platform: 'browser'
   }).outputFiles[0].text;
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
-  });
+  const browser = await launchBrowser();
   try {
     const page = await browser.newPage();
     const errors = [];
@@ -331,7 +328,7 @@ async function main() {
         await page.screenshot({ path: path.join(output, name + '-' + width + '.png') });
       }
     }
-    console.log(JSON.stringify({ output, navigation, errors }, null, 2));
+    console.log(JSON.stringify({ output, navigationChecks: navigation.length, screenshots: 27, reducedMotion: reduced, navigation, errors }, null, 2));
     if (errors.length) process.exitCode = 1;
   } finally { await browser.close(); }
 }

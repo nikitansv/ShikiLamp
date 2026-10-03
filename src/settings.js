@@ -99,7 +99,7 @@ function cleanupLegacySettings() {
 }
 
 function register() {
-  if (!Lampa || !Lampa.SettingsApi) return;
+  if (typeof Lampa === 'undefined' || !Lampa.SettingsApi) return;
 
   cleanupLegacySettings();
 
@@ -158,8 +158,9 @@ function register() {
       const reader = new FileReader();
       reader.onload = function () {
         const result = mappingStorage.importJson(reader.result);
-        Lampa.Noty.show(result.success ? 'Импортировано mapping: ' + result.count : 'Ошибка импорта: ' + result.error);
+        Lampa.Noty.show(result.success ? 'Импортировано mapping: ' + result.count + ', сохранено прежних: ' + result.skipped : 'Ошибка импорта: ' + result.error);
       };
+      reader.onerror = function () { Lampa.Noty.show('Не удалось прочитать файл mapping'); };
       reader.readAsText(input.files[0]);
     };
     input.click();
@@ -263,7 +264,8 @@ function addDeveloperTrigger(name, title, defaultValue) {
 }
 
 function askUiNumber(key, title, min, max, fallback) {
-  const current = getUi()[key] || fallback;
+  const stored = getUi()[key];
+  const current = stored === undefined || stored === null ? fallback : stored;
   askSettingValue(key, title, String(current), function (value) {
     const n = parseFloat(value);
     if (isNaN(n) || n < min || n > max) return Lampa.Noty.show('Допустимо: ' + min + '–' + max);
@@ -292,6 +294,7 @@ function addUiColorActions() {
 
 function askSettingValue(name, title, currentValue, onSave) {
   const save = function (value) {
+    if (value === null || value === undefined) return;
     onSave(value);
   };
 
@@ -353,6 +356,7 @@ function askAuthorizationCode() {
 function askToken() {
   const current = auth.getToken();
   const save = function (value) {
+    if (value === null || value === undefined) return;
     const token = String(value || '').trim();
     if (!token) {
       Lampa.Noty.show('ShikiLamp: пустой токен не сохранён');
@@ -384,9 +388,11 @@ function checkAuth() {
 }
 
 function onSettingChange(e) {
+  if (!e) return;
   if (e.name === config.STORAGE_KEYS.debug) {
-    logger.setDebug(e.value);
+    logger.setDebug(bool(e.value));
   }
+  if (e.name === config.STORAGE_KEYS.showMenu || e.name === config.STORAGE_KEYS.enabled) require('./ui/menu').register();
 }
 
 module.exports = {

@@ -232,7 +232,11 @@ Anime.prototype.upsertRate = function (status) {
 };
 
 Anime.prototype.askValue = function (title, value, onSave) {
-  const save = function (v) { onSave(String(v || '').trim()); };
+  const self = this;
+  const save = function (v) {
+    if (v == null || !self.html || self.__shikimoriDestroyed || self.__shikimoriActive === false) return;
+    onSave(String(v).trim());
+  };
   if (Lampa.Input && Lampa.Input.edit) {
     Lampa.Input.edit({ title: title, value: String(value || ''), free: true }, save);
     return;
@@ -320,6 +324,10 @@ Anime.prototype.openLampaSearch = function () {
   const sources = Lampa.Api.availableDiscovery().map(function (source) {
     const wrapped = Object.assign({}, source);
     wrapped.onSelect = function (event, done) {
+      if (!self.html || self.__shikimoriDestroyed || self.__shikimoriActive === false) {
+        if (done) done();
+        return;
+      }
       const item = event && (event.item_data || event.element);
       if (!item || !item.id) {
         if (Lampa.Noty) Lampa.Noty.show('Не удалось выбрать результат Lampa');
@@ -328,7 +336,13 @@ Anime.prototype.openLampaSearch = function () {
       }
       const type = item.name ? 'tv' : 'movie';
       const poster = item.poster_path ? matcher.tmdbPosterUrl(item.poster_path) : (item.poster || item.img || '');
-      const mapping = matcher.saveManual(self.anime, item.id, type, 1, 0, { poster: poster });
+      let mapping;
+      try { mapping = matcher.saveManual(self.anime, item.id, type, 1, 0, { poster: poster }); }
+      catch (err) {
+        if (Lampa.Noty) Lampa.Noty.show('Не удалось сохранить соответствие');
+        if (done) done();
+        return;
+      }
       self.refreshView();
       if (Lampa.Noty) Lampa.Noty.show('Соответствие сохранено');
       if (done) done();

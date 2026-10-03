@@ -1,6 +1,13 @@
 const scoring = require('../src/mapping/scoring');
 
 describe('mapping/scoring', () => {
+  test('token similarity is symmetric and ignores repeated title words', () => {
+    expect(scoring.jaccard('red red blue', 'red')).toBe(0.5);
+    expect(scoring.jaccard('red', 'red red blue')).toBe(0.5);
+    expect(scoring.score({ title: 'Naruto' }, { name: 'Naruto' })).toBe(
+      scoring.score({ title: 'Naruto', original_title: '' }, { name: 'Naruto', original_name: '' })
+    );
+  });
   test('exact title match between anime and candidate', () => {
     const anime = { title: 'Naruto', original_title: 'Naruto', russian_title: 'Наруто', year: 2002, kind: 'tv', episodes: 220, aliases: [] };
     const candidate = { name: 'Naruto', original_name: 'Naruto', russian_title: '', year: 2002, media_type: 'tv', episodes: 220 };

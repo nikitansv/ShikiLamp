@@ -46,6 +46,7 @@ Search.prototype.askSearch = function () {
   const self = this;
   if (typeof Lampa !== 'undefined' && Lampa.Input && Lampa.Input.edit) {
     Lampa.Input.edit({ title: 'Поиск Shikimori', value: this.currentQuery || '', free: true }, function (text) {
+      if (!self.html || self.__shikimoriDestroyed || self.__shikimoriActive === false) return;
       const query = String(text || '').trim();
       if (query) self.doSearch(query, false);
       else if (Lampa.Noty) Lampa.Noty.show('Введите название аниме');
@@ -72,6 +73,7 @@ Search.prototype.doSearch = function (query, append) {
   this.currentQuery = q;
   this.loading = true;
   this.removeMoreButton();
+  this.results.querySelectorAll('.shikimori-local__error').forEach(function (el) { el.remove(); });
   this.updateQueryLabel();
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
   this.refocus();
@@ -86,6 +88,7 @@ Search.prototype.doSearch = function (query, append) {
     logger.warn('Search error', err.message);
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__error">Ошибка поиска: ' + templates.escapeHtml(err.message) + '</div>');
+    self.addMoreButton(!append);
     self.refocus();
   });
 };
@@ -127,13 +130,13 @@ Search.prototype.createCard = function (anime) {
   });
 };
 
-Search.prototype.addMoreButton = function () {
+Search.prototype.addMoreButton = function (retry) {
   const self = this;
   if (this.ended || this.results.querySelector('.shikimori-local__more')) return;
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
-  more.textContent = 'Ещё';
-  lifecycle.bindAction(more, function () { self.doSearch(self.currentQuery, true); });
+  more.textContent = retry ? 'Повторить' : 'Ещё';
+  lifecycle.bindAction(more, function () { self.doSearch(self.currentQuery, !retry); });
   this.results.appendChild(more);
 };
 

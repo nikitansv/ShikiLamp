@@ -6,7 +6,10 @@ const config = require('../config');
 function getPoster(item) {
   if (!item) return '';
   if (item.poster) return item.poster.mainUrl || item.poster.originalUrl || '';
-  if (item.image) return 'https://shikimori.io' + (item.image.preview || item.image.x96 || item.image.original || '');
+  if (item.image) {
+    const image = item.image.preview || item.image.x96 || item.image.original || '';
+    return image && !/^https?:\/\//i.test(image) ? config.SHIKIMORI_HOST_DEFAULT + image : image;
+  }
   return '';
 }
 
@@ -81,14 +84,17 @@ function getTitles(item) {
 function normalizeAnime(item) {
   if (!item) return null;
   const titles = getTitles(item);
+  const english = Array.isArray(item.english) ? item.english.filter(Boolean)[0] || '' : item.english || '';
+  const language = typeof Lampa !== 'undefined' && Lampa.Storage
+    ? Lampa.Storage.get(config.STORAGE_KEYS.language, config.DEFAULTS.language) : config.DEFAULTS.language;
   return {
     source: 'shikimori',
     id: String(item.id),
     shikimori_id: parseInt(item.id, 10),
     mal_id: getMalId(item),
-    title: item.russian || item.english || item.name || titles[0] || 'Unknown',
+    title: (language === 'english' ? english || item.name || item.russian : item.russian || english || item.name) || titles[0] || 'Unknown',
     original_title: item.name || '',
-    english_title: Array.isArray(item.english) ? item.english[0] : (item.english || ''),
+    english_title: english,
     russian_title: item.russian || '',
     japanese_title: Array.isArray(item.japanese) ? item.japanese[0] : (item.japanese || ''),
     aliases: titles,

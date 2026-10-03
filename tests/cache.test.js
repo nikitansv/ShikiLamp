@@ -18,4 +18,18 @@ describe('cache', () => {
     expect(hit.stale).toBe(true);
     expect(hit.data).toBe('value');
   });
+
+  test('rejects malformed entries and expires at the TTL boundary or clock rollback', () => {
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1000);
+    try {
+      const key = require('../src/config').STORAGE_KEYS.cache;
+      global.__test_storage.set(key, JSON.stringify({ v: 1, items: { 'type:missing': { t: 1000 } } }));
+      expect(cache.get('type', 'missing', 100).hit).toBe(false);
+      cache.set('type', 'key', 'value');
+      now.mockReturnValue(1100);
+      expect(cache.get('type', 'key', 100)).toMatchObject({ hit: false, stale: true });
+      now.mockReturnValue(999);
+      expect(cache.get('type', 'key', 100)).toMatchObject({ hit: false, stale: true });
+    } finally { now.mockRestore(); }
+  });
 });

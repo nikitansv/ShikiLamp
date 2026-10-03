@@ -1,107 +1,50 @@
-# Архитектурный отчёт: lampa-shikimori-local v0.1.0
+# Архитектура ShikiLamp
 
-## Цель MVP
+ShikiLamp — клиентский плагин Lampa 3. Backend отсутствует: интерфейс, сетевые запросы и OAuth выполняются на устройстве пользователя.
 
-Добавить в Lampa 3 отдельный раздел Shikimori с поиском, каталогом, карточкой аниме, локальным mapping на TMDB и диагностикой — без облачного backend, без OAuth и без секретов в коде.
-
-## Проверенные endpoint Shikimori
-
-| Endpoint | Метод | Результат |
-|----------|-------|-----------|
-| `https://shikimori.io/api/graphql` | POST introspection | ✅ 200, схема доступна |
-| `https://shikimori.io/api/graphql` `animes(search:, limit:)` | POST | ✅ работает |
-| `https://shikimori.io/api/graphql` `animes(ids:)` | POST | ✅ работает |
-| `https://shikimori.io/api/graphql` `animes(order: popularity, status: ...)` | POST | ✅ работает |
-| `https://shikimori.io/api/animes/...` | REST | ✅ 301 на shikimori.io, затем работает |
-
-Важные поля GraphQL Anime: `id`, `name`, `russian`, `english`, `synonyms`, `kind`, `score`, `status`, `episodes`, `episodesAired`, `duration`, `rating`, `url`, `malId`, `description`, `descriptionHtml`, `descriptionSource`, `airedOn`, `releasedOn`, `nextEpisodeAt`, `poster { originalUrl mainUrl mainAltUrl }`, `genres`, `studios`, `externalLinks`.
-
-## CORS и User-Agent
-
-- Preflight OPTIONS на `/api/graphql` возвращает `access-control-allow-origin: *`, `access-control-allow-methods: GET, OPTIONS, POST, PUT, PATCH, DELETE`, `access-control-allow-headers: Content-Type`.
-- Прямой browser-запрос (fetch/XMLHttpRequest) должен работать, если Lampa открыта по HTTP или HTTPS-источник разрешён.
-- **Mixed content:** если Lampa открыта по HTTPS, а плагин или API Base URL указывает на HTTP, браузер заблокирует запрос.
-- **User-Agent:** из браузера нельзя переопределить User-Agent; API пока не блокирует стандартные браузерные UA.
-- Рекомендация: размещать плагин и API Base URL по HTTPS или на том же протоколе, что и Lampa.
-
-## Использованные API Lampa 3
-
-| Назначение | API | Статус |
-|------------|-----|--------|
-| Глобальный namespace | `window.Lampa` | стабильный |
-| Готовность приложения | `window.appready`, событие `app/ready` | стабильный |
-| Меню | DOM `.menu__list` + `Lampa.Listener.send('menu', ...)` | внутренний, зависит от темы |
-| Компоненты | `Lampa.Component.add(name, Class)` | стабильный |
-| Навигация | `Lampa.Activity.push({ component, title, ... })` | стабильный |
-| Фокус пульта | `Lampa.Controller.collectionSet`, `collectionFocus` | стабильный |
-| Настройки | `Lampa.SettingsApi.addComponent/addParam` | стабильный |
-| Хранилище | `Lampa.Storage.get/set` | стабильный |
-| Сеть | `Lampa.Reguest` / `Lampa.Network` | стабильный |
-| TMDB поиск | `Lampa.Api.search` | внутренний |
-| Открытие карточки | `Lampa.Router.call('full', card)` | стабильный |
-| Уведомления | `Lampa.Noty.show` | стабильный |
-| Maker/ContentRows | `Lampa.Maker`, `Lampa.ContentRows` | используется только в диагностике |
-
-## Архитектура плагина
+## Поток данных
 
 ```text
-src/
-  index.js          — инициализация, регистрация компонентов, меню
-  config.js         — константы, ключи Lampa.Storage, TTL
-  settings.js       — раздел настроек через Lampa.SettingsApi
-  logger.js         — логирование без утечки токенов
-  cache.js          — TTL-кэш поверх Lampa.Storage
-  api/
-    client.js       — HTTP-клиент с queue/retry/cancel, fallback на fetch
-    graphql.js      — GraphQL queries
-    normalizer.js   — нормализация ответов Shikimori
-    index.js        — high-level adapter для UI
-  mapping/
-    storage.js      — локальное хранилище mapping
-    scoring.js      — similarity + confidence
-    matcher.js      — поиск лучшего соответствия + открытие Lampa карточки
-  components/
-    home.js         — главный экран
-    search.js       — поиск
-    line.js         — популярное/онгоинги/новинки/анонсы
-    anime.js        — карточка аниме
-    mapping.js      — ручной выбор/сохранение mapping
-    mappings.js     — список сохранённых mapping
-    diagnostics.js  — диагностика
-  ui/
-    menu.js         — пункт в меню Lampa
-    cards.js        — helpers карточек
-    templates.js    — HTML-шаблоны
-    styles.js       — CSS
+Lampa UI
+  ├─ src/components/*, src/ui/*
+  ├─ src/api/index.js ── GraphQL / REST ── Shikimori
+  ├─ src/api/user.js ─── user_rates API ─ Shikimori
+  └─ src/mapping/* ──── Lampa.Api.search ─ TMDB-кандидаты
+       └─ Lampa.Storage: настройки, токены, кэш и mappings
 ```
 
-## Сборка
+`src/index.js` ждёт готовности Lampa, затем однократно регистрирует компоненты и настройки. `src/api/client.js` обслуживает очередь, повторы, отмену и авторизацию. Ревизия сессии отсекает ответы и отложенные записи прежнего аккаунта. Авторизованные ответы не попадают в публичный кэш. `src/api/normalizer.js` приводит ответы к общей форме, `src/cache.js` хранит ограниченный TTL-кэш.
 
-- `npm run build` — esbuild bundling в IIFE, uglify-js без минификации (только форматирование).
-- Итоговый `dist/plugin.js` — один browser-ready файл без `import`/`export`.
+`src/mapping/` сохраняет соответствия Shikimori ↔ TMDB. Очередь допускает до трёх одновременно ожидаемых TMDB-запросов; одинаковые запросы объединяются, ожидание отдельного ответа ограничено 12 секундами. Если API Lampa не позволяет отменить запрос, истечение ожидания не отменяет его на транспортном уровне. Порог соответствия применяется к кэшированным кандидатам заново, поэтому настройка действует сразу.
 
-## Проверки
+Каталог и карточки используют Shikimori GraphQL (`/api/graphql`) и REST (`/api/animes`). Авторизованные функции используют `/api/users/...`, `/api/v2/user_rates` и запросы списка аниме. Сопоставление ищет кандидатов через `Lampa.Api.search`, затем открывает стандартную карточку Lampa.
 
-```text
-npm test        → 4 suites, 12 tests passed
-npm run build   → dist/plugin.js 63 KB
-node --check dist/plugin.js → OK
-grep secrets    → no matches
-grep eval/new Function/document.write → no matches
-grep import/export at top → no matches
+## OAuth и локальные данные
+
+Авторизация реализована непосредственно в плагине: authorization code обменивается на токены, access token обновляется через refresh token. Предусмотрен также ручной ввод access token. Токены и OAuth client credentials хранятся в `Lampa.Storage`; client secret также входит в клиентский код. Его нельзя считать конфиденциальным. Backend-посредника нет, поэтому данная схема не обеспечивает серверную защиту OAuth credentials.
+
+В локальном хранилище также находятся настройки, пользовательские mappings, фильтр и кэш. Импорт mappings дополняет сохранённые данные; конфликты пропускаются с отчётом о числе записей. Повреждённый импорт и ошибки записи показываются пользователю. Телеметрии в архитектуре не предусмотрено.
+
+## Среда и ограничения
+
+- Плагин обращается к Shikimori непосредственно из WebView Lampa. Доступность зависит от CORS, сети и реализации WebView.
+- HTTPS-страница не может загружать HTTP-плагин/API из-за политики mixed content.
+- TMDB-поиск зависит от внутреннего `Lampa.Api.search`.
+- Jest и визуальные сценарии выполняются с mock Lampa/браузерным окружением; они не гарантируют совместимость с конкретной прошивкой телевизора, WebView или пультом.
+- OAuth credentials в клиенте не подходят для модели, где client secret должен оставаться закрытым. Перенос OAuth на backend отложен.
+
+## Разработка и проверки
+
+Требуется Node.js 22.12+ из-за Puppeteer 25. Основные исходники: `src/`; unit-тесты: `tests/`; браузерные сценарии: `scripts/`.
+
+```bash
+npm test
+npm run check
+npm run test:visual
 ```
 
-## Ограничения первой версии
+`check` выполняет согласованный набор проверок синтаксиса, тестов, сборки и артефактов. `test:visual` проверяет интерфейс в браузерном mock. Сборка `npm run build` формирует browser IIFE и записывает `dist/plugin.js` и `docs/ShikiLamp.js`.
 
-- Нет автоматической синхронизации просмотра.
-- Нет OAuth — только экспериментальный токен, выключенный по умолчанию.
-- Автоматический mapping зависит от `Lampa.Api.search`; если TMDB недоступен, только ручной ввод.
-- Возможны проблемы CORS / mixed content в некоторых WebView.
+Результаты mock-проверок не равны приёмке на устройстве: запуск в Lampa на целевом телевизоре остаётся отдельной проверкой.
 
-## Следующие шаги
-
-1. Реальный запуск в Lampa через LAN URL.
-2. Проверка управления пультом и фокуса.
-3. Доработка UI на основе Lampa.Maker/ContentRows при наличии стабильных примеров.
-4. Подготовка локального LAN-proxy для CORS/User-Agent при необходимости.
-5. OAuth-авторизация через пользовательский backend.
+Контракты сверены с исходниками Lampa: [готовность приложения](https://github.com/yumata/lampa-source/blob/master/src/app.js), [поиск TMDB](https://github.com/yumata/lampa-source/blob/master/src/core/api/api.js), [SettingsApi](https://github.com/yumata/lampa-source/blob/master/src/interaction/settings/api.js), [подписки на события](https://github.com/yumata/lampa-source/blob/master/src/utils/subscribe.js).

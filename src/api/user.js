@@ -6,6 +6,7 @@ const normalizer = require('./normalizer');
 const api = require('./index');
 const config = require('../config');
 const logger = require('../logger');
+const auth = require('../auth');
 
 const RATE_STATUS_TITLES = {
   planned: 'В планах',
@@ -25,7 +26,7 @@ function buildQuery(params) {
 
 function normalizeRate(rate) {
   if (!rate) return null;
-  const anime = normalizer.normalizeAnime(rate.anime || rate.target || rate);
+  const anime = normalizer.normalizeAnime(rate.anime || rate.target || (rate.target_id ? { id: rate.target_id } : null));
   if (!anime) return null;
   anime.rate_id = rate.id || 0;
   anime.user_rate_status = rate.status || '';
@@ -87,6 +88,7 @@ function listAllAnimeRates(userId, status, options) {
 }
 
 function hydrateAnimeDetails(rates, options) {
+  const revision = auth.getSessionRevision();
   const ids = rates.map(function (anime) { return anime.shikimori_id; }).filter(Boolean);
   if (!ids.length) return rates;
   const batches = [];
@@ -96,12 +98,15 @@ function hydrateAnimeDetails(rates, options) {
       return api.getByIds(batch, options).then(function (next) { return details.concat(next || []); });
     });
   }, Promise.resolve([])).then(function (details) {
+    if (revision !== auth.getSessionRevision()) throw new Error('AUTH_SESSION_CHANGED');
     const byId = {};
     details.forEach(function (anime) { byId[anime.shikimori_id] = anime; });
     return rates.map(function (rate) {
       return byId[rate.shikimori_id] ? Object.assign({}, rate, byId[rate.shikimori_id]) : rate;
     });
-  }).catch(function () {
+  }).catch(function (error) {
+    if (revision !== auth.getSessionRevision()) throw new Error('AUTH_SESSION_CHANGED');
+    if (error && (error.code === 'REQUEST_CANCELLED' || error.message === 'AUTH_SESSION_CHANGED')) throw error;
     return rates;
   });
 }

@@ -48,13 +48,13 @@ Diagnostics.prototype.collectData = function () {
     lampaVersion: (typeof Lampa !== 'undefined' && Lampa.Manifest && Lampa.Manifest.app_version) ? Lampa.Manifest.app_version : '?',
     hasMaker: hasMaker,
     hasContentRows: hasContentRows,
-    apiBaseUrl: settings.getApiBaseUrl(),
+    apiBaseUrl: sanitizeUrl(logger.sanitize(settings.getApiBaseUrl())),
     lastRequestStatus: this.logEntries.length > 0 ? this.logEntries[this.logEntries.length - 1] : '-',
     cacheSize: cache.size(),
     mappingCount: mappingStorage.count(),
     corsTest: 'pending',
     hasToken: !!settings.getExperimentalToken(),
-    authUser: user ? (user.nickname || user.name || 'ID ' + user.id) + ' (ID ' + user.id + ')' : 'не проверен'
+    authUser: user ? logger.sanitize((user.nickname || user.name || 'ID ' + user.id) + ' (ID ' + user.id + ')') : 'не проверен'
   };
 };
 
@@ -186,7 +186,7 @@ function summarizeList(list) {
 }
 
 Diagnostics.prototype.log = function (text) {
-  this.logEntries.push(text);
+  this.logEntries.push(logger.sanitize(text));
 };
 
 Diagnostics.prototype.buildReport = function () {
@@ -219,7 +219,7 @@ Diagnostics.prototype.buildReport = function () {
     token_present: data.hasToken,
     token_value: '[REDACTED]',
     exported_at: Date.now ? Date.now() : new Date().getTime()
-  }, null, 2);
+  }, function (key, value) { return typeof value === 'string' ? logger.sanitize(value) : value; }, 2);
 };
 
 function sanitizeUrl(url) {

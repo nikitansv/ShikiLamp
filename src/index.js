@@ -5,8 +5,6 @@ const config = require('./config');
 const logger = require('./logger');
 const settings = require('./settings');
 const menu = require('./ui/menu');
-const cache = require('./cache');
-const api = require('./api');
 const styles = require('./ui/styles');
 
 const Home = require('./components/home');
@@ -24,30 +22,20 @@ const READY_FLAG = '__shikimori_local_ready';
 
 function init() {
   const Lampa = typeof window !== 'undefined' ? window.Lampa : null;
-  if (!Lampa) {
-    logger.warn('Lampa not available');
-    return;
-  }
+  if (!Lampa || !window.appready) return;
 
   if (window[READY_FLAG]) {
     logger.log('Already initialized');
     return;
   }
-  window[READY_FLAG] = true;
-
   logger.log('Initializing', config.PLUGIN_ID, config.VERSION);
 
   logger.setDebug(settings.isDebug());
   styles.injectStyles();
   settings.register();
-  menu.register();
   registerComponents();
-
-  Lampa.Listener.follow('app', function (event) {
-    if (event && event.type === 'ready') {
-      menu.register();
-    }
-  });
+  menu.register();
+  window[READY_FLAG] = true;
 }
 
 function registerComponents() {
@@ -66,7 +54,7 @@ function registerComponents() {
 
   Object.keys(components).forEach(function (name) {
     if (Lampa.Component && Lampa.Component.add) {
-      if (!Lampa.Component.get(name)) {
+      if (!Lampa.Component.get || !Lampa.Component.get(name)) {
         Lampa.Component.add(name, components[name]);
       }
     }
@@ -75,18 +63,33 @@ function registerComponents() {
 
 if (typeof window !== 'undefined' && !window.__shikimori_local_cjs_loaded) {
   window.__shikimori_local_cjs_loaded = true;
-  // Browser-only auto-init is handled by build footer to ensure Lampa is ready.
-  // Keep DOMContentLoaded fallback for direct script usage without footer.
-  if (!window.__shikimori_local_footer_init) {
-    window.addEventListener('DOMContentLoaded', function () {
-      if (window.appready && window.Lampa) init();
-    });
-    if (window.Lampa && window.Lampa.Listener) {
-      window.Lampa.Listener.follow('app', function (event) {
-        if (event && event.type === 'ready') init();
-      });
+  let attempts = 0;
+  let retryTimer = null;
+  let readyListener = null;
+  function onReady(event) {
+    if (event && event.type === 'ready') waitForLampa();
+  }
+  function waitForLampa() {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+    if (window.appready && window.Lampa) {
+      try {
+        init();
+        if (readyListener && readyListener.remove) readyListener.remove('app', onReady);
+        return;
+      } catch (err) { logger.warn('Initialization failed', err.message); }
+    }
+    const listener = window.Lampa && window.Lampa.Listener;
+    if (!window.appready && listener && listener.follow) {
+      if (!readyListener) {
+        readyListener = listener;
+        listener.follow('app', onReady);
+      }
+    } else if (++attempts < 120) {
+      retryTimer = setTimeout(waitForLampa, 500);
     }
   }
+  waitForLampa();
 }
 
 module.exports = { init, PLUGIN_ID: config.PLUGIN_ID, VERSION: config.VERSION };

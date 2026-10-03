@@ -7,33 +7,32 @@ const lifecycle = require('../components/lifecycle');
 
 const MENU_CLASS = 'shikimori-local-menu-item';
 const MENU_ACTION = 'shikimori_local';
+let retryTimer = null;
+let attempts = 0;
 
-function register() {
+function register(retry) {
+  clearTimeout(retryTimer);
+  retryTimer = null;
+  if (!retry) attempts = 0;
+  const existing = document.querySelector('.' + MENU_CLASS);
   if (!settings.showMenu() || !settings.isEnabled()) {
-    logger.log('Menu disabled by settings');
+    if (existing) existing.remove();
+    attempts = 0;
     return;
   }
 
-  if (document.querySelector('.' + MENU_CLASS)) {
-    logger.log('Menu item already exists');
-    return;
-  }
+  if (existing) return;
 
   const body = getMenuBody();
   if (!body) {
-    logger.warn('Menu body not found, will retry');
-    setTimeout(register, 500);
+    if (++attempts < 20) retryTimer = setTimeout(function () { register(true); }, 500);
+    else logger.warn('Menu body not found');
     return;
   }
 
   const item = createMenuItem();
   body.appendChild(item);
-
-  Lampa.Listener.follow('menu', function (event) {
-    if (event.type === 'start') {
-      bindItemEvents(item);
-    }
-  });
+  attempts = 0;
 }
 
 function getMenuBody() {
@@ -60,7 +59,7 @@ function bindItemEvents(item) {
 }
 
 function openHome() {
-  if (typeof Lampa !== 'undefined' && Lampa.Activity) {
+  if (settings.isEnabled() && typeof Lampa !== 'undefined' && Lampa.Activity) {
     Lampa.Activity.push({
       url: '',
       title: 'Shikimori',

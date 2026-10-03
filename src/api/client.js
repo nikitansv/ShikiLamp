@@ -24,6 +24,19 @@ function getAuth() {
   }
 }
 
+function getSessionRevision() {
+  const auth = getAuth();
+  return auth && auth.getSessionRevision ? auth.getSessionRevision() : 0;
+}
+
+function sessionChanged(job) {
+  if (job.authenticated && job.sessionRevision !== getSessionRevision()) {
+    finish(job, new Error('AUTH_SESSION_CHANGED'), null);
+    return true;
+  }
+  return false;
+}
+
 function getNetwork() {
   if (networkInstance) return networkInstance;
   if (typeof Lampa !== 'undefined' && Lampa.Network) {
@@ -72,9 +85,23 @@ function runNext() {
   execute(job);
 }
 
-function executeFetch(url, params, id, done, fail) {
+function executeFetch(url, params, job, done, fail) {
+  const id = job.id;
   const controller = new AbortController();
   abortControllers[id] = controller;
+  let completed = false;
+  function complete(callback, value, extra) {
+    if (completed) return;
+    completed = true;
+    clearTimeout(job.timeoutTimer);
+    job.timeoutTimer = null;
+    delete abortControllers[id];
+    callback(value, extra);
+  }
+  job.timeoutTimer = setTimeout(function () {
+    controller.abort();
+    complete(fail, { status: 408, decode_error: 'Request timeout' });
+  }, params.timeout);
   fetch(url, {
     method: params.type || 'GET',
     headers: params.headers,
@@ -82,35 +109,32 @@ function executeFetch(url, params, id, done, fail) {
     signal: controller.signal,
     mode: 'cors'
   }).then(function (response) {
-    delete abortControllers[id];
     if (!response.ok) {
       return response.text().then(function (text) {
         const fakeXhr = { status: response.status, decode_error: text || ('HTTP ' + response.status) };
-        fail(fakeXhr, new Error(fakeXhr.decode_error));
+        complete(fail, fakeXhr, new Error(fakeXhr.decode_error));
       });
     }
     if (response.status === 204) {
-      done({}, false);
+      complete(done, {}, false);
       return null;
     }
     return response.text().then(function (text) {
-      if (!text) return done({}, false);
+      if (!text) return complete(done, {}, false);
       try {
-        done(JSON.parse(text), false);
+        complete(done, JSON.parse(text), false);
       } catch (e) {
-        fail({ status: 500, decode_error: 'JSON parse error: ' + e.message }, e);
+        complete(fail, { status: 500, decode_error: 'JSON parse error: ' + e.message }, e);
       }
       return null;
     });
   }).catch(function (e) {
-    delete abortControllers[id];
-    if (e.name === 'AbortError') return;
-    fail({ status: 0, decode_error: e.message }, e);
+    complete(fail, { status: 0, decode_error: e.message }, e);
   });
 }
 
 function execute(job) {
-  if (job.cancelled || job.settled) return;
+  if (job.cancelled || job.settled || sessionChanged(job)) return;
 
   if (job.authenticated && !job.authPrepared) {
     const auth = getAuth();
@@ -128,10 +152,12 @@ function execute(job) {
 
   const network = getNetwork();
   const url = buildUrl(job.path);
-  const cacheKey = { method: job.method || 'GET', path: job.path, body: job.body };
+  const cacheKey = { method: job.method || 'GET', url: url, body: job.body };
+  const cacheTtl = job.cacheTtl || job.ttl || 0;
+  const useCache = !job.authenticated && !job.skipCache && cacheTtl > 0;
 
-  const cached = cache.get('api', cacheKey, job.cacheTtl || job.ttl || 0);
-  if (cached.hit && !job.skipCache) {
+  const cached = useCache ? cache.get('api', cacheKey, cacheTtl) : { hit: false };
+  if (cached.hit) {
     logger.debug('Cache hit', url);
     return finish(job, null, cached.data);
   }
@@ -171,8 +197,8 @@ function execute(job) {
   };
 
   const done = function (data, fromCache) {
-    if (aborted || job.cancelled || job.settled) return;
-    if (!fromCache && job.cacheTtl > 0) {
+    if (aborted || job.cancelled || job.settled || sessionChanged(job)) return;
+    if (!fromCache && useCache && !(data && data.errors && data.errors.length)) {
       cache.set('api', cacheKey, data);
     }
     finish(job, null, data);
@@ -183,7 +209,7 @@ function execute(job) {
   };
 
   function makeRequest(attemptsLeft) {
-    if (aborted || job.cancelled || job.settled) return;
+    if (aborted || job.cancelled || job.settled || sessionChanged(job)) return;
 
     const requestParams = Object.assign({}, params, {
       headers: Object.assign({}, params.headers)
@@ -195,11 +221,15 @@ function execute(job) {
     }
 
     const fail = function (xhr, exception) {
-      if (aborted || job.cancelled || job.settled) return;
+      if (aborted || job.cancelled || job.settled || sessionChanged(job)) return;
       const err = normalizeError(xhr, exception);
       if (err.status === 401 && job.authenticated && !job.authRetried) {
         const auth = getAuth();
         job.authRetried = true;
+        if (getExperimentalToken() && requestParams.headers.Authorization !== 'Bearer ' + getExperimentalToken()) {
+          makeRequest(attemptsLeft);
+          return;
+        }
         if (!auth || typeof auth.ensureValidToken !== 'function') {
           finish(job, err, null);
           return;
@@ -222,45 +252,28 @@ function execute(job) {
       finish(job, err, null);
     };
 
-    const preferFetch = typeof fetch === 'function' && job.authenticated && params.type && params.type !== 'GET';
-    if (preferFetch) {
-      executeFetch(url, requestParams, id, done, fail);
-      return;
-    }
+    try {
+      const preferFetch = typeof fetch === 'function' && job.authenticated && params.type && params.type !== 'GET';
+      if (preferFetch) {
+        executeFetch(url, requestParams, job, done, fail);
+        return;
+      }
 
-    if (network && network.quiet) {
-      network.quiet(url, done, fail, requestParams.post_data, requestParams);
-    } else if (typeof fetch === 'function' && job.path === '/oauth/token') {
-      executeFetch(url, requestParams, id, done, fail);
-    } else if (typeof fetch === 'function') {
-      const controller = new AbortController();
-      abortControllers[id] = controller;
-      fetch(url, {
-        method: requestParams.type || 'GET',
-        headers: requestParams.headers,
-        body: requestParams.post_data,
-        signal: controller.signal,
-        mode: 'cors'
-      }).then(function (response) {
+      if (network && network.quiet) {
+        network.quiet(url, done, fail, requestParams.post_data, requestParams);
+      } else if (typeof fetch === 'function') {
+        executeFetch(url, requestParams, job, done, fail);
+      } else {
+        fail({ status: 0, decode_error: 'No network backend available' }, new Error('No network'));
+      }
+    } catch (error) {
+      clearTimeout(job.timeoutTimer);
+      job.timeoutTimer = null;
+      if (abortControllers[id]) {
+        try { abortControllers[id].abort(); } catch (e) {}
         delete abortControllers[id];
-        if (!response.ok) {
-          const fakeXhr = { status: response.status, decode_error: 'HTTP ' + response.status };
-          return fail(fakeXhr, new Error(fakeXhr.decode_error));
-        }
-        return response.json().then(function (json) {
-          done(json, false);
-        }).catch(function (e) {
-          fail({ status: 500, decode_error: 'JSON parse error: ' + e.message }, e);
-        });
-      }).catch(function (e) {
-        delete abortControllers[id];
-        if (e.name === 'AbortError' && (aborted || job.cancelled)) return;
-        fail({ status: 0, decode_error: e.message }, e);
-      });
-      return;
-    } else {
-      fail({ status: 0, decode_error: 'No network backend available' }, new Error('No network'));
-      return;
+      }
+      fail({ status: 0, decode_error: error.message }, error);
     }
 
   }
@@ -273,6 +286,11 @@ function finish(job, err, data) {
   if (!job || job.settled) return;
   job.settled = true;
   delete jobs[job.id];
+  if (!job.started) queue = queue.filter(function (pending) { return pending !== job; });
+  if (job.timeoutTimer) {
+    clearTimeout(job.timeoutTimer);
+    job.timeoutTimer = null;
+  }
   if (job.retryTimer) {
     clearTimeout(job.retryTimer);
     job.retryTimer = null;
@@ -310,6 +328,7 @@ function request(path, options) {
     skipCache: options.skipCache,
     cacheTtl: options.cacheTtl || 0,
     authenticated: options.authenticated,
+    sessionRevision: options.authenticated ? getSessionRevision() : null,
     scope: options.scope,
     onSuccess: resolveRequest,
     onError: rejectRequest,

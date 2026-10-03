@@ -10,7 +10,7 @@ function normalize(str) {
 function tokenSet(str) {
   const norm = normalize(str);
   if (!norm) return [];
-  return norm.split(/\s+/).filter(function (t) { return t.length > 1; });
+  return norm.split(/\s+/).filter(function (t, index, tokens) { return t.length > 1 && tokens.indexOf(t) === index; });
 }
 
 function jaccard(a, b) {
@@ -73,7 +73,7 @@ function bestTitleScore(anime, candidate) {
 
 function score(anime, candidate) {
   const titleScore = bestTitleScore(anime, candidate);
-  const jaccardScore = jaccard(anime.title + ' ' + anime.original_title, candidate.name + ' ' + candidate.original_name);
+  const jaccardScore = jaccard([anime.title, anime.original_title].filter(Boolean).join(' '), [candidate.name, candidate.original_name].filter(Boolean).join(' '));
   const yearMatch = anime.year && candidate.year ? (anime.year === candidate.year ? 1 : 0.3) : 0.5;
   const typeMatch = kindMatches(anime.kind, candidate.media_type || candidate.type) ? 1 : 0.5;
   const episodesMatch = episodeScore(anime.episodes, candidate.episodes || candidate.episode_count);

@@ -149,6 +149,16 @@ test('rerender preserves selected action before collectionSet clears focus', () 
   expect(page.html.querySelector('[data-action="second"]').classList.contains('focus')).toBe(true);
 });
 
+test('rerender restores the TV candidate when a movie shares its TMDB ID', () => {
+  const page = screen('<div class="shikimori-local"><div class="selector" data-id="10" data-type="movie">movie</div><div class="selector" data-id="10" data-type="tv">TV</div></div>');
+  lifecycle.refocus(page, page.html.querySelector('[data-type="tv"]'));
+  lifecycle.rememberFocus(page);
+  page.html.innerHTML = '<div class="shikimori-local"><div class="selector" data-id="10" data-type="movie">movie</div><div class="selector" data-id="10" data-type="tv">TV</div></div>';
+  lifecycle.refocus(page);
+  expect(page.html.querySelector('[data-type="tv"]').classList.contains('focus')).toBe(true);
+  expect(page.html.querySelector('[data-type="movie"]').classList.contains('focus')).toBe(false);
+});
+
 test('inherited lifecycle registers content only once', () => {
   function Parent() { this.html = document.createElement('div'); }
   lifecycle.attachLifecycle(Parent);
@@ -173,16 +183,14 @@ test('an unbound click and a Lampa-translated click each run one action', () => 
   expect(action).toHaveBeenCalledTimes(1);
 });
 
-test('menu registration and menu start do not attach duplicate enter handlers', () => {
+test('repeated menu registration does not attach duplicate enter handlers', () => {
   const settings = require('../src/settings');
   jest.spyOn(settings, 'showMenu').mockReturnValue(true);
   jest.spyOn(settings, 'isEnabled').mockReturnValue(true);
-  let onMenu;
-  Lampa.Listener = { follow: (name, callback) => { onMenu = callback; } };
   document.body.innerHTML = '<div class="menu__list"></div>';
   menu.register();
-  onMenu({ type: 'start' });
-  onMenu({ type: 'start' });
+  menu.register();
+  menu.register();
   document.querySelector('.shikimori-local-menu-item').dispatchEvent(new window.Event('hover:enter'));
   expect(Lampa.Activity.push).toHaveBeenCalledTimes(1);
 });

@@ -46,7 +46,7 @@ function search(query, page, options) {
   const q = String(query || '').trim();
   logger.debug('search', q, 'limit', limit);
   if (/^\d+$/.test(q)) {
-    return graphqlRequest(graphql.getAnimeById(q), 'anime', options).then(normalizer.normalizeAnimeResponse);
+    return graphqlRequest(graphql.getAnimeById(q), 'anime', options).then(normalizer.normalizeSearchResponse);
   }
   return graphqlRequest(graphql.searchAnimes(q, limit, page || 1), 'search', options).then(normalizer.normalizeSearchResponse);
 }

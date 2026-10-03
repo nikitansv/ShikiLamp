@@ -6,6 +6,35 @@ const userApi = require('../src/api/user');
 beforeEach(() => client.request.mockClear());
 
 describe('user api normalization', () => {
+  test('mutation responses use target_id as anime ID, keeping watched episodes separate', () => {
+    expect(userApi.normalizeRate({ id: 42, target_id: 1, target_type: 'Anime', episodes: 3, score: 8 })).toMatchObject({
+      shikimori_id: 1, rate_id: 42, episodes: 0, score: 0, user_episodes: 3, user_score: 8
+    });
+  });
+
+  test('detail hydration preserves server list order and user progress', async () => {
+    const rates = userApi.normalizeRates([{ id: 42, episodes: 3, anime: { id: 2 } }, { id: 43, anime: { id: 1 } }]);
+    client.request.mockResolvedValueOnce({ data: { animes: [{ id: 1, name: 'First' }, { id: 2, name: 'Second' }] } });
+    const result = await userApi.hydrateAnimeDetails(rates);
+    expect(result.map(anime => anime.shikimori_id)).toEqual([2, 1]);
+    expect(result[0]).toMatchObject({ title: 'Second', rate_id: 42, user_episodes: 3 });
+  });
+
+  test('detail hydration propagates cancellation', async () => {
+    const error = Object.assign(new Error('REQUEST_CANCELLED'), { code: 'REQUEST_CANCELLED' });
+    client.request.mockRejectedValueOnce(error);
+    await expect(userApi.hydrateAnimeDetails([{ shikimori_id: 1 }])).rejects.toBe(error);
+  });
+
+  test('detail hydration cannot return an old user list after logout', async () => {
+    let complete;
+    client.request.mockImplementationOnce(() => new Promise(resolve => { complete = resolve; }));
+    const pending = userApi.hydrateAnimeDetails([{ shikimori_id: 1 }]);
+    await Promise.resolve();
+    require('../src/auth').clearToken();
+    complete({ data: { animes: [{ id: 1, name: 'Name' }] } });
+    await expect(pending).rejects.toThrow('AUTH_SESSION_CHANGED');
+  });
   test('normalizes anime rates with embedded anime', () => {
     const list = userApi.normalizeRates([
       {

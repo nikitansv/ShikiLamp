@@ -169,8 +169,8 @@ function diagnosticsTemplate(data) {
       '<div>API Base URL: ' + escapeHtml(data.apiBaseUrl || '?') + '</div>' +
       '<div>Размер кэша: ' + (data.cacheSize || 0) + '</div>' +
       '<div>Mapping записей: ' + (data.mappingCount || 0) + '</div>' +
-      '<div>Последний запрос: ' + (data.lastRequestStatus || '-') + '</div>' +
-      '<div>CORS тест: ' + (data.corsTest || '-') + '</div>' +
+      '<div>Последний запрос: ' + escapeHtml(data.lastRequestStatus || '-') + '</div>' +
+      '<div>CORS тест: ' + escapeHtml(data.corsTest || '-') + '</div>' +
       '<div>Экспериментальный токен: ' + (data.hasToken ? 'установлен' : 'не установлен') + '</div>' +
       '<div>Shikimori аккаунт: ' + escapeHtml(data.authUser || 'не проверен') + '</div>' +
     '</div>' +

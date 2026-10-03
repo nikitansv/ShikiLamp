@@ -6,4 +6,5 @@ coverage/
 Thumbs.db
 .env
 *.local
-.env
+.worktrees/
+shikilamp-context.zip

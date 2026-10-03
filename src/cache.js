@@ -34,7 +34,7 @@ function loadCache() {
     const raw = store.get(STORAGE_KEY, '');
     if (!raw) return { v: VERSION, items: {} };
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!parsed || parsed.v !== VERSION) return { v: VERSION, items: {} };
+    if (!parsed || parsed.v !== VERSION || !parsed.items || typeof parsed.items !== 'object' || Array.isArray(parsed.items)) return { v: VERSION, items: {} };
     return parsed;
   } catch (e) {
     return { v: VERSION, items: {} };
@@ -59,9 +59,9 @@ function get(type, params, ttlMs) {
   const cache = loadCache();
   const key = makeKey(type, params);
   const entry = cache.items[key];
-  if (!entry) return { hit: false, stale: false, data: null };
+  if (!entry || typeof entry.t !== 'number' || !isFinite(entry.t) || !Object.prototype.hasOwnProperty.call(entry, 'd')) return { hit: false, stale: false, data: null };
   const age = now() - entry.t;
-  if (typeof ttlMs === 'number' && ttlMs >= 0 && age > ttlMs) {
+  if (age < 0 || (typeof ttlMs === 'number' && ttlMs >= 0 && age >= ttlMs)) {
     return { hit: false, stale: true, data: entry.d };
   }
   return { hit: true, stale: false, data: entry.d };
@@ -74,7 +74,7 @@ function set(type, params, data) {
   const keys = Object.keys(cache.items);
   if (keys.length > MAX_ENTRIES) {
     const sorted = keys.sort(function (a, b) {
-      return cache.items[a].t - cache.items[b].t;
+      return ((cache.items[a] || {}).t || 0) - ((cache.items[b] || {}).t || 0);
     });
     const remove = sorted.slice(0, keys.length - MAX_ENTRIES);
     remove.forEach(function (k) {

@@ -34,11 +34,12 @@ function savedFocus(instance) {
   const saved = instance.__shikimoriFocus;
   if (!saved) return null;
   if (selectable(instance, saved)) return saved;
-  const attrs = ['data-action', 'data-tab', 'data-field', 'data-value', 'data-id'];
+  const attrs = ['data-action', 'data-tab', 'data-field', 'data-value', 'data-id', 'data-type'];
   return Array.from(instance.html.querySelectorAll('.selector')).find(function (el) {
     if (!selectable(instance, el)) return false;
     if (saved.__shikimoriAnime) return el.__shikimoriAnime && el.__shikimoriAnime.shikimori_id === saved.__shikimoriAnime.shikimori_id;
-    return attrs.some(function (attr) { return saved.hasAttribute(attr) && el.getAttribute(attr) === saved.getAttribute(attr); });
+    return attrs.some(function (attr) { return saved.hasAttribute(attr); }) &&
+      attrs.every(function (attr) { return !saved.hasAttribute(attr) || el.getAttribute(attr) === saved.getAttribute(attr); });
   });
 }
 

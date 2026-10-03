@@ -93,6 +93,7 @@ Line.prototype.loadPage = function (append) {
   this.loading = true;
   this.removeMoreButton();
   if (!append) this.results.innerHTML = '';
+  this.results.querySelectorAll('.shikimori-local__error').forEach(function (el) { el.remove(); });
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
   this.refocus();
 
@@ -108,6 +109,7 @@ Line.prototype.loadPage = function (append) {
       logger.warn('Line error', err.message);
       self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
       self.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__error">Ошибка загрузки: ' + templates.escapeHtml(err.message) + '</div>');
+      self.addMoreButton(!append);
     }
     self.refocus();
   });
@@ -166,8 +168,10 @@ Line.prototype.probeNextPage = function () {
     if (!self.ended) self.addMoreButton();
     self.refocus();
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
+    if (self.__shikimoriDestroyed || !self.html || page !== self.page || loadId !== self.loadId) return;
     logger.warn('Line next page probe error', err.message);
+    self.addMoreButton();
+    self.refocus();
   });
 };
 
@@ -179,13 +183,13 @@ Line.prototype.createCard = function (anime) {
   });
 };
 
-Line.prototype.addMoreButton = function () {
+Line.prototype.addMoreButton = function (retry) {
   const self = this;
   if (this.ended || this.results.querySelector('.shikimori-local__more')) return;
   const more = document.createElement('div');
   more.className = 'shikimori-local__more selector';
-  more.textContent = 'Ещё';
-  lifecycle.bindAction(more, function () { self.loadPage(true); });
+  more.textContent = retry ? 'Повторить' : 'Ещё';
+  lifecycle.bindAction(more, function () { self.loadPage(!retry); });
   this.results.appendChild(more);
 };
 

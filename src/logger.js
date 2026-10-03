@@ -12,8 +12,8 @@ function sanitize(value) {
   const text = typeof value === 'string' ? value : safeStringify(value);
   return String(text || '')
     .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi, 'Bearer [REDACTED]')
-    .replace(/access_token["'=:\s]+[A-Za-z0-9._~+\/-]+=*/gi, 'access_token=[REDACTED]')
-    .replace(/refresh_token["'=:\s]+[A-Za-z0-9._~+\/-]+=*/gi, 'refresh_token=[REDACTED]')
+    .replace(/((?:access_token|refresh_token|client_secret|authorization_code|code)["']?\s*[:=]\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/gi, '$1"[REDACTED]"')
+    .replace(/((?:access_token|refresh_token|client_secret|authorization_code|code)["'=:\s]+)[^\s"'&,}]+/gi, '$1[REDACTED]')
     .slice(0, 1000);
 }
 
@@ -42,21 +42,21 @@ function isDebug() {
 function log() {
   remember('log', arguments);
   if (typeof console !== 'undefined' && console.log) {
-    console.log.apply(console, [prefix].concat(Array.prototype.slice.call(arguments)));
+    console.log.apply(console, [prefix].concat(Array.prototype.slice.call(arguments).map(sanitize)));
   }
 }
 
 function warn() {
   remember('warn', arguments);
   if (typeof console !== 'undefined' && console.warn) {
-    console.warn.apply(console, [prefix].concat(Array.prototype.slice.call(arguments)));
+    console.warn.apply(console, [prefix].concat(Array.prototype.slice.call(arguments).map(sanitize)));
   }
 }
 
 function error() {
   remember('error', arguments);
   if (typeof console !== 'undefined' && console.error) {
-    console.error.apply(console, [prefix].concat(Array.prototype.slice.call(arguments)));
+    console.error.apply(console, [prefix].concat(Array.prototype.slice.call(arguments).map(sanitize)));
   }
 }
 
@@ -64,7 +64,7 @@ function debug() {
   if (!debugEnabled) return;
   remember('debug', arguments);
   if (typeof console !== 'undefined' && console.log) {
-    console.log.apply(console, [prefix + ' [debug]'].concat(Array.prototype.slice.call(arguments)));
+    console.log.apply(console, [prefix + ' [debug]'].concat(Array.prototype.slice.call(arguments).map(sanitize)));
   }
 }
 
@@ -76,4 +76,4 @@ function clear() {
   entries = [];
 }
 
-module.exports = { setDebug, isDebug, log, warn, error, debug, getEntries, clear };
+module.exports = { setDebug, isDebug, log, warn, error, debug, getEntries, clear, sanitize };

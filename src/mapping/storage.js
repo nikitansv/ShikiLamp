@@ -19,27 +19,30 @@ function setTestStore(store) {
   if (typeof globalThis !== 'undefined') globalThis.__test_storage = store;
 }
 
-function load() {
+function load(strict) {
   const store = getStore();
   if (!store) return { v: FORMAT_VERSION, mappings: {} };
   try {
     const raw = store.get(STORAGE_KEY, '');
     if (!raw) return { v: FORMAT_VERSION, mappings: {} };
-    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    if (!parsed || parsed.v !== FORMAT_VERSION) return { v: FORMAT_VERSION, mappings: {} };
+    const parsed = JSON.parse(typeof raw === 'string' ? raw : JSON.stringify(raw));
+    if (!parsed || parsed.v !== FORMAT_VERSION || !parsed.mappings || typeof parsed.mappings !== 'object' || Array.isArray(parsed.mappings)) throw new Error('Invalid stored mapping format');
     return parsed;
   } catch (e) {
+    if (strict) throw e;
     return { v: FORMAT_VERSION, mappings: {} };
   }
 }
 
 function save(data) {
   const store = getStore();
-  if (!store) return;
+  if (!store) return false;
   try {
     store.set(STORAGE_KEY, JSON.stringify(data));
+    return true;
   } catch (e) {
     logger.warn('Failed to save mappings', e.message);
+    return false;
   }
 }
 
@@ -52,25 +55,33 @@ function list() {
 
 function get(shikimoriId) {
   const data = load();
-  return data.mappings[String(shikimoriId)] || null;
+  return Object.prototype.hasOwnProperty.call(data.mappings, String(shikimoriId)) ? data.mappings[String(shikimoriId)] : null;
 }
 
 function set(mapping) {
-  if (!mapping || !mapping.shikimori_id) return false;
-  const data = load();
-  data.mappings[String(mapping.shikimori_id)] = Object.assign({}, mapping, {
-    updated_at: Date.now ? Date.now() : new Date().getTime()
-  });
-  save(data);
-  return true;
+  if (!mapping || !positiveId(mapping.shikimori_id) || !positiveId(mapping.tmdb_id) || ['tv', 'movie'].indexOf(mapping.tmdb_type) < 0) return false;
+  try {
+    const data = load(true);
+    data.mappings[String(mapping.shikimori_id)] = Object.assign({}, mapping, {
+      updated_at: Date.now ? Date.now() : new Date().getTime()
+    });
+    return save(data);
+  } catch (e) {
+    logger.warn('Failed to update mappings', e.message);
+    return false;
+  }
 }
 
 function remove(shikimoriId) {
-  const data = load();
-  const had = !!data.mappings[String(shikimoriId)];
-  delete data.mappings[String(shikimoriId)];
-  save(data);
-  return had;
+  try {
+    const data = load(true);
+    const had = !!data.mappings[String(shikimoriId)];
+    delete data.mappings[String(shikimoriId)];
+    return save(data) && had;
+  } catch (e) {
+    logger.warn('Failed to remove mapping', e.message);
+    return false;
+  }
 }
 
 function clear() {
@@ -94,17 +105,20 @@ function exportJson() {
 function importJson(text) {
   try {
     const parsed = typeof text === 'string' ? JSON.parse(text) : text;
-    if (!parsed || parsed.v !== FORMAT_VERSION || typeof parsed.mappings !== 'object') {
+    if (!parsed || parsed.v !== FORMAT_VERSION || !parsed.mappings || typeof parsed.mappings !== 'object' || Array.isArray(parsed.mappings)) {
       return { success: false, error: 'Invalid format' };
     }
-    const mappings = {};
+    const mappings = Object.assign({}, load(true).mappings);
+    let count = 0;
+    let skipped = 0;
     Object.keys(parsed.mappings || {}).forEach(function (key) {
       const source = parsed.mappings[key];
       if (!source || typeof source !== 'object') return;
       const shikimoriId = parseInt(source.shikimori_id || key, 10);
       const tmdbId = parseInt(source.tmdb_id, 10);
       const tmdbType = source.tmdb_type === 'tv' || source.tmdb_type === 'movie' ? source.tmdb_type : '';
-      if (!shikimoriId || shikimoriId < 1 || !tmdbId || tmdbId < 1 || !tmdbType) return;
+      if (!positiveId(source.shikimori_id || key) || !positiveId(source.tmdb_id) || !tmdbType) return;
+      if (Object.prototype.hasOwnProperty.call(mappings, String(shikimoriId))) { skipped++; return; }
       const poster = typeof source.poster === 'string' && /^https?:\/\//i.test(source.poster) ? source.poster.slice(0, 2000) : '';
       mappings[String(shikimoriId)] = {
         shikimori_id: shikimoriId,
@@ -119,12 +133,18 @@ function importJson(text) {
         verified: source.verified === true,
         updated_at: Number(source.updated_at) || Date.now()
       };
+      count++;
     });
-    save({ v: FORMAT_VERSION, mappings: mappings });
-    return { success: true, count: Object.keys(mappings).length };
+    if (!count && !skipped && Object.keys(parsed.mappings).length) return { success: false, error: 'No valid mappings' };
+    if (count && !save({ v: FORMAT_VERSION, mappings: mappings })) return { success: false, error: 'Не удалось сохранить mapping' };
+    return { success: true, count: count, skipped: skipped };
   } catch (e) {
     return { success: false, error: e.message };
   }
+}
+
+function positiveId(value) {
+  return /^\d+$/.test(String(value)) && Number.isSafeInteger(Number(value)) && Number(value) > 0;
 }
 
 module.exports = {
