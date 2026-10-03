@@ -1,6 +1,7 @@
 const config = require('../config');
 const Line = require('./line');
 const lifecycle = require('./lifecycle');
+const motion = require('../ui/motion');
 
 function seasonOptions() {
   const year = new Date().getFullYear();
@@ -58,10 +59,18 @@ Filter.prototype.beforeStart = function () {
 };
 
 Filter.prototype.pause = function () {
-  if (this.html) this.html.style.display = 'none';
+  const self = this;
+  if (!this.html) return;
+  this.html.classList.add('shiki-inactive');
+  this.html.firstElementChild.classList.add('shiki-leaving');
+  motion.animate(this.html.firstElementChild, [{ opacity: 1 }, { opacity: 0 }], function () {
+    if (self.html && self.__shikimoriActive !== true) self.html.style.display = 'none';
+  }, 180);
 };
 
-Filter.prototype.stop = Filter.prototype.pause;
+Filter.prototype.stop = function () { if (this.html) this.html.style.display = 'none'; };
+
+Filter.prototype.onLeave = function () { if (this.html) this.html.classList.add('shiki-inactive'); };
 
 Filter.prototype.onMenuOpen = function () {
   if (!this.html) return;
@@ -78,10 +87,11 @@ Filter.prototype.onContentShow = function () {
   this.html.style.display = '';
   this.html.classList.remove('menu-open');
   this.html.classList.remove('host-open');
+  this.html.classList.remove('shiki-inactive');
 };
 
 Filter.prototype.onControllerGone = function (name) {
-  if (name === 'head' && this.html) this.html.classList.add('host-open');
+  if (name && name !== 'content' && name !== 'menu' && this.html) this.html.classList.add('host-open');
 };
 
 Filter.prototype.getFocusRoot = function () {
@@ -92,13 +102,14 @@ Filter.prototype.getFocusRoot = function () {
 
 Filter.prototype.renderPanel = function () {
   const panel = this.html.querySelector('.shikimori-local__filter-panel');
-  panel.innerHTML = '<div class="shikimori-local__filter-title">Фильтр</div>' +
+  panel.innerHTML = '<div class="shikimori-local__filter-content"><div class="shikimori-local__filter-title">Фильтр</div>' +
     '<div class="shikimori-local__filter-start selector" data-action="apply">Начать поиск</div>' +
     '<div class="shikimori-local__filter-fields"></div>' +
-    '<div class="shikimori-local__filter-reset selector" data-action="reset">Сбросить фильтры</div>';
+    '<div class="shikimori-local__filter-reset selector" data-action="reset">Сбросить фильтры</div></div>';
   this.renderFields();
   this.bindFieldEvents();
   this.bindActionEvents();
+  motion.reveal(panel.firstElementChild, -1);
 };
 
 Filter.prototype.renderFields = function () {
@@ -128,10 +139,11 @@ Filter.prototype.selectField = function (field) {
   const self = this;
   this.activeField = field;
   this.html.querySelector('.shikimori-local__filter-panel').innerHTML =
-    '<div class="shikimori-local__filter-title">' + fieldName(field) + '</div>' +
+    '<div class="shikimori-local__filter-content"><div class="shikimori-local__filter-title">' + fieldName(field) + '</div>' +
     '<div class="shikimori-local__filter-options">' + OPTIONS[field].map(function (item) {
       return '<div class="shikimori-local__filter-option selector' + (item[0] === (self.filters[field] || '') ? ' active' : '') + '" data-value="' + item[0] + '">' + item[1] + '</div>';
-    }).join('') + '</div>';
+    }).join('') + '</div></div>';
+  motion.reveal(this.html.querySelector('.shikimori-local__filter-content'), 1);
   this.html.querySelectorAll('[data-value]').forEach(function (el) {
     const choose = function () {
       self.filters[field] = el.getAttribute('data-value');
@@ -179,6 +191,7 @@ Filter.prototype.action = function (action) {
   this.removeMoreButton();
   this.renderPanel();
   this.loadPage(false);
+  this.refocus();
 };
 
 Filter.prototype.destroy = function () {

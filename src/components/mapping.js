@@ -13,6 +13,7 @@ function Mapping(params) {
   this.anime = this.params.anime || {};
   this.searchQuery = this.anime.title || this.anime.original_title || '';
   this.candidates = [];
+  this.loadId = 0;
 }
 
 Mapping.prototype.create = function () {
@@ -24,8 +25,11 @@ Mapping.prototype.create = function () {
 
 Mapping.prototype.loadCandidates = function () {
   const self = this;
+  const loadId = ++this.loadId;
+  lifecycle.rememberFocus(this);
   this.html.innerHTML = templates.mappingTemplate(this.anime, []);
   this.bindEvents();
+  lifecycle.refocus(this);
   const queryAnime = Object.assign({}, this.anime, {
     title: this.searchQuery,
     russian_title: this.searchQuery,
@@ -35,16 +39,18 @@ Mapping.prototype.loadCandidates = function () {
     aliases: []
   });
   matcher.searchTmdb(queryAnime).then(function (candidates) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
+    lifecycle.rememberFocus(self);
     self.candidates = candidates;
     self.html.innerHTML = templates.mappingTemplate(self.anime, candidates);
     self.bindEvents();
     lifecycle.refocus(self);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     logger.warn('Mapping load error', err.message);
     self.html.innerHTML = templates.mappingTemplate(self.anime, []);
     self.bindEvents();
+    lifecycle.refocus(self);
   });
 };
 

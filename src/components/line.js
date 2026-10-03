@@ -10,6 +10,7 @@ const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
 const lifecycle = require('./lifecycle');
+const motion = require('../ui/motion');
 
 function Line(params) {
   this.params = params || {};
@@ -26,6 +27,7 @@ function Line(params) {
   this.pendingFocus = null;
   this.nextList = null;
   this.requestScope = client.createScope('line');
+  this.loadId = 0;
 }
 
 Line.prototype.create = function () {
@@ -72,7 +74,15 @@ Line.prototype.titleFor = function (section) {
 
 Line.prototype.loadPage = function (append) {
   const self = this;
-  if (this.loading || (append && this.ended)) return;
+  if (append && (this.loading || this.ended)) return;
+  if (!append) {
+    this.loadId++;
+    client.cancelScope(this.requestScope);
+    this.page = 1;
+    this.ended = false;
+    this.nextList = null;
+  }
+  const loadId = this.loadId;
   if (append && this.nextList) {
     const buffered = this.nextList;
     this.nextList = null;
@@ -84,20 +94,22 @@ Line.prototype.loadPage = function (append) {
   this.removeMoreButton();
   if (!append) this.results.innerHTML = '';
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
+  this.refocus();
 
   this.loaderFor(this.section)(this.page, { scope: this.requestScope }).then(function (list) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.renderResults(list || [], append);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     if (typeof document !== 'undefined') {
       logger.warn('Line error', err.message);
       self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
       self.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__error">Ошибка загрузки: ' + templates.escapeHtml(err.message) + '</div>');
     }
+    self.refocus();
   });
 };
 
@@ -106,10 +118,12 @@ Line.prototype.renderResults = function (list, append) {
   let firstNew = null;
   if (!append && (!list || list.length === 0)) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Нет данных</div>';
+    this.refocus();
     return;
   }
   if (!list || list.length === 0) {
     this.ended = true;
+    this.refocus();
     return;
   }
   const renderedIds = {};
@@ -130,6 +144,7 @@ Line.prototype.renderResults = function (list, append) {
   });
   if (append && firstNew) this.pendingFocus = firstNew;
   this.page += 1;
+  if (!append) motion.reveal(this.results);
   this.refocus();
   this.probeNextPage();
 };
@@ -137,8 +152,9 @@ Line.prototype.renderResults = function (list, append) {
 Line.prototype.probeNextPage = function () {
   const self = this;
   const page = this.page;
+  const loadId = this.loadId;
   this.loaderFor(this.section)(page, { scope: this.requestScope }).then(function (list) {
-    if (self.__shikimoriDestroyed || !self.results || page !== self.page) return;
+    if (self.__shikimoriDestroyed || !self.results || page !== self.page || loadId !== self.loadId) return;
     const rendered = {};
     self.results.querySelectorAll('.shikimori-local__result').forEach(function (card) {
       if (card.__shikimoriAnime) rendered[card.__shikimoriAnime.shikimori_id] = true;
@@ -150,7 +166,7 @@ Line.prototype.probeNextPage = function () {
     if (!self.ended) self.addMoreButton();
     self.refocus();
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     logger.warn('Line next page probe error', err.message);
   });
 };

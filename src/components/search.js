@@ -8,6 +8,7 @@ const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
 const lifecycle = require('./lifecycle');
+const motion = require('../ui/motion');
 
 function Search(params) {
   this.params = params || {};
@@ -18,6 +19,7 @@ function Search(params) {
   this.loading = false;
   this.ended = false;
   this.requestScope = client.createScope('search');
+  this.loadId = 0;
 }
 
 Search.prototype.create = function () {
@@ -57,29 +59,34 @@ Search.prototype.askSearch = function () {
 Search.prototype.doSearch = function (query, append) {
   const self = this;
   const q = String(query || '').trim();
-  if (!q || this.loading) return;
+  if (!q || (append && this.loading)) return;
   if (!append) {
+    this.loadId++;
+    client.cancelScope(this.requestScope);
     this.page = 1;
     this.ended = false;
     this.results.innerHTML = '';
   }
   if (append && this.ended) return;
+  const loadId = this.loadId;
   this.currentQuery = q;
   this.loading = true;
   this.removeMoreButton();
   this.updateQueryLabel();
   this.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__loading">Загрузка...</div>');
+  this.refocus();
   api.search(q, this.page, { scope: this.requestScope }).then(function (list) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.renderResults(list || [], append);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     logger.warn('Search error', err.message);
     self.html.querySelectorAll('.shikimori-local__loading').forEach(function (el) { el.remove(); });
     self.results.insertAdjacentHTML('beforeend', '<div class="shikimori-local__error">Ошибка поиска: ' + templates.escapeHtml(err.message) + '</div>');
+    self.refocus();
   });
 };
 
@@ -93,10 +100,12 @@ Search.prototype.renderResults = function (list, append) {
   let firstNew = null;
   if (!append && (!list || list.length === 0)) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Ничего не найдено</div>';
+    this.refocus();
     return;
   }
   if (!list || list.length === 0) {
     this.ended = true;
+    this.refocus();
     return;
   }
   list.forEach(function (anime) {
@@ -106,6 +115,7 @@ Search.prototype.renderResults = function (list, append) {
   });
   if (append) this.pendingFocus = firstNew;
   this.page += 1;
+  if (!append) motion.reveal(this.results);
   this.addMoreButton();
   this.refocus();
 };

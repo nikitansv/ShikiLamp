@@ -23,6 +23,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  jest.restoreAllMocks();
   delete global.Lampa;
   delete global.window;
   delete global.document;
@@ -32,6 +33,7 @@ afterEach(() => {
 });
 
 test('line openAnime falls back to shikimori card when matcher returns no match', function (done) {
+  jest.spyOn(require('../src/api'), 'popular').mockResolvedValue([]);
   const line = new Line({ section: 'popular' });
   line.create();
 

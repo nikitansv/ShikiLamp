@@ -1,5 +1,6 @@
 const qrcode = require('qrcode-generator');
 const lifecycle = require('../components/lifecycle');
+const motion = require('./motion');
 
 function qrDataUrl(value) {
   const qr = qrcode(0, 'M');
@@ -14,7 +15,7 @@ function open(options) {
   if (!url) throw new Error('OAuth URL пустой');
 
   const previous = document.querySelector('.shikilamp-auth');
-  if (previous && previous.__shikimoriClose) previous.__shikimoriClose();
+  if (previous && previous.__shikimoriClose) previous.__shikimoriClose(true);
   else if (previous) previous.remove();
 
   const root = document.createElement('div');
@@ -32,6 +33,8 @@ function open(options) {
     '</div>';
   root.querySelector('.shikilamp-auth__url').textContent = url;
   document.body.appendChild(root);
+  motion.animate(root, [{ opacity: 0 }, { opacity: 1 }]);
+  motion.reveal(root.firstElementChild);
 
   let closed = false;
   let focusTimer;
@@ -47,12 +50,16 @@ function open(options) {
     action();
   }
 
-  function close() {
-    if (closed) return;
+  function close(immediate) {
+    if (closed) { if (immediate === true) { motion.stop(root); root.remove(); } return; }
     closed = true;
     clearTimeout(focusTimer);
     document.removeEventListener('keydown', onKey, true);
-    root.remove();
+    motion.stop(root);
+    root.setAttribute('aria-hidden', 'true');
+    root.style.pointerEvents = 'none';
+    if (immediate === true) root.remove();
+    else motion.animate(root, [{ opacity: 1 }, { opacity: 0 }], function () { root.remove(); }, 180);
     if (typeof Lampa !== 'undefined' && Lampa.Controller && previousController) {
       Lampa.Controller.toggle(previousController);
     }
@@ -69,9 +76,21 @@ function open(options) {
 
   const codeButton = root.querySelector('[data-action="code"]');
   const cancelButton = root.querySelector('[data-action="cancel"]');
+  function revealButton(button) {
+    if (closed) return;
+    const panel = root.firstElementChild;
+    const rect = button.getBoundingClientRect(), box = panel.getBoundingClientRect();
+    const delta = rect.top < box.top + 12 ? rect.top - box.top - 12 : Math.max(0, rect.bottom - box.bottom + 12);
+    if (delta) motion.scroll(panel, panel.scrollLeft, panel.scrollTop + delta);
+    else motion.cancelScroll(panel);
+  }
+  [codeButton, cancelButton].forEach(function (button) {
+    button.addEventListener('hover:focus', function () { revealButton(button); });
+    button.addEventListener('focus', function () { revealButton(button); });
+  });
   const codeAction = function () {
     activate(function () {
-      close();
+      close(true);
       if (options.onCode) options.onCode();
     });
   };
@@ -102,7 +121,7 @@ function open(options) {
   focusTimer = setTimeout(function () {
     if (closed) return;
     const button = root.querySelector('[data-action="code"]');
-    if (button && button.focus) button.focus({ preventScroll: true });
+    if (button && button.focus) { button.focus({ preventScroll: true }); revealButton(button); }
   }, 0);
   root.__shikimoriClose = close;
   return { close: close, element: root };

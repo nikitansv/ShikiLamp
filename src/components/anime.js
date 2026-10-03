@@ -9,6 +9,7 @@ const logger = require('../logger');
 const userApi = require('../api/user');
 const client = require('../api/client');
 const lifecycle = require('./lifecycle');
+const motion = require('../ui/motion');
 
 function Anime(params) {
   this.params = params || {};
@@ -25,7 +26,15 @@ Anime.prototype.create = function () {
   this.bindEvents();
   matcher.applyBestPoster(this.anime).then(function () {
     if (self.__shikimoriDestroyed || !self.html) return;
-    self.refreshView();
+    const poster = self.html.querySelector('.shikimori-local__poster');
+    if (!poster || !self.anime.poster) return;
+    let image = poster.querySelector('img');
+    if (!image) {
+      image = document.createElement('img');
+      poster.innerHTML = '';
+      poster.appendChild(image);
+    }
+    if (image.getAttribute('src') !== self.anime.poster) image.src = self.anime.poster;
   });
 };
 
@@ -83,22 +92,24 @@ Anime.prototype.handleAction = function (action) {
 };
 
 Anime.prototype.toggleMenu = function (name) {
+  const self = this;
   const menu = this.html.querySelector('[data-menu="' + name + '"]');
   const button = this.html.querySelector('[data-action="toggle-' + name + '"]');
   if (!menu) return;
   const willOpen = !menu.classList.contains('open');
-  this.closeMenus();
-  menu.classList.toggle('open', willOpen);
+  if (willOpen) this.closeMenus();
+  motion.dropdown(menu, willOpen, function () { lifecycle.scrollToFocus(self); });
   if (button) button.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   lifecycle.refocus(this, willOpen ? menu.querySelector('.selector.active') || menu.querySelector('.selector') : button);
 };
 
 Anime.prototype.closeMenus = function (preferred) {
   if (!this.html) return;
+  const self = this;
   const open = this.html.querySelector('.shikimori-local__dropdown.open');
   const name = open && open.getAttribute('data-menu');
   const focused = this.html.querySelector('.selector.focus');
-  this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) { menu.classList.remove('open'); });
+  this.html.querySelectorAll('.shikimori-local__dropdown.open').forEach(function (menu) { motion.dropdown(menu, false, function () { lifecycle.scrollToFocus(self); }); });
   this.html.querySelectorAll('[aria-expanded="true"]').forEach(function (button) { button.setAttribute('aria-expanded', 'false'); });
   if (open) lifecycle.refocus(this, preferred || (open.contains(focused) ? this.html.querySelector('[data-action="toggle-' + name + '"]') : focused));
 };

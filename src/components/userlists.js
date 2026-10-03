@@ -9,6 +9,7 @@ const cards = require('../ui/cards');
 const matcher = require('../mapping/matcher');
 const client = require('../api/client');
 const lifecycle = require('./lifecycle');
+const motion = require('../ui/motion');
 
 const CAROUSEL_LIMIT = 10;
 
@@ -36,6 +37,7 @@ function UserLists(params) {
   this.lastCardFocus = null;
   this.selectedAnime = null;
   this.requestScope = client.createScope('userlists');
+  this.loadId = 0;
 }
 
 UserLists.prototype.create = function () {
@@ -54,11 +56,16 @@ UserLists.prototype.create = function () {
 UserLists.prototype.renderTabs = function () {
   const self = this;
   const tabs = this.html.querySelector('.shikimori-local__tabs');
+  if (tabs.children.length) {
+    tabs.querySelectorAll('[data-tab]').forEach(function (tab) { tab.classList.toggle('active', tab.getAttribute('data-tab') === self.status); });
+    return;
+  }
   tabs.innerHTML = '';
   STATUSES.forEach(function (status) {
     const tab = document.createElement('div');
     tab.className = 'shikimori-local__tab selector' + (status === self.status ? ' active' : '');
     tab.textContent = userApi.RATE_STATUS_TITLES[status] || status;
+    tab.setAttribute('data-tab', status);
     lifecycle.bindAction(tab, function () { self.changeStatus(status); });
     tabs.appendChild(tab);
   });
@@ -66,15 +73,19 @@ UserLists.prototype.renderTabs = function () {
 
 UserLists.prototype.changeStatus = function (status) {
   if (status === this.status) return;
+  this.transitionDirection = STATUSES.indexOf(status) > STATUSES.indexOf(this.status) ? 1 : -1;
   this.status = status;
-  this.pendingFocus = null;
+  this.pendingFocus = this.html.querySelector('[data-tab="' + status + '"]');
   this.renderTabs();
   this.load(false);
 };
 
 UserLists.prototype.load = function (append) {
   const self = this;
-  if (this.loading) return;
+  if (append && this.loading) return;
+  const loadId = ++this.loadId;
+  client.cancelScope(this.requestScope);
+  this.loading = false;
   const user = auth.getCachedUser();
   if (!auth.getToken()) {
     this.results.innerHTML = '<div class="shikimori-local__empty">Нужна авторизация: настройки → ShikiLamp Local → ввести access token.</div>';
@@ -89,13 +100,14 @@ UserLists.prototype.load = function (append) {
 
   this.loading = true;
   this.results.innerHTML = '<div class="shikimori-local__loading">Загрузка списка...</div>';
+  this.refocus();
 
   this.loadListData(user.id, { scope: this.requestScope }).then(function (list) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     self.renderResults(list || [], append);
   }).catch(function (err) {
-    if (self.__shikimoriDestroyed || !self.html) return;
+    if (self.__shikimoriDestroyed || !self.html || loadId !== self.loadId) return;
     self.loading = false;
     if (typeof document !== 'undefined') {
       logger.warn('User list error', err.message);
@@ -152,6 +164,7 @@ UserLists.prototype.renderResults = function (list, append) {
   }
 
   if (append && firstNew) this.pendingFocus = firstNew;
+  if (!append) motion.reveal(this.results, this.transitionDirection || 1);
   this.refocus();
 };
 

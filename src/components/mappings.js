@@ -26,6 +26,7 @@ Mappings.prototype.renderBody = function () {
   const results = this.html.querySelector('.shikimori-local__results');
   if (list.length === 0) {
     results.innerHTML = '<div class="shikimori-local__empty">Соответствий пока нет</div>';
+    lifecycle.refocus(this);
     return;
   }
   list.forEach(function (m) {

@@ -7,11 +7,11 @@ function injectStyles() {
   style.id = 'shikimori-local-styles';
   style.textContent = `
     :root { --shiki-card-scale: 1; --shiki-card-size: 1; --shiki-font-scale: 1; --shiki-heading-scale: 1; --shiki-motion: 180ms; --shiki-focus-color: #ffffff; --shiki-accent: #8ab4ff; --shiki-card-radius: 10px; --shiki-card-bg: rgba(255,255,255,0.08); --shiki-rating-bg: rgba(0,0,0,0.72); --shiki-rating-low: #ff6b6b; --shiki-rating-mid: #e5e7eb; --shiki-rating-high: #ffd54a; --shiki-type-tv: #5aa9ff; --shiki-type-ova: #bd8cff; --shiki-type-ona: #42c99a; --shiki-type-movie: #ff9b54; --shiki-type-special: #e5c255; --shiki-group-ongoing: #42c99a; --shiki-group-released: #8ab4ff; --shiki-group-anons: #bd8cff; --shiki-group-planned: #e5c255; --shiki-group-watching: #ff8aa1; }
-    .shikimori-local.activity-page { padding: 0; max-height: none; overflow: visible; font-size: inherit; }
+    .shikimori-local.activity-page { padding: 0; max-height: none; overflow: hidden; font-size: inherit; }
     .shikimori-local { --shiki-gutter: 1.5em; --shiki-gap: 1.5em; --shiki-panel-width: 22em; padding: 1.5em var(--shiki-gutter) 3em; color: inherit; max-height: 100vh; overflow-y: auto; box-sizing: border-box; font-size: calc(1em * var(--shiki-font-scale)); line-height: 1.4; }
     .shikimori-local *, .shikilamp-auth * { box-sizing: border-box; }
-    .shiki-page-enter { animation: shiki-page-in var(--shiki-motion) ease-out; }
-    @keyframes shiki-page-in { from { opacity: 0; } to { opacity: 1; } }
+    .shiki-leaving { opacity: 0; pointer-events: none; }
+    .shikimori-local:not(.activity-page) { scroll-padding: 1em; overscroll-behavior: contain; }
     .shikimori-local__action, .shikimori-local__dropdown-item, .shikimori-local__filter-field, .shikimori-local__filter-option, .shikimori-local__filter-start, .shikimori-local__filter-reset, .shikilamp-auth button { transition: background-color var(--shiki-motion) ease-out, color var(--shiki-motion) ease-out; }
     .shikimori-local.home-page, .shikimori-local.userlists-page { padding-left: var(--shiki-gutter); padding-right: var(--shiki-gutter); }
 
@@ -19,7 +19,7 @@ function injectStyles() {
     .userlists-page > .shikimori-local__head, .userlists-page > .shikimori-local__tabs,
     .home-page .shikimori-local__row-title, .userlists-page .shikimori-local__row-title { margin-left: 0; margin-right: 0; }
     .shikimori-local__tabs { display: flex; gap: 0.75em; flex-wrap: wrap; margin-bottom: 1.5em; }
-    .shikimori-local__tab { display: flex; align-items: center; min-height: 2.8em; padding: 0.3em 1.2em; border-radius: 1em; background: var(--shiki-card-bg); color: inherit; cursor: pointer; transition: background var(--shiki-motion), box-shadow var(--shiki-motion); }
+    .shikimori-local__tab { display: flex; align-items: center; min-height: 2.8em; padding: 0.3em 1.2em; border-radius: 1em; background: var(--shiki-card-bg); color: inherit; cursor: pointer; transition: background-color var(--shiki-motion), color var(--shiki-motion), box-shadow var(--shiki-motion); }
     .shikimori-local__tab.active { box-shadow: inset 0 0 0 0.12em currentColor; }
     .shikimori-local__tab.focus { background: rgba(255,255,255,0.9); color: #111; }
     .shikimori-local__head { font-size: calc(1.5em * var(--shiki-heading-scale)); line-height: 1.3; margin-bottom: 1.5em; font-weight: 600; }
@@ -27,7 +27,7 @@ function injectStyles() {
     .shikimori-local__row-title { font-size: calc(1.3em * var(--shiki-heading-scale)); margin-bottom: 0.5em; font-weight: 600; }
     .shikimori-local__row { min-width: 0; }
 
-    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: var(--shiki-gap); overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; scroll-padding: var(--shiki-gutter); padding: 1.25em var(--shiki-gutter); margin: 0 calc(-1 * var(--shiki-gutter)); scrollbar-width: none; }
+    .shikimori-local__row-items { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: var(--shiki-gap); overflow-x: auto; overflow-y: hidden; scroll-behavior: auto; scroll-padding: var(--shiki-gutter); padding: 1.25em var(--shiki-gutter); margin: 0 calc(-1 * var(--shiki-gutter)); scrollbar-width: none; overscroll-behavior-x: contain; }
     .shikimori-local__row-items::-webkit-scrollbar { display: none; }
     .shikimori-local__row-items .shikimori-local__result,
     .shikimori-local__row-items .shikimori-local__more { flex: 0 0 calc(12.75em * var(--shiki-card-size)); min-width: 0; }
@@ -54,7 +54,8 @@ function injectStyles() {
     .shikimori-local__row-items .shikimori-local__result:first-child { transform-origin: left center; }
     .shikimori-local__row-items .shikimori-local__result:last-child { transform-origin: right center; }
     .shikimori-local__result-title { display: -webkit-box; margin-top: 0.65em; overflow: hidden; font-size: 1.1em; font-weight: 500; line-height: 1.3; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-    .shikimori-local__result.focus .shikimori-local__result-poster { outline: 0.2em solid var(--shiki-focus-color); outline-offset: 0.25em; }
+    .shikimori-local__result-poster { outline: 0.2em solid transparent; outline-offset: 0.25em; transition: outline-color var(--shiki-motion) ease-out; }
+    .shikimori-local__result.focus .shikimori-local__result-poster { outline-color: var(--shiki-focus-color); }
     .shikimori-local__result-meta { font-size: 0.85em; opacity: 0.75; }
     .shikimori-local.anime-detail { display: flex; gap: 2.8em; align-items: flex-start; min-height: calc(100vh - 6.5em); padding: 2.6em 3.2em; border-radius: 20px; }
     .shikimori-local__poster { width: 360px; aspect-ratio: 2 / 3; flex: 0 0 360px; border-radius: 16px; background: rgba(255,255,255,0.08); overflow: hidden; align-self: flex-start; margin-top: 0.12em; }
@@ -83,7 +84,8 @@ function injectStyles() {
     .shikimori-local__action.disabled, .shikimori-local__dropdown-item.disabled { opacity: 0.55; pointer-events: none; }
     .shikimori-local__action.loading::after { content: ' · Сохранение…'; }
     .shikimori-local__dropdown { display: none; max-width: 520px; margin: 0.55em 0 0.9em; padding: 0.45em; border-radius: 14px; background: rgba(24,24,28,0.98); border: 1px solid rgba(255,255,255,0.12); }
-    .shikimori-local__dropdown.open { display: grid; gap: 0.35em; }
+    .shikimori-local__dropdown.open, .shikimori-local__dropdown.shiki-closing { display: grid; gap: 0.35em; overflow: hidden; }
+    .shikimori-local__dropdown.shiki-closing { pointer-events: none; }
     .shikimori-local__dropdown.score-grid { grid-template-columns: repeat(5, minmax(44px, 1fr)); max-width: 320px; }
     .shikimori-local__dropdown.score-grid .score { text-align: center; justify-content: center; font-size: 1.05em; }
     .shikimori-local__dropdown.score-grid .score-separator, .shikimori-local__dropdown.score-grid .destructive { grid-column: 1 / -1; }
@@ -101,12 +103,13 @@ function injectStyles() {
     .shikimori-filter-activity.menu-open .filter-page { pointer-events: none; }
     .shikimori-filter-activity.host-open { z-index: 1; }
     .shikimori-filter-activity.host-open .filter-page { pointer-events: none; }
+    .shikimori-filter-activity.shiki-inactive .filter-page { pointer-events: none; }
     .shikimori-filter-activity .shikimori-local__filter-main { transition: transform var(--shiki-motion) ease-out, padding-right var(--shiki-motion) ease-out; }
     .shikimori-filter-activity.menu-open .shikimori-local__filter-main { transform: translateX(var(--shiki-menu-shift, 340px)); }
     .shikimori-filter-activity.menu-open .shikimori-local__filter-panel { transform: translateX(100%); }
     .shikimori-filter-activity.panel-hidden .shikimori-local__filter-panel { transform: translateX(100%); pointer-events: none; }
     .shikimori-filter-activity.panel-hidden .shikimori-local__filter-main { padding-right: var(--shiki-gutter); }
-    .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 7em calc(var(--shiki-panel-width) + var(--shiki-gutter)) 3em var(--shiki-gutter); overflow-y: auto; }
+    .shikimori-local__filter-main { flex: 1; min-width: 0; height: 100vh; padding: 7em calc(var(--shiki-panel-width) + var(--shiki-gutter)) 3em var(--shiki-gutter); overflow-y: auto; scroll-padding: 1em; }
 
     .shikimori-local__filter-panel { position: fixed; z-index: 2147483001; top: 0; right: 0; bottom: 0; width: var(--shiki-panel-width); height: 100vh; padding: 1.5em; background: #242627; overflow-y: auto; transition: transform var(--shiki-motion) ease-out; animation: shiki-filter-in var(--shiki-motion) ease-out; }
     @keyframes shiki-filter-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
@@ -115,6 +118,7 @@ function injectStyles() {
     .shikimori-local__filter-fields { display: grid; gap: 0.5em; margin-bottom: 1em; }
     .shikimori-local__filter-field { display: block; width: 100%; padding: 0.75em 1em; border-radius: 0.5em; background: transparent; text-align: left; }
     .shikimori-local__filter-value { display: block; color: rgba(255,255,255,0.62); margin: 0.45em 0 0; font-size: 0.9em; }
+    .shikimori-local__filter-value { transition: color var(--shiki-motion) ease-out; }
     .shikimori-local__filter-field.focus, .shikimori-local__filter-start.focus, .shikimori-local__filter-reset.focus { background: #fff; color: #111; }
     .shikimori-local__filter-field.focus .shikimori-local__filter-value { color: #555; }
     .shikimori-local__filter-options { display: grid; gap: 0.5em; }
@@ -151,6 +155,7 @@ function injectStyles() {
     .shikilamp-auth button.focus { background: #fff; color: #111; }
     .shikilamp-auth button:focus, .shikilamp-auth button.focus { outline: 3px solid #fff; outline-offset: 3px; }
     [data-shiki-motion="off"] .shikimori-local__row-items { scroll-behavior: auto; }
+    [data-shiki-motion="off"] .shikimori-local, [data-shiki-motion="off"] .shikimori-local *, [data-shiki-motion="off"] .shikilamp-auth, [data-shiki-motion="off"] .shikilamp-auth * { animation: none !important; transition: none !important; }
     @media (prefers-reduced-motion: reduce) {
       .shikimori-local, .shikimori-local *, .shikilamp-auth, .shikilamp-auth * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
@@ -163,6 +168,7 @@ function applyUiSettings(ui) {
   ui = ui || {};
   const root = document.documentElement;
   root.setAttribute('data-shiki-motion', ui.motion || 'normal');
+  if (ui.motion === 'off') require('./motion').stop(root, true);
   const values = {
     '--shiki-card-scale': clamp(ui.cardScale, 100, 115, 100) / 100,
     '--shiki-card-size': clamp(ui.cardSize, 60, 180, 100) / 100,

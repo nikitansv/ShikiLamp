@@ -31,6 +31,8 @@ beforeEach(() => {
   global.Event = dom.window.Event;
   global.requestAnimationFrame = callback => setTimeout(callback, 16);
   global.cancelAnimationFrame = clearTimeout;
+  window.requestAnimationFrame = global.requestAnimationFrame;
+  window.cancelAnimationFrame = global.cancelAnimationFrame;
   controllers = {};
   current = 'content';
   const stored = {};
@@ -59,6 +61,7 @@ beforeEach(() => {
 
 afterEach(() => {
   if (instance) instance.destroy();
+  require('../src/ui/motion').stop(document.body);
   instance = null;
   jest.clearAllTimers();
   jest.useRealTimers();
@@ -131,10 +134,10 @@ test('focus scrolling respects rail padding so the focus outline is not clipped'
   rail.scrollLeft = 50;
   rail.getBoundingClientRect = () => ({ left: 0, right: 600, top: 0, bottom: 400 });
   card.getBoundingClientRect = () => ({ left: 800, right: 1000, top: 0, bottom: 300 });
-  rail.scrollTo = jest.fn();
   lifecycle.refocus(page, card);
-  jest.advanceTimersByTime(20);
-  expect(rail.scrollTo).toHaveBeenCalledWith({ left: 474, top: 0, behavior: 'smooth' });
+  jest.advanceTimersByTime(300);
+  expect(rail.scrollLeft).toBe(474);
+  expect(rail.scrollTop).toBe(0);
 });
 
 test('rerender preserves selected action before collectionSet clears focus', () => {
@@ -266,4 +269,20 @@ test('destroy cancels pending focus scrolling', () => {
   page.destroy();
   expect(cancel).toHaveBeenCalledWith(frame);
   expect(page.__shikimoriFocusFrame).toBeNull();
+});
+
+test('late poster loading leaves the open menu and page DOM intact', async () => {
+  let finish;
+  jest.spyOn(matcher, 'applyBestPoster').mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const anime = new Anime({ anime: { title: 'Fixture', shikimori_id: 1 } });
+  anime.create();
+  document.body.appendChild(anime.html);
+  anime.toggleMenu('status-menu');
+  const page = anime.html.firstElementChild;
+  const dropdown = anime.html.querySelector('.shikimori-local__dropdown.open');
+  anime.anime.poster = 'https://example.com/poster.jpg';
+  finish(anime.anime); await Promise.resolve();
+  expect(anime.html.firstElementChild).toBe(page);
+  expect(anime.html.querySelector('.shikimori-local__dropdown.open')).toBe(dropdown);
+  expect(anime.html.querySelector('.shikimori-local__poster img').src).toBe(anime.anime.poster);
 });
