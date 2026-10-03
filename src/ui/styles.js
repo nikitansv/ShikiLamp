@@ -180,7 +180,10 @@ function applyUiSettings(ui) {
   const colors = ['focusColor', 'accentColor', 'cardColor', 'ratingBackground', 'ratingLow', 'ratingMid', 'ratingHigh', 'typeTv', 'typeOva', 'typeOna', 'typeMovie', 'typeSpecial', 'groupOngoing', 'groupReleased', 'groupAnons', 'groupPlanned', 'groupWatching'];
   const names = ['--shiki-focus-color', '--shiki-accent', '--shiki-card-bg', '--shiki-rating-bg', '--shiki-rating-low', '--shiki-rating-mid', '--shiki-rating-high', '--shiki-type-tv', '--shiki-type-ova', '--shiki-type-ona', '--shiki-type-movie', '--shiki-type-special', '--shiki-group-ongoing', '--shiki-group-released', '--shiki-group-anons', '--shiki-group-planned', '--shiki-group-watching'];
   Object.keys(values).forEach(function (name) { root.style.setProperty(name, values[name]); });
-  colors.forEach(function (key, index) { if (ui[key]) root.style.setProperty(names[index], ui[key]); });
+  colors.forEach(function (key, index) {
+    if (ui[key]) root.style.setProperty(names[index], ui[key]);
+    else root.style.removeProperty(names[index]);
+  });
 }
 
 function clamp(value, min, max, fallback) {

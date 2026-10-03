@@ -12,6 +12,7 @@ const styles = require('./ui/styles');
 const COMPONENT = 'shikilamp_local_settings';
 const DEVELOPER_COMPONENT = 'shikilamp_local_developer';
 const LEGACY_COMPONENT = 'shikimori_local';
+let accountItem;
 const SETTINGS_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function get(key, defaultValue) {
@@ -71,14 +72,8 @@ function getExperimentalToken() {
 
 function getUi() {
   const value = get('ui', {});
-  return value && typeof value === 'object' ? value : {};
-}
-
-function updateUi(key, value) {
-  const ui = getUi();
-  ui[key] = value;
-  set('ui', ui);
-  styles.applyUiSettings(ui);
+  const ui = value && typeof value === 'object' ? value : {};
+  return Object.assign({}, ui, { motion: get('motion', ui.motion || 'normal') });
 }
 
 function cleanupLegacySettings() {
@@ -106,38 +101,54 @@ function register() {
   Lampa.SettingsApi.addComponent({
     component: COMPONENT,
     icon: SETTINGS_ICON,
-    name: 'ShikiLamp Local'
-  });
-  Lampa.SettingsApi.addComponent({
-    component: DEVELOPER_COMPONENT,
-    icon: SETTINGS_ICON,
-    name: 'ShikiLamp Developer'
+    name: 'ShikiLamp'
   });
   styles.applyUiSettings(getUi());
 
-  addTrigger('enabled', 'Включить плагин', config.DEFAULTS.enabled);
-  addSelect('language', 'Язык результатов', [
+  addTitle('account', 'Аккаунт');
+  addAction('account', 'Аккаунт Shikimori', openAccount, auth.statusText(), function (item) {
+    accountItem = item;
+    refreshAccount();
+  });
+
+  addTitle('catalog', 'Каталог и интерфейс');
+  // One visibility switch preserves the effective state of the two old switches.
+  if (!showMenu()) { set('enabled', false); set('showMenu', true); }
+  addTrigger('enabled', 'Показывать Shikimori в меню', config.DEFAULTS.enabled);
+  addSelect('language', 'Язык названий', [
     { title: 'Русский', code: 'russian' },
     { title: 'English', code: 'english' }
   ], config.DEFAULTS.language);
-  addTrigger('showMenu', 'Показывать кнопку в меню', config.DEFAULTS.showMenu);
-  addAction('pageSize', 'Число результатов: ' + getPageSize(), function () {
-    askSettingValue('pageSize', 'Число результатов на страницу', String(getPageSize()), function (value) {
-      const n = parseInt(value, 10);
-      if (isNaN(n) || n < 5 || n > 50) {
-        Lampa.Noty.show('ShikiLamp: число должно быть от 5 до 50');
-        return;
-      }
-      set('pageSize', String(n));
-      Lampa.Noty.show('ShikiLamp: число результатов сохранено');
-    });
+  const pageSizes = [10, 20, 30, 50];
+  if (pageSizes.indexOf(getPageSize()) < 0) pageSizes.push(getPageSize());
+  addSelect('pageSize', 'Тайтлов на странице', pageSizes.sort(function (a, b) { return a - b; }).map(function (n) {
+    return { title: String(n), code: String(n) };
+  }), config.DEFAULTS.pageSize);
+  addSelect('motion', 'Плавность переходов', [
+    { title: 'Обычная', code: 'normal' }, { title: 'Мягкая', code: 'soft' },
+    { title: 'Быстрая', code: 'fast' }, { title: 'Без анимаций', code: 'off' }
+  ], getUi().motion);
+  addAction('resetAppearance', 'Сбросить оформление', function () {
+    set('motion', getUi().motion);
+    set('ui', {});
+    styles.applyUiSettings(getUi());
+    Lampa.Noty.show('ShikiLamp: восстановлено стандартное оформление');
+  }, 'Стандартные размеры и цвета. Плавность переходов сохранится.');
+
+  addTitle('maintenance', 'Данные и помощь');
+  addAction('diagnostics', 'Проверить соединение', function () {
+    openScreen('shikimori_local_diagnostics', 'Диагностика Shikimori');
   });
   addAction('clearCache', 'Очистить API-кэш', function () {
     cache.clear();
     Lampa.Noty.show('API-кэш плагина Shikimori очищен');
+  }, 'Авторизация, списки и сопоставления сохранятся.');
+
+  addAction('mappings', 'Сопоставления с TMDB', function () {
+    openScreen('shikimori_local_mappings', 'Сопоставления с TMDB');
   });
 
-  addAction('exportMappings', 'Экспортировать mapping', function () {
+  addAction('exportMappings', 'Экспортировать сопоставления', function () {
     const json = mappingStorage.exportJson();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -146,10 +157,10 @@ function register() {
     a.download = 'shikimori-local-mappings.json';
     a.click();
     URL.revokeObjectURL(url);
-    Lampa.Noty.show('Mapping экспортирован');
+    Lampa.Noty.show('Сопоставления экспортированы');
   });
 
-  addAction('importMappings', 'Импортировать mapping', function () {
+  addAction('importMappings', 'Импортировать сопоставления', function () {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';
@@ -158,35 +169,24 @@ function register() {
       const reader = new FileReader();
       reader.onload = function () {
         const result = mappingStorage.importJson(reader.result);
-        Lampa.Noty.show(result.success ? 'Импортировано mapping: ' + result.count + ', сохранено прежних: ' + result.skipped : 'Ошибка импорта: ' + result.error);
+        Lampa.Noty.show(result.success ? 'Импортировано: ' + result.count + ', сохранено прежних: ' + result.skipped : 'Ошибка импорта: ' + result.error);
       };
-      reader.onerror = function () { Lampa.Noty.show('Не удалось прочитать файл mapping'); };
+      reader.onerror = function () { Lampa.Noty.show('Не удалось прочитать файл сопоставлений'); };
       reader.readAsText(input.files[0]);
     };
     input.click();
   });
 
-  addAction('authStatus', 'Авторизация: ' + auth.statusText(), function () {
-    showAuthInfo();
-  });
+}
 
-  addAction('oauthAuthorize', 'Войти через Shikimori', function () {
-    openOAuthAuthorization();
-  });
+function openScreen(component, title) {
+  Lampa.Controller.toggle('settings');
+  Lampa.Controller.toggle('content');
+  Lampa.Activity.push({ url: '', title: title, component: component });
+}
 
-  addAction('oauthCode', 'Ввести код авторизации', function () {
-    askAuthorizationCode();
-  });
-
-  addAction('authCheck', 'Проверить вход Shikimori', function () {
-    checkAuth();
-  });
-
-  addAction('authLogout', 'Выйти из Shikimori', function () {
-    auth.clearToken();
-    Lampa.Noty.show('ShikiLamp: авторизация удалена');
-  });
-  registerDeveloperSettings();
+function addTitle(name, title) {
+  Lampa.SettingsApi.addParam({ component: COMPONENT, param: { name: 'shikimori_local_section_' + name, type: 'title' }, field: { name: title } });
 }
 
 function addTrigger(name, title, defaultValue) {
@@ -194,7 +194,7 @@ function addTrigger(name, title, defaultValue) {
     component: COMPONENT,
     param: { name: config.STORAGE_KEYS[name], type: 'trigger', default: defaultValue },
     field: { name: title },
-    onChange: onSettingChange
+    onChange: function (value) { onSettingChange({ name: config.STORAGE_KEYS[name], value: value }); }
   });
 }
 
@@ -205,94 +205,45 @@ function addSelect(name, title, values, defaultValue) {
     component: COMPONENT,
     param: { name: config.STORAGE_KEYS[name], type: 'select', values: map, default: defaultValue },
     field: { name: title },
-    onChange: onSettingChange
+    onChange: function (value) { onSettingChange({ name: config.STORAGE_KEYS[name], value: value }); }
   });
 }
 
-function addAction(name, title, onSelect) {
-  addComponentAction(COMPONENT, name, title, onSelect);
-}
-
-function addDeveloperAction(name, title, onSelect) {
-  addComponentAction(DEVELOPER_COMPONENT, name, title, onSelect);
-}
-
-function addComponentAction(component, name, title, onSelect) {
+function addAction(name, title, onSelect, description, onRender) {
   Lampa.SettingsApi.addParam({
-    component: component,
+    component: COMPONENT,
     param: { name: 'shikimori_local_action_' + name, type: 'button' },
-    field: { name: title },
-    onChange: onSelect
+    field: { name: title, description: description },
+    onChange: onSelect,
+    onRender: onRender
   });
 }
 
-function registerDeveloperSettings() {
-  addDeveloperAction('apiBaseUrl', 'API Base URL: ' + getApiBaseUrl(), function () {
-    askSettingValue('apiBaseUrl', 'API Base URL', getApiBaseUrl(), function (value) {
-      const url = String(value || '').trim().replace(/\/$/, '');
-      if (!/^https?:\/\//i.test(url)) return Lampa.Noty.show('ShikiLamp: URL должен начинаться с http:// или https://');
-      set('apiBaseUrl', url);
-      Lampa.Noty.show('ShikiLamp: API Base URL сохранён');
-    });
-  });
-  addDeveloperAction('mappingThreshold', 'Порог mapping: ' + getMappingThreshold(), function () {
-    askSettingValue('mappingThreshold', 'Порог mapping 0.5–1.0', String(getMappingThreshold()), function (value) {
-      const n = parseFloat(value);
-      if (isNaN(n) || n < 0.5 || n > 1) return Lampa.Noty.show('ShikiLamp: порог должен быть 0.5–1.0');
-      set('mappingThreshold', String(n));
-      Lampa.Noty.show('Порог mapping сохранён');
-    });
-  });
-  addDeveloperTrigger('autoOpenExact', 'Автооткрытие точного mapping', config.DEFAULTS.autoOpenExact);
-  addDeveloperTrigger('debug', 'Диагностические сообщения', config.DEFAULTS.debug);
-  addDeveloperAction('authToken', 'Ручной access token', askToken);
-  addDeveloperAction('clearMappings', 'Очистить mapping', function () { mappingStorage.clear(); Lampa.Noty.show('Mapping очищен'); });
-  addDeveloperAction('uiCardScale', 'UI: масштаб focus card', function () { askUiNumber('cardScale', 'Focus card 100–115%', 100, 115, 100); });
-  addDeveloperAction('uiCardSize', 'UI: размер карточек', function () { askUiNumber('cardSize', 'Карточки 60–180%', 60, 180, 100); });
-  addDeveloperAction('uiFontScale', 'UI: размер шрифта', function () { askUiNumber('fontScale', 'Шрифт 70–180%', 70, 180, 100); });
-  addDeveloperAction('uiHeadingScale', 'UI: размер заголовков', function () { askUiNumber('headingScale', 'Заголовки 70–180%', 70, 180, 100); });
-  addDeveloperAction('uiRadius', 'UI: скругление карточек', function () { askUiNumber('radius', 'Скругление 0–24px', 0, 24, 10); });
-  addDeveloperAction('uiMotion', 'UI: плавность', function () {
-    const current = getUi().motion || 'normal';
-    if (Lampa.Select && Lampa.Select.show) Lampa.Select.show({ title: 'Плавность UI', items: ['off', 'fast', 'normal', 'soft'].map(function (value) { return { title: value, value: value, selected: value === current }; }), onSelect: function (item) { updateUi('motion', item.value); Lampa.Noty.show('UI применён'); } });
-  });
-  addUiColorActions();
+function refreshAccount() {
+  if (accountItem) accountItem.find('.settings-param__descr').text(auth.statusText());
 }
 
-function addDeveloperTrigger(name, title, defaultValue) {
-  Lampa.SettingsApi.addParam({ component: DEVELOPER_COMPONENT, param: { name: config.STORAGE_KEYS[name], type: 'trigger', default: defaultValue }, field: { name: title }, onChange: onSettingChange });
-}
-
-function askUiNumber(key, title, min, max, fallback) {
-  const stored = getUi()[key];
-  const current = stored === undefined || stored === null ? fallback : stored;
-  askSettingValue(key, title, String(current), function (value) {
-    const n = parseFloat(value);
-    if (isNaN(n) || n < min || n > max) return Lampa.Noty.show('Допустимо: ' + min + '–' + max);
-    updateUi(key, n);
-    Lampa.Noty.show('UI применён');
-  });
-}
-
-function addUiColorActions() {
-  const colors = [
-    ['focusColor', 'UI: цвет focus'], ['accentColor', 'UI: акцентный цвет'], ['cardColor', 'UI: фон карточки'],
-    ['ratingBackground', 'Рейтинг: фон'], ['ratingLow', 'Рейтинг: низкий'], ['ratingMid', 'Рейтинг: средний'], ['ratingHigh', 'Рейтинг: высокий'],
-    ['typeTv', 'Тип TV'], ['typeOva', 'Тип OVA'], ['typeOna', 'Тип ONA'], ['typeMovie', 'Тип Movie'], ['typeSpecial', 'Тип Special'],
-    ['groupOngoing', 'Группа ongoing'], ['groupReleased', 'Группа released'], ['groupAnons', 'Группа anons'], ['groupPlanned', 'Группа planned'], ['groupWatching', 'Группа watching']
+function openAccount() {
+  const previous = Lampa.Controller.enabled().name;
+  const items = [
+    { title: 'Войти через Shikimori', action: openOAuthAuthorization },
+    { title: 'Ввести полученный код', action: askAuthorizationCode },
+    { title: 'Войти по access token', action: askToken }
   ];
-  colors.forEach(function (entry) {
-    addDeveloperAction('ui_' + entry[0], 'Цвет: ' + entry[1], function () {
-      askSettingValue(entry[0], 'CSS цвет: ' + entry[1], getUi()[entry[0]] || '', function (value) {
-        if (!String(value || '').trim()) return;
-        updateUi(entry[0], String(value).trim());
-        Lampa.Noty.show('UI применён');
-      });
-    });
-  });
+  if (auth.getToken()) {
+    items.push({ title: 'Проверить вход', action: checkAuth });
+    items.push({ title: 'Выйти из аккаунта', action: function () {
+      auth.clearToken();
+      refreshAccount();
+      Lampa.Noty.show('ShikiLamp: выполнен выход');
+    } });
+  }
+  // Lampa hides the select before calling onBack/onSelect; close() here would recurse.
+  function restore() { Lampa.Controller.toggle(previous); }
+  Lampa.Select.show({ title: 'Аккаунт Shikimori', items: items, onBack: restore, onSelect: function (item) { restore(); item.action(); } });
 }
 
-function askSettingValue(name, title, currentValue, onSave) {
+function askSettingValue(title, currentValue, onSave) {
   const save = function (value) {
     if (value === null || value === undefined) return;
     onSave(value);
@@ -310,19 +261,6 @@ function askSettingValue(name, title, currentValue, onSave) {
   save(prompt(title, String(currentValue || '')));
 }
 
-function showAuthInfo() {
-  const user = auth.getCachedUser();
-  if (user && (user.nickname || user.name || user.id)) {
-    Lampa.Noty.show('ShikiLamp: вход выполнен как ' + (user.nickname || user.name || ('ID ' + user.id)));
-    return;
-  }
-  if (auth.getToken()) {
-    Lampa.Noty.show('ShikiLamp: токен введён, нажмите «Проверить вход Shikimori»');
-    return;
-  }
-  Lampa.Noty.show('ShikiLamp: не авторизован. Введите Shikimori access token.');
-}
-
 function openOAuthAuthorization() {
   let url;
   try {
@@ -338,7 +276,7 @@ function openOAuthAuthorization() {
 }
 
 function askAuthorizationCode() {
-  askSettingValue('oauthCode', 'Код авторизации Shikimori', '', function (code) {
+  askSettingValue('Код авторизации Shikimori', '', function (code) {
     code = String(code || '').trim();
     if (!code) {
       Lampa.Noty.show('ShikiLamp: код пустой');
@@ -346,6 +284,7 @@ function askAuthorizationCode() {
     }
     Lampa.Noty.show('ShikiLamp: выполняю вход...');
     auth.exchangeCode(code).then(function (user) {
+      refreshAccount();
       Lampa.Noty.show('ShikiLamp: вход выполнен как ' + (user.nickname || user.name || ('ID ' + user.id)));
     }).catch(function (err) {
       Lampa.Noty.show('ShikiLamp: ошибка OAuth — ' + err.message);
@@ -363,6 +302,7 @@ function askToken() {
       return;
     }
     auth.setToken(token);
+    refreshAccount();
     Lampa.Noty.show('ShikiLamp: токен сохранён локально');
   };
 
@@ -381,6 +321,7 @@ function askToken() {
 function checkAuth() {
   Lampa.Noty.show('ShikiLamp: проверяю вход...');
   auth.check().then(function (user) {
+    refreshAccount();
     Lampa.Noty.show('ShikiLamp: вход выполнен как ' + (user.nickname || user.name || ('ID ' + user.id)));
   }).catch(function (err) {
     Lampa.Noty.show('ShikiLamp: ошибка входа — ' + err.message);
@@ -389,6 +330,7 @@ function checkAuth() {
 
 function onSettingChange(e) {
   if (!e) return;
+  if (e.name === config.STORAGE_KEYS.motion) styles.applyUiSettings(getUi());
   if (e.name === config.STORAGE_KEYS.debug) {
     logger.setDebug(bool(e.value));
   }

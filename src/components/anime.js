@@ -10,6 +10,7 @@ const userApi = require('../api/user');
 const client = require('../api/client');
 const lifecycle = require('./lifecycle');
 const motion = require('../ui/motion');
+const cards = require('../ui/cards');
 
 function Anime(params) {
   this.params = params || {};
@@ -23,18 +24,11 @@ Anime.prototype.create = function () {
   this.html = document.createElement('div');
   this.html.className = 'shikimori-local activity-page';
   this.html.innerHTML = templates.animeTemplate(this.anime);
+  cards.loadPoster(this.html.querySelector('.shikimori-local__poster img'), this.anime);
   this.bindEvents();
   matcher.applyBestPoster(this.anime).then(function () {
     if (self.__shikimoriDestroyed || !self.html) return;
-    const poster = self.html.querySelector('.shikimori-local__poster');
-    if (!poster || !self.anime.poster) return;
-    let image = poster.querySelector('img');
-    if (!image) {
-      image = document.createElement('img');
-      poster.innerHTML = '';
-      poster.appendChild(image);
-    }
-    if (image.getAttribute('src') !== self.anime.poster) image.src = self.anime.poster;
+    cards.loadPoster(self.html.querySelector('.shikimori-local__poster img'), self.anime);
   });
 };
 

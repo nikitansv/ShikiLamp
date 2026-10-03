@@ -84,9 +84,7 @@ function matchLocal(anime) {
   const local = storage.get(anime.shikimori_id);
   if (!local) return null;
   if (local.poster) {
-    anime.tmdb_poster = local.poster;
-    anime.poster = local.poster;
-    anime.image = local.poster;
+    applyPoster(anime, local.poster);
   }
   return createResult(local, local.mapping_source || 'local', local.confidence || 1.0);
 }
@@ -150,12 +148,23 @@ function normalizeTmdbItem(item, type) {
 
 function tmdbPosterUrl(path) {
   if (!path) return '';
-  if (/^https?:\/\//i.test(path)) return path;
-  const normalized = path.charAt(0) === '/' ? path.slice(1) : path;
+  // Stored URLs must follow the host's current image mirror, just like fresh results.
+  const known = path.match(/^https?:\/\/(?:image\.tmdb\.org|imagetmdb\.com)\/(t\/p\/[^?#]+)/i);
+  if (/^https?:\/\//i.test(path) && !known) return path;
+  const normalized = known ? known[1] : 't/p/w500/' + path.replace(/^\//, '');
   if (typeof Lampa !== 'undefined' && Lampa.TMDB && Lampa.TMDB.image) {
-    return Lampa.TMDB.image('t/p/w500/' + normalized);
+    return Lampa.TMDB.image(normalized);
   }
-  return 'https://image.tmdb.org/t/p/w500/' + normalized;
+  return 'https://image.tmdb.org/' + normalized;
+}
+
+function applyPoster(anime, poster) {
+  // Keep Shikimori's sources when a preferred TMDB poster is unavailable.
+  anime.poster_fallbacks = (anime.poster_fallbacks || []).concat([anime.poster, anime.image])
+    .filter(function (url, index, list) { return url && list.indexOf(url) === index; });
+  anime.tmdb_poster = tmdbPosterUrl(poster);
+  anime.poster = anime.tmdb_poster;
+  anime.image = anime.tmdb_poster;
 }
 
 function fetchTmdbPoster(mapping) {
@@ -179,9 +188,7 @@ function applyBestPoster(anime) {
   if (!anime || !anime.shikimori_id) return Promise.resolve(anime);
   const local = storage.get(anime.shikimori_id);
   if (local && local.poster) {
-    anime.tmdb_poster = local.poster;
-    anime.poster = local.poster;
-    anime.image = local.poster;
+    applyPoster(anime, local.poster);
     return Promise.resolve(anime);
   }
   if (local && !local.poster) {
@@ -191,9 +198,7 @@ function applyBestPoster(anime) {
         if (!current || current.tmdb_id !== local.tmdb_id || current.tmdb_type !== local.tmdb_type) return anime;
         current.poster = poster;
         storage.set(current);
-        anime.tmdb_poster = poster;
-        anime.poster = poster;
-        anime.image = poster;
+        applyPoster(anime, poster);
       }
       return anime;
     });
@@ -202,9 +207,7 @@ function applyBestPoster(anime) {
     const best = out.candidates && out.candidates.length ? out.candidates[0] : null;
     const poster = out.result && best && best.item ? tmdbPosterUrl(best.item.poster_path) : '';
     if (poster) {
-      anime.tmdb_poster = poster;
-      anime.poster = poster;
-      anime.image = poster;
+      applyPoster(anime, poster);
     }
     return anime;
   }).catch(function () {
@@ -277,9 +280,7 @@ function saveManual(anime, tmdbId, tmdbType, season, episodeOffset, extra) {
   };
   if (!storage.set(mapping)) throw new Error('MAPPING_SAVE_FAILED');
   if (mapping.poster) {
-    anime.tmdb_poster = mapping.poster;
-    anime.poster = mapping.poster;
-    anime.image = mapping.poster;
+    applyPoster(anime, mapping.poster);
   }
   return mapping;
 }

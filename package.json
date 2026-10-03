@@ -9,6 +9,7 @@
     "build": "node build.js",
     "lint": "node scripts/check-syntax.js",
     "test:visual": "node scripts/visual-menus.js",
+    "test:lampa": "npm run build && node scripts/lampa-check.js",
     "test:smoke": "node scripts/integration-smoke.js",
     "check": "npm run lint && npm test && npm run build && npm run test:smoke"
   },

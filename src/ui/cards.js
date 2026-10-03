@@ -18,13 +18,15 @@ function createDomCard(anime, options) {
   const type = typeBadge(anime.kind);
 
   el.innerHTML = '<div class="shikimori-local__result-poster">' +
-      '<img src="' + templates.escapeHtml(anime.poster || '') + '" />' +
+      '<img />' +
       (type ? '<div class="shikimori-local__result-type type-' + type.key + '">' + type.label + '</div>' : '') +
       (score ? '<div class="shikimori-local__result-score' + scoreClass + '">' + templates.escapeHtml(String(score)) + '</div>' : '') +
     '</div>' +
     '<div class="shikimori-local__result-info">' +
       '<div class="shikimori-local__result-title">' + templates.escapeHtml(anime.title) + '</div>' +
     '</div>';
+
+  loadPoster(el.querySelector('img'), anime);
 
   if (typeof options.onEnter === 'function') {
     lifecycle.bindAction(el, options.onEnter);
@@ -43,11 +45,39 @@ function createDomCard(anime, options) {
   if (anime && anime.shikimori_id) {
     matcher.applyBestPoster(anime).then(function () {
       const img = el.querySelector('img');
-      if (img && anime.poster && document.body.contains(el)) img.src = anime.poster;
+      if (img && document.body.contains(el)) loadPoster(img, anime);
     });
   }
 
   return el;
+}
+
+function loadPoster(image, anime) {
+  if (!image) return;
+  let state = image.__shikimoriPoster;
+  if (!state) {
+    state = image.__shikimoriPoster = { failed: [], sources: [] };
+    const placeholder = document.createElement('div');
+    placeholder.className = 'shikimori-local__poster-fallback';
+    placeholder.textContent = anime.title || 'Нет постера';
+    image.parentNode.appendChild(placeholder);
+    image.alt = anime.title || '';
+    image.referrerPolicy = 'no-referrer';
+    state.show = function () {
+      const next = state.sources.find(function (url) { return state.failed.indexOf(url) < 0; });
+      image.style.display = next ? '' : 'none';
+      placeholder.style.display = next ? 'none' : '';
+      if (next && image.getAttribute('src') !== next) image.src = next;
+      if (!next) image.removeAttribute('src');
+    };
+    image.onerror = function () {
+      state.failed.push(image.getAttribute('src'));
+      state.show();
+    };
+  }
+  state.sources = [anime.poster, anime.image].concat(anime.poster_fallbacks || [], state.sources)
+    .filter(function (url, index, list) { return typeof url === 'string' && url && list.indexOf(url) === index; });
+  state.show();
 }
 
 function typeBadge(kind) {
@@ -56,4 +86,4 @@ function typeBadge(kind) {
   return value ? { key: value[0], label: value[1] } : null;
 }
 
-module.exports = { createDomCard, typeBadge };
+module.exports = { createDomCard, typeBadge, loadPoster };

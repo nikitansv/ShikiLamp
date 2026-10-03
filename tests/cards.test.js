@@ -73,3 +73,27 @@ test('createDomCard colors low and medium scores', () => {
   expect(low.querySelector('.shikimori-local__result-score').classList.contains('score-low')).toBe(true);
   expect(medium.querySelector('.shikimori-local__result-score').classList.contains('score-mid')).toBe(true);
 });
+
+test('failed preferred poster falls back once per URL, including after asynchronous replacement', () => {
+  const anime = { title: 'Poster', poster: 'https://example.com/primary.webp', poster_fallbacks: ['https://example.com/alternate.jpg'] };
+  const card = cards.createDomCard(anime);
+  const image = card.querySelector('img');
+  image.dispatchEvent(new Event('error'));
+  expect(image.src).toBe('https://example.com/alternate.jpg');
+  anime.poster = 'https://example.com/stale-mapping.jpg';
+  cards.loadPoster(image, anime);
+  image.dispatchEvent(new Event('error'));
+  expect(image.src).toBe('https://example.com/alternate.jpg');
+  cards.loadPoster(image, anime);
+  expect(image.src).toBe('https://example.com/alternate.jpg');
+  image.dispatchEvent(new Event('error'));
+  expect(image.hasAttribute('src')).toBe(false);
+  expect(image.style.display).toBe('none');
+  expect(card.querySelector('.shikimori-local__poster-fallback').textContent).toBe('Poster');
+});
+
+test('missing poster shows escaped title placeholder without an empty image request', () => {
+  const card = cards.createDomCard({ title: '<No poster>' });
+  expect(card.querySelector('img').hasAttribute('src')).toBe(false);
+  expect(card.querySelector('.shikimori-local__poster-fallback').textContent).toBe('<No poster>');
+});

@@ -88,7 +88,7 @@ UserLists.prototype.load = function (append) {
   this.loading = false;
   const user = auth.getCachedUser();
   if (!auth.getToken()) {
-    this.results.innerHTML = '<div class="shikimori-local__empty">Нужна авторизация: настройки → ShikiLamp Local → ввести access token.</div>';
+    this.results.innerHTML = '<div class="shikimori-local__empty">Для списков войдите в аккаунт: настройки → ShikiLamp → Аккаунт Shikimori.</div>';
     this.refocus();
     return;
   }

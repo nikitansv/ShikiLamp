@@ -31,9 +31,8 @@ function animeTemplate(anime) {
   const title = escapeHtml(anime.title || anime.russian_title || anime.original_title || 'Unknown');
   const altTitle = getAltTitle(anime);
   const description = cleanDescription(anime.description || '');
-  const poster = escapeHtml(anime.poster || anime.image || '');
   return '<div class="shikimori-local anime-detail">' +
-    '<div class="shikimori-local__poster">' + (poster ? '<img src="' + poster + '" />' : '<div class="shikimori-local__poster-fallback">' + title + '</div>') + '</div>' +
+    '<div class="shikimori-local__poster"><img /></div>' +
     '<div class="shikimori-local__info">' +
       '<h1>' + title + '</h1>' +
       (altTitle ? '<div class="shikimori-local__sub">' + escapeHtml(altTitle) + '</div>' : '') +

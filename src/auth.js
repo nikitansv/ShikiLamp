@@ -80,7 +80,7 @@ function saveUser(user) {
 
 function statusText() {
   const user = getCachedUser();
-  if (user && (user.nickname || user.name || user.id)) return 'Войти: ' + (user.nickname || user.name || ('ID ' + user.id));
+  if (getToken() && user && (user.nickname || user.name || user.id)) return 'Выполнен вход: ' + (user.nickname || user.name || ('ID ' + user.id));
   return getToken() ? 'Токен введён, вход не проверен' : 'Не авторизован';
 }
 

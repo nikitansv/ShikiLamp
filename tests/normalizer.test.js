@@ -1,6 +1,12 @@
 const normalizer = require('../src/api/normalizer');
 
 describe('api/normalizer', () => {
+  test('keeps alternate poster URLs and normalizes relative or protocol-relative images', () => {
+    const anime = normalizer.normalizeAnime({ id: 1, poster: { mainUrl: '/main.webp', mainAltUrl: '//cdn.example/alternate.jpg', originalUrl: '/original.webp' }, image: { original: '/legacy.jpg' } });
+    expect(anime.poster).toBe('https://shikimori.io/main.webp');
+    expect(anime.poster_fallbacks).toEqual(['https://shikimori.io/main.webp', 'https://cdn.example/alternate.jpg', 'https://shikimori.io/original.webp', 'https://shikimori.io/legacy.jpg']);
+    expect(normalizer.normalizeAnime({ id: 1, poster: {}, image: { preview: '/legacy.jpg' } }).poster).toBe('https://shikimori.io/legacy.jpg');
+  });
   test('REST English title arrays produce a text title, including empty arrays', () => {
     expect(normalizer.normalizeAnime({ id: 1, name: 'Name', english: ['English'] }).title).toBe('English');
     expect(normalizer.normalizeAnime({ id: 1, name: 'Name', english: [] }).title).toBe('Name');

@@ -3,18 +3,18 @@
  */
 const config = require('../config');
 
-function getPoster(item) {
-  if (!item) return '';
-  if (item.poster) return item.poster.mainUrl || item.poster.originalUrl || '';
-  if (item.image) {
-    const image = item.image.preview || item.image.x96 || item.image.original || '';
-    return image && !/^https?:\/\//i.test(image) ? config.SHIKIMORI_HOST_DEFAULT + image : image;
-  }
-  return '';
-}
-
-function getImage(item) {
-  return getPoster(item);
+function getPosters(item) {
+  if (!item) return [];
+  const poster = item.poster || {};
+  const image = item.image || {};
+  return [typeof poster === 'string' ? poster : poster.mainUrl, poster.mainAltUrl, poster.originalUrl,
+    typeof image === 'string' ? image : image.preview, image.original, image.x96, image.x48]
+    .filter(function (url) { return typeof url === 'string' && url.trim(); })
+    .map(function (url) {
+      url = url.trim();
+      if (url.indexOf('//') === 0) return 'https:' + url;
+      return url.charAt(0) === '/' ? config.SHIKIMORI_HOST_DEFAULT + url : url;
+    }).filter(function (url, index, list) { return list.indexOf(url) === index; });
 }
 
 function getYear(item) {
@@ -85,6 +85,7 @@ function normalizeAnime(item) {
   if (!item) return null;
   const titles = getTitles(item);
   const english = Array.isArray(item.english) ? item.english.filter(Boolean)[0] || '' : item.english || '';
+  const posters = getPosters(item);
   const language = typeof Lampa !== 'undefined' && Lampa.Storage
     ? Lampa.Storage.get(config.STORAGE_KEYS.language, config.DEFAULTS.language) : config.DEFAULTS.language;
   return {
@@ -109,8 +110,9 @@ function normalizeAnime(item) {
     rating: item.rating || '',
     description: item.description || '',
     description_html: item.descriptionHtml || '',
-    poster: getPoster(item),
-    image: getImage(item),
+    poster: posters[0] || '',
+    image: posters[0] || '',
+    poster_fallbacks: posters,
     url: item.url || '',
     genres: (item.genres || []).map(function (g) { return g.russian || g.name || ''; }).filter(Boolean),
     studios: (item.studios || []).map(function (s) { return { id: s.id || 0, name: s.name || '' }; }).filter(function (s) { return s.name; }),

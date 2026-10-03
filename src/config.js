@@ -30,6 +30,7 @@ const STORAGE_KEYS = {
   authCheckedAt: 'shikimori_local_auth_checked_at',
   lastCleared: 'shikimori_local_last_cleared',
   ui: 'shikimori_local_ui',
+  motion: 'shikimori_local_motion',
   filter: 'shikimori_local_filter'
 };
 

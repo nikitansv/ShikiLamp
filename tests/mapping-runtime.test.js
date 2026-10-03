@@ -98,3 +98,13 @@ test('poster transport failures and deadlines resolve without a UI catch', async
   await jest.advanceTimersByTimeAsync(12000);
   await expect(stalled).resolves.toMatchObject({ poster: 'original' });
 });
+
+test('saved TMDB poster follows the current mirror and preserves the Shikimori fallback', async () => {
+  global.Lampa.TMDB.image = jest.fn(path => 'https://current-mirror.test/' + path);
+  storage.set({ shikimori_id: 1, tmdb_id: 10, tmdb_type: 'tv', poster: 'https://image.tmdb.org/t/p/w500/saved.jpg' });
+  const item = anime();
+  item.poster = item.image = 'https://shikimori.io/original.webp';
+  await matcher.applyBestPoster(item);
+  expect(item.poster).toBe('https://current-mirror.test/t/p/w500/saved.jpg');
+  expect(item.poster_fallbacks).toEqual(['https://shikimori.io/original.webp']);
+});
